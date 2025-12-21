@@ -1,0 +1,385 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { verifySignature, deriveXpub } from '@/lib/auth'
+import { getUserByXpub, createUser, getUserBySiteId, markAuthSessionAsUsed } from '@/lib/storage'
+import { generateSiteId } from '@/lib/utils'
+import { validateDashboardOrigin, validateEmbedOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
+
+export async function OPTIONS(request: NextRequest) {
+  // Handle CORS preflight
+  // For callback, we need to allow both dashboard (Key-Rex domain) and embed (client domains)
+  // Since we can't know which it is in OPTIONS, we'll validate in the actual request
+  const origin = request.headers.get('origin')
+  const keyrexDomain = getKeyRexDomain(request)
+  
+  // Allow Key-Rex domain or validate later in GET handler
+  if (origin && !validateDashboardOrigin(request, keyrexDomain)) {
+    // Could be embed login - validate in GET handler
+    // For OPTIONS, we'll be permissive but validate in GET
+  }
+  
+  const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
+
+export async function GET(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent brute force attacks and cost abuse
+  // NOTE: QR code authentication polls every 1 second for up to 60 seconds (60 requests)
+  // Limit set to 60/min to allow legitimate authentication while still preventing abuse
+  const { rateLimitMiddleware } = await import('@/lib/rate-limit')
+  const rateLimit = rateLimitMiddleware(request, 60, 60000) // 60 requests per minute (allows full QR polling window)
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit check (for GET, check URL length)
+  if (request.url.length > 2048) {
+    return NextResponse.json({ error: 'Request URL too long' }, { status: 414 })
+  }
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== /api/auth/callback called ===')
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('Full URL:', request.url.substring(0, 200) + '...') // Truncate long URLs
+  }
+  const searchParams = request.nextUrl.searchParams
+  // Get k1 - handle case where there might be extra query params
+  let k1 = searchParams.get('k1')
+  // If k1 has extra stuff after it (like &t=timestamp), clean it
+  if (k1 && k1.includes('&')) {
+    k1 = k1.split('&')[0]
+    console.log('Cleaned k1 (removed extra params):', k1.substring(0, 20) + '...')
+  }
+  const sig = searchParams.get('sig')
+  const key = searchParams.get('key')
+  const siteId = searchParams.get('siteId')
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Callback params:', {
+      k1: k1 ? k1.substring(0, 20) + '...' : 'MISSING',
+      sig: sig ? 'PRESENT (' + sig.length + ' chars)' : 'MISSING',
+      key: key ? 'PRESENT (' + key.length + ' chars)' : 'MISSING',
+      siteId: siteId || 'none'
+    })
+  }
+  
+  // If no sig/key, this could be:
+  // 1. Initial LNURL-auth request - return the auth parameters
+  // 2. Client trying to retrieve xpub after Alby called the callback
+  //    (check if we have a stored session for this k1)
+  if (!sig || !key) {
+    if (!k1) {
+      return NextResponse.json({ error: 'Missing k1 parameter' }, { status: 400 })
+    }
+    
+    // Check if this is a retrieval request (client trying to get xpub after callback)
+    // Clean k1 first to ensure consistent lookup
+    const cleanK1ForRetrieval = k1.split('&')[0].split('?')[0]
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Retrieval request: Original k1:', k1.substring(0, 20) + '...')
+      console.log('Retrieval request: Cleaned k1:', cleanK1ForRetrieval.substring(0, 20) + '...')
+    }
+    
+    // Try both in-memory storage and cookies
+    const { getAuthSession } = await import('@/lib/storage')
+    let storedXpub = getAuthSession(cleanK1ForRetrieval)
+    
+    // If not in memory, check cookies
+    if (!storedXpub) {
+      const k1CookieNameForRetrieval = `auth_k1_${cleanK1ForRetrieval.substring(0, 16)}`
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Checking cookie:', k1CookieNameForRetrieval)
+      }
+      storedXpub = request.cookies.get(k1CookieNameForRetrieval)?.value
+      if (storedXpub && process.env.NODE_ENV === 'development') {
+        console.log('Retrieval request: Found xpub in cookie for k1:', cleanK1ForRetrieval.substring(0, 20) + '...')
+      }
+    } else if (process.env.NODE_ENV === 'development') {
+      console.log('Retrieval request: Found xpub in memory storage')
+    }
+    
+    if (storedXpub) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Retrieval request: Found stored xpub for k1:', k1.substring(0, 20) + '...')
+      }
+      
+      // SECURITY: Validate origin for embedded logins
+      if (siteId) {
+        const user = getUserBySiteId(siteId)
+        if (user) {
+          const origin = request.headers.get('origin')
+          const allowedDomains = user.allowedDomains || []
+          
+          // If user has allowed domains, validate origin
+          if (allowedDomains.length > 0 && origin) {
+            if (!validateEmbedOrigin(request, allowedDomains)) {
+              console.warn('CORS: Invalid origin for xpub retrieval:', origin, 'siteId:', siteId)
+              return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+            }
+          }
+        }
+      }
+      
+      const response = NextResponse.json({
+        status: 'OK',
+        xpub: storedXpub,
+      })
+      
+      // Set CORS headers based on validated origin
+      const origin = request.headers.get('origin')
+      const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Initial LNURL-auth request (no sig/key yet)')
+    }
+    
+    // Return LNURL-auth response format
+    const domain = request.nextUrl.origin
+    const callback = `${domain}/api/auth/callback?tag=login&k1=${k1}${siteId ? `&siteId=${siteId}` : ''}`
+    
+    const initialResponse = NextResponse.json({
+      tag: 'login',
+      k1: k1,
+      callback: callback,
+    })
+    
+    // Set CORS headers based on origin
+    const origin = request.headers.get('origin')
+    const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      initialResponse.headers.set(key, value)
+    })
+    
+    return initialResponse
+  }
+  
+  // If we have sig and key, this is the authentication response
+  if (!k1) {
+    return NextResponse.json({ error: 'Missing k1 parameter' }, { status: 400 })
+  }
+  
+  // Verify k1 matches stored challenge (optional check - for security)
+  const storedChallenge = request.cookies.get('auth_challenge')?.value
+  if (storedChallenge && storedChallenge !== k1) {
+    console.warn('k1 challenge mismatch:', {
+      received: k1.substring(0, 16) + '...',
+      stored: storedChallenge.substring(0, 16) + '...',
+    })
+    // Still proceed - might be from different session
+  }
+  
+  // Log the received parameters for debugging (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== LNURL-auth callback received - AUTHENTICATION IN PROGRESS ===')
+    console.log('This confirms that your wallet is authenticating the request')
+    console.log('k1 (challenge):', k1.substring(0, 32) + '...')
+    console.log('sig (signature):', sig ? sig.substring(0, 32) + '...' : 'MISSING')
+    console.log('key (public key):', key ? key.substring(0, 32) + '...' : 'MISSING')
+    console.log('sig length:', sig?.length)
+    console.log('key length:', key?.length)
+    console.log('Verifying cryptographic signature...')
+  }
+  
+  const isValid = verifySignature(k1, sig, key)
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== Signature verification result:', isValid ? '✓ VALID' : '✗ INVALID', '===')
+  }
+  
+  if (!isValid) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('CRITICAL: Signature verification failed - authentication blocked')
+      console.error('This means the signature from Alby could not be cryptographically verified')
+    }
+    return NextResponse.json({ 
+      error: 'Invalid signature - cryptographic verification failed',
+      details: 'The signature from your wallet could not be verified. Please try again.'
+    }, { status: 401 })
+  }
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('✓ Signature cryptographically verified - authentication is valid')
+  }
+  
+  // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
+  markAuthSessionAsUsed(k1)
+  
+  // Derive xpub from pubkey
+  const xpub = deriveXpub(key)
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Derived xpub:', xpub.substring(0, 20) + '...')
+  }
+  
+  // Store k1 -> xpub mapping for client to retrieve
+  // Clean k1 first to ensure consistent storage
+  const cleanK1 = k1.split('&')[0].split('?')[0]
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Original k1:', k1.substring(0, 20) + '...')
+    console.log('Cleaned k1 for storage:', cleanK1.substring(0, 20) + '...')
+  }
+  
+  // Store in both in-memory (for immediate access) and in a cookie (for persistence)
+  const { storeAuthSession } = await import('@/lib/storage')
+  storeAuthSession(cleanK1, xpub)
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Stored auth session: k1 -> xpub mapping saved')
+    console.log('k1 stored:', cleanK1.substring(0, 20) + '...')
+    console.log('xpub stored:', xpub.substring(0, 20) + '...')
+  }
+  
+  // Also store in a cookie for persistence across requests/workers
+  // Format: k1_xpub mapping as a cookie value
+  // We'll use a cookie named 'auth_k1_<first16chars>' with value xpub
+  const k1CookieName = `auth_k1_${cleanK1.substring(0, 16)}`
+  
+  // Verify it was stored
+  const { getAuthSession } = await import('@/lib/storage')
+  const verify = getAuthSession(cleanK1)
+  
+  if (process.env.NODE_ENV === 'development' && verify) {
+    console.log('Verification: Session stored and xpub matches')
+  }
+  
+  // If siteId is provided, this is an embedded login - validate origin
+  if (siteId) {
+    const { recordLogin } = await import('@/lib/storage')
+    
+    // Check if siteId belongs to a valid user
+    const user = getUserBySiteId(siteId)
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid siteId' }, { status: 404 })
+    }
+    
+    // Validate origin for embed login
+    const origin = request.headers.get('origin')
+    if (origin) {
+      const allowedDomains = user.allowedDomains || []
+      if (allowedDomains.length > 0 && !validateEmbedOrigin(request, allowedDomains)) {
+        console.warn('CORS: Invalid origin for embed login:', origin, 'siteId:', siteId)
+        return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+      }
+    }
+    
+    // All users are free users - no subscription check needed
+    
+    // Record login
+    recordLogin(siteId, key)
+    
+    const response = NextResponse.json({ success: true, xpub })
+    
+    // Set CORS headers for embed login
+    const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    return response
+  }
+  
+  // Otherwise, this is a dashboard login
+  // Get or create user
+  let user = getUserByXpub(xpub)
+  if (!user) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Creating new user for xpub:', xpub.substring(0, 16) + '...')
+    }
+    const newSiteId = generateSiteId()
+    user = createUser(xpub, newSiteId)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('User created with siteId:', newSiteId)
+    }
+  }
+  
+  // Double-check user exists
+  const verifyUser = getUserByXpub(xpub)
+  if (!verifyUser) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('CRITICAL: User was not created or cannot be retrieved!')
+    }
+    return NextResponse.json({ 
+      status: 'ERROR',
+      error: 'Failed to create user account'
+    }, { status: 500 })
+  }
+  
+  // Return JSON response (LNURL-auth spec) - WebLN expects { status: 'OK' }
+  // Also include the xpub in the response so the browser can set the cookie
+  // IMPORTANT: Alby expects exactly { status: 'OK' } - any other format may cause issues
+  const response = NextResponse.json({ 
+    status: 'OK',
+    xpub: xpub, // Include xpub so browser can set cookie (for our client-side code)
+  })
+  
+  // Set CORS headers for dashboard login (Key-Rex domain)
+  const origin = request.headers.get('origin')
+  const keyrexDomain = getKeyRexDomain(request)
+  
+  // For dashboard logins, validate Key-Rex domain
+  if (origin && !validateDashboardOrigin(request, keyrexDomain)) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('CORS: Invalid origin for dashboard login:', origin)
+    }
+    // Still allow for now (Alby might not send origin), but log warning
+  }
+  
+  const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value)
+  })
+  
+  // Try to set cookie (may not work in Alby's context, but worth trying)
+  response.cookies.set('user_xpub', xpub, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30, // SECURITY: Reduced from 1 year to 30 days
+  })
+  
+  // Also store k1->xpub mapping in a cookie for retrieval (cleanK1 and k1CookieName already defined above)
+  // SECURITY: Use httpOnly, Secure, and SameSite to prevent XSS and CSRF attacks
+  response.cookies.set(k1CookieName, xpub, {
+    httpOnly: true, // SECURITY: Prevent XSS attacks - cookies not accessible via JavaScript
+    secure: process.env.NODE_ENV === 'production', // SECURITY: Only send over HTTPS in production
+    sameSite: 'lax', // SECURITY: Prevent CSRF attacks
+    path: '/',
+    maxAge: 300, // 5 minutes (same as auth session timeout)
+  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Set persistence cookie for k1 retrieval:', k1CookieName)
+    console.log('=== Dashboard login successful ===')
+    console.log('Returning JSON with xpub:', xpub.substring(0, 16) + '...')
+    console.log('User in storage:', getUserByXpub(xpub) ? 'YES' : 'NO')
+  }
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('User data:', {
+      xpub: verifyUser.xpub.substring(0, 20) + '...',
+      siteId: verifyUser.siteId,
+      subscribed: verifyUser.subscribed
+    })
+    console.log('Response headers being set:', {
+      'Set-Cookie': `user_xpub=${xpub.substring(0, 20)}...`,
+      'Content-Type': 'application/json'
+    })
+    console.log('NOTE: Cookie may not be set in browser if called from Alby extension context')
+    console.log('The client-side code should call /api/auth/set-session to set the cookie')
+  }
+  
+  return response
+}
+
+
+

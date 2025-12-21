@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fake Client Site – Key-Rex Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #f5f5f7;
+        --card-bg: #ffffff;
+        --text-main: #1f2933;
+        --text-sub: #4b5563;
+        --accent: #f97316;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(circle at top left, #e5e7eb, #f9fafb);
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 1rem 1.5rem;
+        background: #111827;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      header .logo {
+        font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+
+      header nav a {
+        margin-left: 1.25rem;
+        font-size: 0.9rem;
+        color: #e5e7eb;
+        text-decoration: none;
+      }
+
+      header nav a:hover {
+        color: #ffffff;
+      }
+
+      main {
+        flex: 1;
+        padding: 2.5rem 1.5rem 3rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .layout {
+        max-width: 1100px;
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr);
+        gap: 2.5rem;
+        align-items: flex-start;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .content-card {
+        background: var(--card-bg);
+        border-radius: 1.25rem;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+        padding: 1.75rem 1.75rem 2rem;
+        border: 1px solid rgba(15, 23, 42, 0.04);
+      }
+
+      .content-card h1 {
+        font-size: clamp(1.9rem, 2.3vw, 2.2rem);
+        margin: 0 0 0.75rem;
+      }
+
+      .content-card p.lead {
+        margin: 0 0 1.5rem;
+        color: var(--text-sub);
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(249, 115, 22, 0.07);
+        color: #9a3412;
+        border-radius: 999px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.75rem;
+        margin-bottom: 0.75rem;
+        border: 1px solid rgba(249, 115, 22, 0.18);
+      }
+
+      .pill-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #f97316;
+      }
+
+      .feature-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.85rem;
+        margin-top: 1.25rem;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.55rem;
+        font-size: 0.9rem;
+        color: var(--text-sub);
+      }
+
+      .feature-item strong {
+        color: #111827;
+      }
+
+      .feature-bullet {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: rgba(16, 185, 129, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #059669;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+      }
+
+      .side-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .side-panel h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #6b7280;
+      }
+
+      .helper-text {
+        font-size: 0.85rem;
+        color: #6b7280;
+        line-height: 1.5;
+      }
+
+      .keyrex-wrapper {
+        margin-top: 0.75rem;
+      }
+
+      footer {
+        padding: 1rem 1.5rem 1.5rem;
+        font-size: 0.8rem;
+        color: #6b7280;
+        text-align: center;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">ACME LEARNING</div>
+      <nav aria-label="Fake client navigation">
+        <a href="#">Courses</a>
+        <a href="#">Pricing</a>
+        <a href="#">Sign in</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="layout">
+        <section class="content-card">
+          <div class="pill">
+            <span class="pill-dot"></span>
+            Example client website
+          </div>
+          <h1>Members‑only dashboard</h1>
+          <p class="lead">
+            This is a <strong>fake customer site</strong> used only to test the Key-Rex
+            sign‑in experience from an end‑user's perspective. Nothing here is real
+            content or production data.
+          </p>
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="feature-bullet">1</div>
+              <div>
+                <strong>Click the Key-Rex button on the right</strong> to start the
+                Lightning wallet sign‑in.
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-bullet">2</div>
+              <div>
+                Walk through the <strong>full LNURL‑auth flow</strong> as if you were a
+                visitor logging in to this site.
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-bullet">3</div>
+              <div>
+                After authentication, you can wire this into whatever
+                <strong>"dashboard"</strong> experience you'd like to simulate.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <div>
+            <h2>Sign in with Key-Rex</h2>
+            <p class="helper-text">
+              The card below is the real Key-Rex embed, exactly as it would appear on a
+              customer's website. Use this page to test all wallet and device scenarios.
+            </p>
+          </div>
+
+          <div class="keyrex-wrapper">
+            <!-- Key-Rex embed target -->
+            <div id="keyrex-container"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer>
+      This page exists only for local testing. It is not part of the public Key-Rex
+      product or documentation.
+    </footer>
+
+    <!-- Key-Rex Integration Code -->
+    <script>
+      // Configuration - UPDATE KEYREX_BASE_URL with your deployed Key-Rex instance URL
+      // For local testing: 'http://localhost:3000'
+      // For production: 'https://your-keyrex-instance.vercel.app'
+      const KEYREX_BASE_URL = 'http://localhost:3000'; // TODO: Change to your deployed Key-Rex URL
+      const KEYREX_SITE_ID = 'b5a919db0da9a360818ff90c869faca5'; // Your siteId
+      
+      // Load Key-Rex embed script
+      (function() {
+        const script = document.createElement('script');
+        script.src = KEYREX_BASE_URL + '/embed?siteId=' + encodeURIComponent(KEYREX_SITE_ID) + '&v=2';
+        script.async = true;
+        
+        script.onerror = function(event) {
+          console.error('Key-Rex: Failed to load embed script from:', script.src);
+          console.error('Key-Rex: Make sure KEYREX_BASE_URL and KEYREX_SITE_ID are set correctly');
+        };
+        
+        script.onload = function() {
+          console.log('Key-Rex: Embed script loaded successfully');
+          // Initialize after a short delay to ensure Key-Rex is ready
+          setTimeout(function() {
+            if (window.KeyRex && window.KeyRex.init) {
+              console.log('Key-Rex: Initializing...');
+              window.KeyRex.init();
+            } else {
+              console.warn('Key-Rex: window.KeyRex not found, retrying...');
+              setTimeout(function() {
+                if (window.KeyRex && window.KeyRex.init) {
+                  window.KeyRex.init();
+                }
+              }, 500);
+            }
+          }, 100);
+        };
+        
+        document.head.appendChild(script);
+      })();
+      
+      // Set up success and error callbacks
+      function setupKeyRexCallbacks() {
+        if (window.KeyRex) {
+          window.KeyRex.onSuccess = function(xpub) {
+            console.log('Key-Rex: Authentication successful! xpub:', xpub);
+            showNotification('Authentication successful!', 'success');
+          };
+          
+          window.KeyRex.onError = function(error) {
+            console.error('Key-Rex: Authentication error:', error);
+            showNotification('Authentication failed: ' + (error.message || error), 'error');
+          };
+          
+          console.log('Key-Rex: Success and error callbacks set up');
+        } else {
+          setTimeout(setupKeyRexCallbacks, 500);
+        }
+      }
+      
+      // Show notification
+      function showNotification(message, type) {
+        const notification = document.createElement('div');
+        const bgColor = type === 'success' ? '#10b981' : '#ef4444';
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: ' + bgColor + '; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
+        notification.innerHTML = '<span style="font-size: 18px;">' + (type === 'success' ? '✓' : '✗') + '</span> <span>' + message + '</span>';
+        document.body.appendChild(notification);
+        
+        setTimeout(function() {
+          notification.style.animation = 'slideOut 0.3s ease-out';
+          setTimeout(function() {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }, 5000);
+      }
+      
+      // Set up callbacks when Key-Rex is ready
+      setupKeyRexCallbacks();
+    </script>
+  </body>
+</html>
+

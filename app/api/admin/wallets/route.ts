@@ -1,0 +1,122 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getAdminSessionFromCookie } from '@/lib/admin-auth'
+import { getAllFeaturedWallets, addFeaturedWallet, updateFeaturedWallet, deleteFeaturedWallet, reorderFeaturedWallets } from '@/lib/storage'
+
+/**
+ * Admin Featured Wallets API Route
+ * 
+ * Manage featured wallets (admin only)
+ */
+export async function GET(request: NextRequest) {
+  // Verify admin session
+  const adminSession = request.cookies.get('admin_session')?.value
+  if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
+  try {
+    const wallets = getAllFeaturedWallets()
+    return NextResponse.json({ wallets })
+  } catch (error) {
+    console.error('Error fetching wallets:', error)
+    return NextResponse.json({ error: 'Failed to fetch wallets' }, { status: 500 })
+  }
+}
+
+/**
+ * Add new featured wallet
+ */
+export async function POST(request: NextRequest) {
+  // Verify admin session
+  const adminSession = request.cookies.get('admin_session')?.value
+  if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
+  try {
+    const body = await request.json()
+    const { name, logoUrl, downloadUrl, enabled, priority } = body
+    
+    if (!name || !logoUrl || !downloadUrl) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+    
+    const wallet = addFeaturedWallet({
+      name,
+      logoUrl,
+      downloadUrl,
+      enabled: enabled !== false,
+      priority: priority || 0,
+    })
+    
+    return NextResponse.json({ success: true, wallet })
+  } catch (error) {
+    console.error('Error adding wallet:', error)
+    return NextResponse.json({ error: 'Failed to add wallet' }, { status: 500 })
+  }
+}
+
+/**
+ * Update featured wallet
+ */
+export async function PATCH(request: NextRequest) {
+  // Verify admin session
+  const adminSession = request.cookies.get('admin_session')?.value
+  if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
+  try {
+    const body = await request.json()
+    const { id, ...updates } = body
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+    }
+    
+    const updated = updateFeaturedWallet(id, updates)
+    if (!updated) {
+      return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
+    }
+    
+    return NextResponse.json({ success: true, wallet: updated })
+  } catch (error) {
+    console.error('Error updating wallet:', error)
+    return NextResponse.json({ error: 'Failed to update wallet' }, { status: 500 })
+  }
+}
+
+/**
+ * Delete featured wallet
+ */
+export async function DELETE(request: NextRequest) {
+  // Verify admin session
+  const adminSession = request.cookies.get('admin_session')?.value
+  if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+    }
+    
+    const deleted = deleteFeaturedWallet(id)
+    if (!deleted) {
+      return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
+    }
+    
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting wallet:', error)
+    return NextResponse.json({ error: 'Failed to delete wallet' }, { status: 500 })
+  }
+}
+
+
+
+
+

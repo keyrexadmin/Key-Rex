@@ -1,0 +1,49 @@
+{
+  "name": "keyrex",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:client": "node scripts/serve-fake-client.js",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:phase1": "node test-phase1.js",
+    "test:phase2": "node test-phase2.js",
+    "test:phase2-final": "node test-phase2-final.js",
+    "test:all": "npm run test:phase1 && npm run test:phase2-final",
+    "test:e2e": "node test-e2e.js",
+    "test:admin": "node test-admin-e2e.js",
+    "test:additional": "node test-additional-e2e.js",
+    "test:all-automated": "npm run test:e2e && npm run test:admin && npm run test:additional"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.0.1",
+    "@noble/secp256k1": "^3.0.0",
+    "@vercel/kv": "^1.0.0",
+    "asn1js": "^3.0.6",
+    "bech32": "^2.0.0",
+    "elliptic": "^6.6.1",
+    "next": "^16.0.0",
+    "qrcode": "^1.5.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.5.1"
+  },
+  "devDependencies": {
+    "@types/elliptic": "^6.4.18",
+    "@types/node": "^20.11.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3"
+  }
+}
+
+
+
