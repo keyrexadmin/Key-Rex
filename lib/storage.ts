@@ -2,7 +2,8 @@
 // In production, use Vercel KV or a proper database
 // This works for Vercel deployment without additional setup
 
-import { User, UsageStats, FeaturedWallet, ActivityLog, ActivityType, ContactSubmission } from '@/types'
+import { User, UsageStats, FeaturedWallet, ActivityLog, ActivityType, ContactSubmission, DomainVerification } from '@/types'
+import { isTestDomain } from './utils'
 
 interface StorageData {
   users: Map<string, User>
@@ -143,6 +144,7 @@ export function createUser(xpub: string, siteId: string): User {
     subscribed: false,
     subscriptionTier: 'free',
     allowedDomains: [],
+    domainVerifications: new Map<string, DomainVerification>(),
     freeDisclaimerAccepted: false,
     freeDisclaimerAcceptedAt: undefined,
     freeDisclaimerAcceptedIp: undefined,
@@ -444,6 +446,12 @@ export function removeDomain(xpub: string, domain: string): User | undefined {
   }
   
   const normalized = normalizeDomain(domain)
+  
+  // Also remove verification record if it exists
+  if (user.domainVerifications) {
+    user.domainVerifications.delete(normalized)
+  }
+  
   const beforeCount = user.allowedDomains.length
   
   // CRITICAL: Permanently delete the domain - filter it out completely
@@ -468,6 +476,82 @@ export function removeDomain(xpub: string, domain: string): User | undefined {
   console.log('removeDomain: Domain cannot be found until explicitly re-added by user')
   
   return user
+}
+
+// Domain Verification Functions
+export function addDomainVerification(xpub: string, domain: string, verificationToken: string): DomainVerification | undefined {
+  const user = storage.users.get(xpub)
+  if (!user) return undefined
+  
+  const normalized = normalizeDomain(domain)
+  
+  // Initialize domainVerifications map if it doesn't exist
+  if (!user.domainVerifications) {
+    user.domainVerifications = new Map<string, DomainVerification>()
+  }
+  
+  const verification: DomainVerification = {
+    domain: normalized,
+    status: 'pending',
+    verificationMethod: 'dns_txt',
+    verificationToken,
+    createdAt: Date.now(),
+  }
+  
+  user.domainVerifications.set(normalized, verification)
+  storage.users.set(xpub, user)
+  
+  return verification
+}
+
+export function getDomainVerification(xpub: string, domain: string): DomainVerification | undefined {
+  const user = storage.users.get(xpub)
+  if (!user || !user.domainVerifications) return undefined
+  
+  const normalized = normalizeDomain(domain)
+  return user.domainVerifications.get(normalized)
+}
+
+export function updateDomainVerification(
+  xpub: string,
+  domain: string,
+  updates: Partial<DomainVerification>
+): DomainVerification | undefined {
+  const user = storage.users.get(xpub)
+  if (!user || !user.domainVerifications) return undefined
+  
+  const normalized = normalizeDomain(domain)
+  const existing = user.domainVerifications.get(normalized)
+  if (!existing) return undefined
+  
+  const updated: DomainVerification = {
+    ...existing,
+    ...updates,
+    domain: normalized, // Ensure domain doesn't change
+    verificationMethod: 'dns_txt', // Ensure method doesn't change
+    verificationToken: existing.verificationToken, // Token should never change
+    createdAt: existing.createdAt, // CreatedAt should never change
+  }
+  
+  user.domainVerifications.set(normalized, updated)
+  storage.users.set(xpub, user)
+  
+  return updated
+}
+
+export function getVerifiedDomains(xpub: string): string[] {
+  const user = storage.users.get(xpub)
+  if (!user) return []
+  
+  const allDomains = user.allowedDomains || []
+  return allDomains.filter(domain => {
+    // Test domains are always verified
+    if (isTestDomain(domain)) return true
+    
+    // Check verification status
+    const verification = user.domainVerifications?.get(domain)
+    return verification?.status === 'verified'
+  })
 }
 
 // Featured Wallets Management (Admin-only)

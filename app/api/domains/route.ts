@@ -1,31 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserByXpub, addDomain, removeDomain, normalizeDomain, createUser, logActivity } from '@/lib/storage'
-import { generateSiteId, validateDomain } from '@/lib/utils'
+import { getUserByXpub, addDomain, removeDomain, normalizeDomain, createUser, logActivity, addDomainVerification, getDomainVerification } from '@/lib/storage'
+import { generateSiteId, validateDomain, isTestDomain } from '@/lib/utils'
 import { verifyCookieData, signCookieData } from '@/lib/cookie-signing'
 import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
+import { generateVerificationToken } from '@/lib/domain-verification'
+
+// Helper function to check wizard completion
+function checkWizardCompletion(request: NextRequest): NextResponse | null {
+  const backupCookie = request.cookies.get('user_subscription_backup')?.value
+  if (backupCookie) {
+    const backupData = verifyCookieData(backupCookie)
+    if (backupData && !backupData.freeDisclaimerAccepted) {
+      return NextResponse.json({ 
+        error: 'Wizard not completed. Please complete the onboarding wizard first.',
+        wizardRequired: true 
+      }, { status: 403 })
+    }
+  }
+  return null
+}
 
 // GET: Get allowed domains for current user
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user for authenticated endpoints)
-  const xpub = request.cookies.get('user_xpub')?.value
+  let xpub = request.cookies.get('user_xpub')?.value
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per user/IP
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }
   
+  const xpubFromCookie = request.cookies.get('user_xpub')?.value
+  
   if (!xpubFromCookie) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
-  const xpub = xpubFromCookie // Use consistent variable name
+  // Reassign xpub from cookie (already declared for rate limiting above)
+  xpub = xpubFromCookie
   
   if (process.env.NODE_ENV === 'development') {
     console.log('=== GET /api/domains ===')
     console.log('Cookie xpub:', xpub ? xpub.substring(0, 20) + '...' : 'NOT FOUND')
   }
   
+  // SECURITY: Check if user has completed wizard (freeDisclaimerAccepted)
+  const wizardCheck = checkWizardCompletion(request)
+  if (wizardCheck) return wizardCheck
+  
   let user = getUserByXpub(xpub)
+  
+  // SECURITY: If user exists in storage, check wizard completion
+  if (user && !user.freeDisclaimerAccepted) {
+    return NextResponse.json({ 
+      error: 'Wizard not completed. Please complete the onboarding wizard first.',
+      wizardRequired: true 
+    }, { status: 403 })
+  }
   if (!user) {
     console.warn('User not found in storage - this may be due to storage reset')
     // Check if user has a valid xpub cookie - if so, they've authenticated
@@ -65,13 +96,30 @@ export async function GET(request: NextRequest) {
   console.log('Returning domains from storage (source of truth):', domainsToReturn)
   console.log('Domain count:', domainsToReturn.length)
   console.log('CRITICAL: Storage should only contain the domain kept during downgrade')
-  return NextResponse.json({ domains: domainsToReturn })
+  
+  // Return domains with verification status
+  const domainsWithStatus = domainsToReturn.map(domain => {
+    const verification = user.domainVerifications?.get(domain)
+    const isVerified = verification?.status === 'verified' || isTestDomain(domain)
+    return {
+      domain,
+      verified: isVerified,
+      status: verification?.status || (isTestDomain(domain) ? 'verified' : 'pending'),
+      verificationToken: verification?.status === 'pending' ? verification.verificationToken : undefined,
+      errorMessage: verification?.errorMessage
+    }
+  })
+  
+  return NextResponse.json({ 
+    domains: domainsToReturn, // Backward compatibility
+    domainsWithStatus // Include verification info
+  })
 }
 
 // POST: Add a domain
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user, stricter for write operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  let xpub = request.cookies.get('user_xpub')?.value
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP (stricter for writes)
   if (!rateLimit.allowed) {
@@ -89,7 +137,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
-  const xpub = xpubFromCookie // Use consistent variable name
+  // Reassign xpub from cookie (already declared for rate limiting above)
+  xpub = xpubFromCookie
   
   let user = getUserByXpub(xpub)
   if (!user) {
@@ -156,16 +205,106 @@ export async function POST(request: NextRequest) {
   
   console.log('Normalized domain:', normalized)
   
+  // Check if domain already exists
+  const existingDomains = user.allowedDomains || []
+  if (existingDomains.includes(normalized)) {
+    // Domain already exists - check verification status
+    const verification = getDomainVerification(xpub, normalized)
+    if (verification?.status === 'verified') {
+      return NextResponse.json({ 
+        error: 'Domain already added and verified' 
+      }, { status: 400 })
+    }
+    // If pending, return existing verification info
+    if (verification?.status === 'pending') {
+      return NextResponse.json({
+        domain: normalized,
+        domains: existingDomains,
+        status: 'pending',
+        verificationToken: verification.verificationToken,
+        message: 'Domain already pending verification'
+      })
+    }
+  }
+  
+  // Skip verification for test domains (auto-verify)
+  if (isTestDomain(normalized)) {
+    // Test domains don't need verification - add directly
+    const updated = addDomain(xpub, normalized)
+    if (!updated) {
+      console.error('addDomain returned undefined')
+      return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
+    }
+    
+    // Auto-verify test domains
+    const token = generateVerificationToken() // Still generate token for consistency
+    addDomainVerification(xpub, normalized, token)
+    // Mark as verified immediately
+    const { updateDomainVerification } = await import('@/lib/storage')
+    updateDomainVerification(xpub, normalized, {
+      status: 'verified',
+      verifiedAt: Date.now()
+    })
+    
+    console.log('Test domain added and auto-verified:', normalized)
+    
+    const response = NextResponse.json({ 
+      domains: updated.allowedDomains,
+      verified: true,
+      status: 'verified'
+    })
+    
+    // Update backup cookie
+    const subscriptionBackup = {
+      subscribed: updated.subscribed || false,
+      subscriptionTier: updated.subscriptionTier || 'free',
+      allowedDomains: updated.allowedDomains || [],
+      freeDisclaimerAccepted: updated.freeDisclaimerAccepted || false,
+      freeDisclaimerAcceptedAt: updated.freeDisclaimerAcceptedAt,
+      freeDisclaimerAcceptedIp: updated.freeDisclaimerAcceptedIp,
+      freeDisclaimerAcceptedUserAgent: updated.freeDisclaimerAcceptedUserAgent,
+      integrationEnabled: updated.integrationEnabled ?? true,
+    }
+    const signedBackup = signCookieData(subscriptionBackup)
+    response.cookies.set('user_subscription_backup', signedBackup, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      secure: process.env.NODE_ENV === 'production',
+    })
+    
+    return response
+  }
+  
+  // For real domains: create pending verification
+  const token = generateVerificationToken()
+  
+  // Add domain first (will be in allowedDomains but not verified)
   const updated = addDomain(xpub, normalized)
   if (!updated) {
     console.error('addDomain returned undefined')
     return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
   }
   
-  console.log('Domain added successfully. Updated domains:', updated.allowedDomains)
+  // Create pending verification
+  const verification = addDomainVerification(xpub, normalized, token)
+  if (!verification) {
+    console.error('addDomainVerification returned undefined')
+    return NextResponse.json({ error: 'Failed to create verification' }, { status: 500 })
+  }
+  
+  console.log('Domain added with pending verification:', normalized)
+  console.log('Verification token:', token)
   
   // CRITICAL: Update backup cookie to persist domains across storage resets
-  const response = NextResponse.json({ domains: updated.allowedDomains })
+  const response = NextResponse.json({ 
+    domain: normalized,
+    domains: updated.allowedDomains,
+    status: 'pending',
+    verificationToken: token,
+    message: 'Domain added. Please verify ownership by adding DNS TXT record.'
+  })
   const subscriptionBackup = {
     subscribed: updated.subscribed || false,
     subscriptionTier: updated.subscriptionTier || 'free',
@@ -193,7 +332,7 @@ export async function POST(request: NextRequest) {
 // DELETE: Remove a domain
 export async function DELETE(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user, stricter for write operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  let xpub = request.cookies.get('user_xpub')?.value
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP (stricter for writes)
   if (!rateLimit.allowed) {
@@ -211,7 +350,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
-  const xpub = xpubFromCookie // Use consistent variable name
+  // Reassign xpub from cookie (already declared for rate limiting above)
+  xpub = xpubFromCookie
   
   let user = getUserByXpub(xpub)
   if (!user) {
@@ -305,7 +445,7 @@ export async function DELETE(request: NextRequest) {
 // PUT: Update the single domain
 export async function PUT(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user, stricter for write operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  let xpub = request.cookies.get('user_xpub')?.value
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP (stricter for writes)
   if (!rateLimit.allowed) {
@@ -323,7 +463,8 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
-  const xpub = xpubFromCookie // Use consistent variable name
+  // Reassign xpub from cookie (already declared for rate limiting above)
+  xpub = xpubFromCookie
   
   let user = getUserByXpub(xpub)
   if (!user) {

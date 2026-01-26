@@ -41,7 +41,7 @@ export default function WhyKeyRex() {
                     <div>
                       <div className="text-6xl mb-4">⚡</div>
                       <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                        Built by Bitcoiners, for Bitcoiners
+                        Built by a Bitcoiner, for Bitcoiners
                       </h2>
                     </div>
                     
@@ -86,7 +86,7 @@ export default function WhyKeyRex() {
 
             {/* Key Benefits */}
             <section id="key-benefits">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-semibold text-white mb-6">Key Benefits</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex items-start space-x-4">
@@ -139,14 +139,14 @@ export default function WhyKeyRex() {
 
             {/* Use Cases */}
             <section id="use-cases">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-6">Works For Any Website</h2>
                 <p className="text-white/300 mb-6">
-                  Whether you run an online store, a blog, a SaaS application, or something else entirely, Key-Rex can work for you. Here are some common ways website owners use it. You stay in control of how accounts work on your side—you can treat each wallet as a separate user, or allow multiple wallets (multiple xpubs) to unlock the same account in your own system.
+                  Whether you run an online store, a blog, a SaaS application, or something else entirely, Key-Rex can work for you. Here are some common ways website owners can use it. You stay in control of how accounts work on your side—you can treat each wallet as a separate user, or allow multiple wallets (multiple xpubs) to unlock the same account in your own system.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-4xl mb-4">🛒</div>
                     <h3 className="text-white font-semibold text-xl mb-3">Online Stores</h3>
                     <p className="text-white/400 mb-4 text-sm">
@@ -159,7 +159,7 @@ export default function WhyKeyRex() {
                     </ul>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-4xl mb-4">💼</div>
                     <h3 className="text-white font-semibold text-xl mb-3">Software-as-a-Service Apps</h3>
                     <p className="text-white/400 mb-4 text-sm">
@@ -172,7 +172,7 @@ export default function WhyKeyRex() {
                     </ul>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-4xl mb-4">📝</div>
                     <h3 className="text-white font-semibold text-xl mb-3">Blogs & Content Sites</h3>
                     <p className="text-white/400 mb-4 text-sm">
@@ -185,7 +185,7 @@ export default function WhyKeyRex() {
                     </ul>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-4xl mb-4">👥</div>
                     <h3 className="text-white font-semibold text-xl mb-3">Community Platforms</h3>
                     <p className="text-white/400 mb-4 text-sm">
@@ -198,7 +198,7 @@ export default function WhyKeyRex() {
                     </ul>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-4xl mb-4">⚙️</div>
                     <h3 className="text-white font-semibold text-xl mb-3">Developer Tools</h3>
                     <p className="text-white/400 mb-4 text-sm">
@@ -211,7 +211,7 @@ export default function WhyKeyRex() {
                     </ul>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-4xl mb-4">🔒</div>
                     <h3 className="text-white font-semibold text-xl mb-3">Membership Sites</h3>
                     <p className="text-white/400 mb-4 text-sm">
@@ -229,7 +229,7 @@ export default function WhyKeyRex() {
 
             {/* Comparison */}
             <section id="comparison">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-6">How Does Key-Rex Compare to Other Sign-In Methods?</h2>
                 <p className="text-white/300 mb-6">
                   Here's how Key-Rex stacks up against the traditional ways people sign in to websites:
@@ -250,61 +250,61 @@ export default function WhyKeyRex() {
                         <tbody className="divide-y divide-slate-700">
                           <tr>
                             <td className="px-6 py-4 text-white/300 font-medium">Setup Time</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Minutes</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Minutes</td>
                             <td className="px-6 py-4 text-center text-white/400">Hours/Days</td>
                             <td className="px-6 py-4 text-center text-white/400">Hours</td>
                           </tr>
                           <tr className="bg-dark-800/30">
                             <td className="px-6 py-4 text-white/300 font-medium">Cost</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ No Cost</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ No Cost</td>
                             <td className="px-6 py-4 text-center text-white/400">Email service costs</td>
                             <td className="px-6 py-4 text-center text-white/400">Free (with data sharing)</td>
                           </tr>
                           <tr>
                             <td className="px-6 py-4 text-white/300 font-medium">Password Breaches</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Impossible</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Impossible</td>
                             <td className="px-6 py-4 text-center text-red-400">✗ High Risk</td>
                             <td className="px-6 py-4 text-center text-white/400">No passwords</td>
                           </tr>
                           <tr className="bg-dark-800/30">
                             <td className="px-6 py-4 text-white/300 font-medium">User Data Collection</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ None</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ None</td>
                             <td className="px-6 py-4 text-center text-white/400">Emails required</td>
                             <td className="px-6 py-4 text-center text-red-400">✗ Extensive</td>
                           </tr>
                           <tr>
                             <td className="px-6 py-4 text-white/300 font-medium">Privacy Compliance</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Minimal burden</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Minimal burden</td>
                             <td className="px-6 py-4 text-center text-white/400">GDPR/CCPA applies</td>
                             <td className="px-6 py-4 text-center text-white/400">GDPR/CCPA applies</td>
                           </tr>
                           <tr className="bg-dark-800/30">
                             <td className="px-6 py-4 text-white/300 font-medium">Email Verification</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Not needed</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Not needed</td>
                             <td className="px-6 py-4 text-center text-red-400">✗ Required</td>
                             <td className="px-6 py-4 text-center text-white/400">Not needed</td>
                           </tr>
                           <tr>
                             <td className="px-6 py-4 text-white/300 font-medium">User Friction</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ One click</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ One click</td>
                             <td className="px-6 py-4 text-center text-white/400">Registration + email</td>
                             <td className="px-6 py-4 text-center text-white/400">OAuth popup</td>
                           </tr>
                           <tr className="bg-dark-800/30">
                             <td className="px-6 py-4 text-white/300 font-medium">Dependency on Third Party</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Decentralized</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Decentralized</td>
                             <td className="px-6 py-4 text-center text-white/400">Email provider</td>
                             <td className="px-6 py-4 text-center text-red-400">✗ Google/Facebook</td>
                           </tr>
                           <tr>
                             <td className="px-6 py-4 text-white/300 font-medium">Open Source</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Yes</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Yes</td>
                             <td className="px-6 py-4 text-center text-white/400">Varies</td>
                             <td className="px-6 py-4 text-center text-red-400">✗ Proprietary</td>
                           </tr>
                           <tr className="bg-dark-800/30">
                             <td className="px-6 py-4 text-white/300 font-medium">Infrastructure Required</td>
-                            <td className="px-6 py-4 text-center text-green-400">✓ Minimal</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Minimal</td>
                             <td className="px-6 py-4 text-center text-white/400">Email service, DB</td>
                             <td className="px-6 py-4 text-center text-white/400">OAuth integration</td>
                           </tr>

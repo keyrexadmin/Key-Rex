@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie, isAdminXpub } from '@/lib/admin-auth'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 /**
  * Admin Verify API Route
@@ -7,6 +8,12 @@ import { getAdminSessionFromCookie, isAdminXpub } from '@/lib/admin-auth'
  * Checks if the current session is a valid admin session.
  */
 export async function GET(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent cost abuse
+  const rateLimit = rateLimitMiddleware(request, 60, 60000) // 60 requests per minute (allows frequent checks)
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
   const adminSession = request.cookies.get('admin_session')?.value
   
   console.log('=== /api/admin/auth/verify called ===')

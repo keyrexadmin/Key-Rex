@@ -6,15 +6,17 @@ import * as crypto from 'crypto'
  */
 
 // SECURITY: Require COOKIE_SECRET in production, only allow default in development
-let COOKIE_SECRET = process.env.COOKIE_SECRET
-
-if (!COOKIE_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('CRITICAL SECURITY ERROR: COOKIE_SECRET environment variable must be set in production. Cookie signing will not work without it.')
+function getCookieSecret(): string {
+  const COOKIE_SECRET = process.env.COOKIE_SECRET
+  if (!COOKIE_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: COOKIE_SECRET environment variable must be set in production. Cookie signing will not work without it.')
+    }
+    // Only allow default in development
+    console.warn('⚠️  WARNING: COOKIE_SECRET not set - using default secret. DO NOT USE IN PRODUCTION!')
+    return 'default-secret-change-in-production'
   }
-  // Only allow default in development
-  console.warn('⚠️  WARNING: COOKIE_SECRET not set - using default secret. DO NOT USE IN PRODUCTION!')
-  COOKIE_SECRET = 'default-secret-change-in-production'
+  return COOKIE_SECRET
 }
 
 // SECURITY: Never use NEXT_PUBLIC_COOKIE_SECRET for signing (it's exposed to client-side)
@@ -27,7 +29,8 @@ if (process.env.NEXT_PUBLIC_COOKIE_SECRET) {
  * Format: value.signature
  */
 export function signCookie(value: string): string {
-  const hmac = crypto.createHmac('sha256', COOKIE_SECRET)
+  const secret = getCookieSecret()
+  const hmac = crypto.createHmac('sha256', secret)
   hmac.update(value)
   const signature = hmac.digest('hex')
   return `${value}.${signature}`
@@ -52,7 +55,8 @@ export function verifyCookie(signedValue: string): string | null {
   const providedSignature = signedValue.substring(lastDot + 1)
   
   // Recompute signature
-  const hmac = crypto.createHmac('sha256', COOKIE_SECRET)
+  const secret = getCookieSecret()
+  const hmac = crypto.createHmac('sha256', secret)
   hmac.update(value)
   const expectedSignature = hmac.digest('hex')
   

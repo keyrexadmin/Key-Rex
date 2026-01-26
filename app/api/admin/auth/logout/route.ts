@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 /**
  * Admin Logout API Route
@@ -6,6 +7,12 @@ import { NextRequest, NextResponse } from 'next/server'
  * Clears the admin session cookie.
  */
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent abuse
+  const rateLimit = rateLimitMiddleware(request, 10, 60000) // 10 requests per minute
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
   console.log('=== /api/admin/auth/logout called ===')
   
   const response = NextResponse.json({ success: true })

@@ -74,16 +74,16 @@ export default function Docs() {
                 </a>
               </div>
               
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mt-6">
-                <p className="text-sm text-blue-200">
-                  <strong>New to Key-Rex?</strong> <Link href="/" className="underline hover:text-blue-100">Sign in with your Lightning wallet and complete the setup wizard</Link> to get your integration code and access your personalized dashboard with account-specific examples.
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mt-6">
+                <p className="text-sm text-orange-200">
+                  <strong>New to Key-Rex?</strong> <Link href="/" className="underline hover:text-orange-300">Sign in with your Lightning wallet and complete the setup wizard</Link> to get your integration code and access your personalized dashboard with account-specific examples.
                 </p>
               </div>
             </div>
 
             {/* Quick Start Guide */}
             <section id="quick-start">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-semibold text-white mb-4">Quick Start Guide</h2>
                 <p className="text-white/200 text-base leading-relaxed mb-6">
                   Get Key-Rex working on your website in just a few minutes. This guide covers the essential steps.
@@ -117,15 +117,17 @@ export default function Docs() {
                   </div>
 
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-4">Step 3: Add Your Domain</h3>
+                    <h3 className="text-xl font-semibold text-white mb-4">Step 3: Add and Verify Your Domain</h3>
                     <ol className="list-decimal list-inside space-y-3 text-white/200 text-base leading-relaxed">
                       <li>Go to the "Domains" tab in your dashboard</li>
                       <li>Add your website domain (e.g., <code className="bg-dark-900 px-1 rounded">example.com</code>)</li>
-                      <li>Add both www and non-www versions if you use both</li>
+                      <li>Verify domain ownership by adding the DNS TXT record shown in the dashboard (production domains require verification)</li>
+                      <li>Click "Verify" after adding the DNS record (wait 5-10 minutes for DNS propagation)</li>
+                      <li>Add both www and non-www versions if you use both (each requires separate verification)</li>
                     </ol>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
-                      <p className="text-xs text-blue-200">
-                        <strong>Note:</strong> Test domains like <code className="bg-blue-600/30 px-1 rounded">localhost</code> and <code className="bg-blue-600/30 px-1 rounded">127.0.0.1</code> are automatically allowed for development.
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
+                      <p className="text-xs text-orange-200">
+                        <strong>Note:</strong> Test domains like <code className="bg-orange-600/30 px-1 rounded">localhost</code> and <code className="bg-orange-600/30 px-1 rounded">127.0.0.1</code> are automatically allowed for development and don't require verification.
                       </p>
                     </div>
                   </div>
@@ -145,9 +147,9 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-green-300 mb-2">✓ That's It!</h3>
-                    <p className="text-green-200 text-sm">
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-orange-300 mb-2">✓ That's It!</h3>
+                    <p className="text-orange-200 text-sm">
                       Your Key-Rex button should now appear on your website. Visitors can click it to sign in with their Lightning wallets. Continue reading for framework-specific examples and advanced configuration.
                     </p>
                   </div>
@@ -157,7 +159,7 @@ export default function Docs() {
 
             {/* Prerequisites - NEW SECTION */}
             <section id="prerequisites">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Prerequisites</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   What you need before integrating Key-Rex into your website.
@@ -187,7 +189,7 @@ export default function Docs() {
                       <li>Database or storage for user records</li>
                       <li>CORS configured on your backend to allow requests from your frontend domain (Key-Rex handles its own CORS automatically)</li>
                     </ul>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
                       <p className="text-xs text-blue-200">
                         <strong>Options:</strong> Node.js/Express, Python/Flask, PHP, Ruby on Rails, serverless functions (Vercel, AWS Lambda, etc.), or any backend that can handle HTTP requests.
                       </p>
@@ -207,9 +209,9 @@ export default function Docs() {
                       <li>Both www and non-www versions if you use both</li>
                       <li>Any staging or test domains (or use auto-allowed test domains)</li>
                     </ul>
-                    <div className="bg-green-500/10 border border-green-500/30 rounded p-3 mt-4">
-                      <p className="text-xs text-green-200">
-                        <strong>Note:</strong> Test domains like <code className="bg-green-600/30 px-1 rounded">localhost</code> and <code className="bg-green-600/30 px-1 rounded">127.0.0.1</code> are automatically allowed for development - no need to add them.
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
+                      <p className="text-xs text-orange-200">
+                        <strong>Note:</strong> Test domains like <code className="bg-orange-600/30 px-1 rounded">localhost</code> and <code className="bg-orange-600/30 px-1 rounded">127.0.0.1</code> are automatically allowed for development - no need to add them or verify them.
                       </p>
                     </div>
                   </div>
@@ -251,7 +253,7 @@ export default function Docs() {
 
             {/* Integration Checklist */}
             <section id="integration-checklist">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Integration Checklist</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Use this checklist to ensure your integration is complete and working correctly.
@@ -260,7 +262,7 @@ export default function Docs() {
                 <div className="space-y-3">
                   {[
                     { id: 1, text: 'Signed up for Key-Rex account and received Site ID' },
-                    { id: 2, text: 'Added domain(s) to dashboard (Domains tab)' },
+                    { id: 2, text: 'Added domain(s) to dashboard (Domains tab) and verified ownership' },
                     { id: 3, text: 'Integration code copied from dashboard' },
                     { id: 4, text: 'Code pasted on website (before closing </body> tag)' },
                     { id: 5, text: 'Script loads successfully (check browser Network tab)' },
@@ -289,7 +291,7 @@ export default function Docs() {
 
             {/* Integration Guide */}
             <section id="integration-guide">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Integration Guide</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Detailed step-by-step guide for integrating Key-Rex into your website.
@@ -403,7 +405,7 @@ export default function Docs() {
 
             {/* Framework Examples - React */}
             <section id="react-example">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">React Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Example of integrating Key-Rex into a React application.
@@ -465,7 +467,7 @@ export default LoginPage;`}
 
             {/* Framework Examples - Vue */}
             <section id="vue-example">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Vue Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Example of integrating Key-Rex into a Vue application.
@@ -524,7 +526,7 @@ onUnmounted(() => {
 
             {/* Framework Examples - Next.js */}
             <section id="nextjs-example">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Next.js Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Example of integrating Key-Rex into a Next.js application (App Router).
@@ -586,7 +588,7 @@ export default function LoginPage() {
 
             {/* Framework Examples - Plain HTML */}
             <section id="html-example">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Plain HTML Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Simple HTML example for static websites or basic integrations.
@@ -640,7 +642,7 @@ export default function LoginPage() {
 
             {/* Backend Integration */}
             <section id="backend-integration">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Backend Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Your backend needs to receive the xpub and create a user session. Here are examples for common backend frameworks.
@@ -782,7 +784,7 @@ CREATE TABLE sessions (
 
             {/* Authentication Flow - Moved here for better flow */}
             <section id="authentication-flow">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">How Authentication Works</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Understanding how Key-Rex authentication works helps you integrate it correctly. This section explains the technical flow - you can skip it if you just want to get started.
@@ -800,7 +802,7 @@ CREATE TABLE sessions (
                       <li>Script calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub)</code> callback</li>
                       <li>Your code receives xpub and creates user session</li>
                     </ol>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
                       <p className="text-xs text-blue-200">
                         <strong>Best UX:</strong> This is the fastest flow - one click, instant authentication. Works on desktop browsers with WebLN extensions.
                       </p>
@@ -847,7 +849,7 @@ CREATE TABLE sessions (
 
             {/* API Reference */}
             <section id="api-reference">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">API Reference</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Complete reference for the Key-Rex JavaScript API.
@@ -920,7 +922,7 @@ Key-Rex.init();`}
 
             {/* Configuration */}
             <section id="configuration">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Configuration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Key-Rex configuration is managed server-side through your dashboard. Most settings are standardized for consistency.
@@ -938,7 +940,7 @@ Key-Rex.init();`}
                       <li><strong>Featured Wallets:</strong> Standard wallet list (Alby, Phoenix, Zeus)</li>
                       <li><strong>Integration Toggle:</strong> Enable/disable authentication across all domains</li>
                     </ul>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
                       <p className="text-xs text-blue-200">
                         <strong>Note:</strong> These settings are standardized to ensure consistent user experience. If you need custom branding, contact support for enterprise options.
                       </p>
@@ -967,7 +969,7 @@ Key-Rex.init();`}
 
             {/* Best Practices */}
             <section id="best-practices">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Best Practices</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Follow these best practices for a secure and reliable integration.
@@ -1008,7 +1010,7 @@ Key-Rex.init();`}
 
             {/* Testing & Debugging */}
             <section id="testing-debugging">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Testing & Debugging</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Tips for testing your Key-Rex integration and debugging common issues.
@@ -1043,7 +1045,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     <h3 className="text-xl font-semibold text-white mb-4">Common Issues</h3>
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
                       <li><strong>Button doesn't appear:</strong> Check browser console for errors, verify script loads in Network tab</li>
-                      <li><strong>Domain not authorized:</strong> Add your domain in the dashboard Domains tab</li>
+                      <li><strong>Domain not authorized:</strong> Add your domain in the dashboard Domains tab and verify it via DNS TXT record</li>
                       <li><strong>onSuccess not called:</strong> Verify callback is set before script loads</li>
                       <li><strong>CORS errors:</strong> Configure your backend to allow requests from your frontend domain</li>
                     </ul>
@@ -1067,7 +1069,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
 
             {/* Error Handling */}
             <section id="error-handling">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Error Handling</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   How to handle errors and provide good user experience when authentication fails.
@@ -1111,7 +1113,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     <div className="space-y-3">
                       {[
                         { error: '"Invalid siteId"', cause: 'Site ID in integration code is incorrect', fix: 'Copy the exact code from your dashboard' },
-                        { error: '"This domain is not authorized — add it in your dashboard"', cause: 'Domain not added to dashboard', fix: 'Add your domain in the Domains tab' },
+                        { error: '"This domain is not authorized — add it in your dashboard"', cause: 'Domain not added to dashboard or not verified', fix: 'Add your domain in the Domains tab and verify it via DNS TXT record' },
                         { error: '"Integration is disabled"', cause: 'Integration toggle is off', fix: 'Enable integration in dashboard' },
                         { error: '"Failed to load configuration"', cause: 'Config API request failed', fix: 'Check network connection and try again' },
                         { error: '"Authentication timed out"', cause: 'User took too long or wallet didn\'t respond', fix: 'Try authenticating again' },
@@ -1165,7 +1167,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
 
             {/* Advanced Features */}
             <section id="advanced-features">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Advanced Features</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Advanced features and customization options.
@@ -1212,7 +1214,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
 
             {/* Account Linking */}
             <section id="account-linking">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Account Linking & User Management</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   How to link Key-Rex authentication to existing user accounts.
@@ -1252,7 +1254,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
 
             {/* Common Use Cases */}
             <section id="use-cases">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Common Use Cases</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Examples of how Key-Rex can be used in different scenarios.
@@ -1285,7 +1287,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
 
             {/* FAQ */}
             <section id="faq">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Frequently Asked Questions</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Common questions about Key-Rex integration.
@@ -1325,7 +1327,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
 
             {/* Quick Reference */}
             <section id="quick-reference">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Quick Reference</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   Quick reference guide for common tasks.

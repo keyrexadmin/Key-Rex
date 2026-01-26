@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateChallenge } from '@/lib/auth'
 import { encodeLNURL } from '@/lib/lnurl'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 /**
  * Admin LNURL API Route
@@ -8,6 +9,14 @@ import { encodeLNURL } from '@/lib/lnurl'
  * Generates a challenge and returns the admin login LNURL.
  */
 export async function GET(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent DoS attacks
+  // More lenient in development to allow testing
+  const limit = process.env.NODE_ENV === 'development' ? 60 : 10
+  const rateLimit = rateLimitMiddleware(request, limit, 60000) // 60/min in dev, 10/min in production
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
   const k1 = generateChallenge()
   const domain = request.nextUrl.origin
   const callbackUrl = `${domain}/api/admin/auth/login?k1=${encodeURIComponent(k1)}`

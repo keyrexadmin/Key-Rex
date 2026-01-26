@@ -252,13 +252,13 @@ export default function KeyRexButtonPreview({ siteId, className = '', customCSS,
       <div className={showInCard ? `bg-white rounded-[1.25rem] py-6 px-8 border border-orange-500/20 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] ${className}` : className}>
         <div className="flex flex-row items-center gap-6">
           {/* Skeleton logo button */}
-          <div className="w-20 h-20 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 rounded-lg animate-pulse bg-[length:200%_100%]" style={{ animation: 'keyrex-skeleton 1.5s ease-in-out infinite' }}></div>
+          <div className="w-20 h-20 bg-gradient-to-r from-dark-600 via-dark-500 to-dark-600 rounded-lg animate-pulse bg-[length:200%_100%]" style={{ animation: 'keyrex-skeleton 1.5s ease-in-out infinite' }}></div>
           {/* Skeleton wallets */}
           <div className="flex gap-4 flex-1">
             {[0, 1, 2].map((i) => (
               <div 
                 key={i} 
-                className="w-12 h-12 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 rounded-full animate-pulse bg-[length:200%_100%]" 
+                className="w-12 h-12 bg-gradient-to-r from-dark-600 via-dark-500 to-dark-600 rounded-full animate-pulse bg-[length:200%_100%]" 
                 style={{ animation: 'keyrex-skeleton 1.5s ease-in-out infinite', animationDelay: `${i * 0.1}s` }}
               ></div>
             ))}
@@ -306,13 +306,13 @@ export default function KeyRexButtonPreview({ siteId, className = '', customCSS,
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-5">
       {/* Left side container - logo button */}
       <div className="flex-shrink-0 flex flex-col items-center gap-2 relative">
-        {/* Main Login Button - matches embed script exactly with white background for logo visibility */}
+        {/* Main Login Button - matches embed script exactly with orange-400 background to match "Lightning Wallet Authentication" text */}
         <button
           id="keyrex-button-preview"
-          className="bg-white border-none cursor-pointer transition-all duration-300 ease-out outline-none focus:outline-2 focus:outline-orange-500/50 focus:outline-offset-4 rounded-lg shadow-sm flex items-center justify-center"
+          className="bg-orange-400 border-none cursor-pointer transition-all duration-300 ease-out outline-none focus:outline-2 focus:outline-orange-500/50 focus:outline-offset-4 rounded-lg shadow-sm flex items-center justify-center"
           style={{
             transform: 'scale(1)',
-            minWidth: '8rem',
+            minWidth: '12rem',
             overflow: 'hidden',
             padding: '0.5rem',
           }}
@@ -350,7 +350,7 @@ export default function KeyRexButtonPreview({ siteId, className = '', customCSS,
         >
           {/* Increased logo size and zoom to fill button, centered */}
           <img
-            src="/images/keyrex-button-v2signin.png"
+            src="/images/keyrex-websitebutton.png"
             alt="Sign in with Key-Rex"
             style={{ height: 'auto', width: 'auto', maxHeight: '5rem', objectFit: 'contain', display: 'block', transform: 'scale(1.5)', transformOrigin: 'center' }}
           />

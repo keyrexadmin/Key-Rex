@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie } from '@/lib/admin-auth'
 import { getAllUsers, getUsageStats } from '@/lib/storage'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 /**
  * Admin Analytics API Route
@@ -8,8 +9,15 @@ import { getAllUsers, getUsageStats } from '@/lib/storage'
  * Returns aggregate analytics across all users (admin only)
  */
 export async function GET(request: NextRequest) {
-  // Verify admin session
+  // SECURITY: Rate limiting - prevent cost abuse (per-admin)
   const adminSession = request.cookies.get('admin_session')?.value
+  const identifier = adminSession || 'anonymous'
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // Verify admin session
   if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

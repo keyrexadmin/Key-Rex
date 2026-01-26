@@ -1,23 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { getUserByXpub, createUser, getUserBySiteId, markAuthSessionAsUsed } from '@/lib/storage'
-import { generateSiteId } from '@/lib/utils'
+import { getUserByXpub, createUser, getUserBySiteId, markAuthSessionAsUsed, getVerifiedDomains } from '@/lib/storage'
+import { generateSiteId, isTestDomain } from '@/lib/utils'
 import { validateDashboardOrigin, validateEmbedOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
 
 export async function OPTIONS(request: NextRequest) {
   // Handle CORS preflight
   // For callback, we need to allow both dashboard (Key-Rex domain) and embed (client domains)
-  // Since we can't know which it is in OPTIONS, we'll validate in the actual request
+  // Mobile wallets like Zeus may not send Origin header - allow requests without origin
   const origin = request.headers.get('origin')
   const keyrexDomain = getKeyRexDomain(request)
   
   // Allow Key-Rex domain or validate later in GET handler
+  // Mobile wallets (Zeus, etc.) may not send origin - be permissive in OPTIONS
   if (origin && !validateDashboardOrigin(request, keyrexDomain)) {
-    // Could be embed login - validate in GET handler
+    // Could be embed login or mobile wallet - validate in GET handler
     // For OPTIONS, we'll be permissive but validate in GET
   }
   
+  // Set CORS headers - if no origin (mobile wallet), still allow the request
   const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+  
+  // For mobile wallets without origin, allow all origins in preflight
+  // (actual validation happens in GET handler)
+  if (!origin) {
+    // Mobile wallet request - allow in preflight, validate in GET
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400',
+      },
+    })
+  }
+  
   return new NextResponse(null, {
     status: 200,
     headers: corsHeaders,
@@ -111,13 +128,35 @@ export async function GET(request: NextRequest) {
         const user = getUserBySiteId(siteId)
         if (user) {
           const origin = request.headers.get('origin')
-          const allowedDomains = user.allowedDomains || []
           
-          // If user has allowed domains, validate origin
-          if (allowedDomains.length > 0 && origin) {
-            if (!validateEmbedOrigin(request, allowedDomains)) {
-              console.warn('CORS: Invalid origin for xpub retrieval:', origin, 'siteId:', siteId)
-              return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+          // Always validate origin if present (check verified domains only)
+          if (origin) {
+            
+            // Extract domain from origin
+            let requestDomain: string | null = null
+            try {
+              const url = new URL(origin)
+              requestDomain = url.hostname
+            } catch {
+              requestDomain = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0]
+            }
+            
+            // Test domains are always allowed
+            if (requestDomain && !isTestDomain(requestDomain)) {
+              const verifiedDomains = getVerifiedDomains(user.xpub)
+              
+              // If user has no verified domains, block authentication from production domains
+              if (verifiedDomains.length === 0) {
+                return NextResponse.json({ 
+                  error: 'No verified domains found. Please add and verify at least one domain in your dashboard before using authentication.' 
+                }, { status: 403 })
+              }
+              
+              // Check if domain is in verified list
+              if (!validateEmbedOrigin(request, verifiedDomains, user.xpub)) {
+                console.warn('CORS: Invalid origin for xpub retrieval:', origin, 'siteId:', siteId)
+                return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+              }
             }
           }
         }
@@ -143,8 +182,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Return LNURL-auth response format
+    // LNURL-auth spec: callback URL should only include k1, not tag
+    // The tag is returned in the JSON response, not in the URL
     const domain = request.nextUrl.origin
-    const callback = `${domain}/api/auth/callback?tag=login&k1=${k1}${siteId ? `&siteId=${siteId}` : ''}`
+    const callback = `${domain}/api/auth/callback?k1=${k1}${siteId ? `&siteId=${siteId}` : ''}`
     
     const initialResponse = NextResponse.json({
       tag: 'login',
@@ -262,13 +303,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid siteId' }, { status: 404 })
     }
     
-    // Validate origin for embed login
+    // Validate origin for embed login (check verified domains only)
     const origin = request.headers.get('origin')
     if (origin) {
-      const allowedDomains = user.allowedDomains || []
-      if (allowedDomains.length > 0 && !validateEmbedOrigin(request, allowedDomains)) {
-        console.warn('CORS: Invalid origin for embed login:', origin, 'siteId:', siteId)
-        return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+      
+      // Extract domain from origin
+      let requestDomain: string | null = null
+      try {
+        const url = new URL(origin)
+        requestDomain = url.hostname
+      } catch {
+        requestDomain = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0]
+      }
+      
+      // Test domains are always allowed
+      if (requestDomain && !isTestDomain(requestDomain)) {
+        const verifiedDomains = getVerifiedDomains(user.xpub)
+        
+        // If user has no verified domains, block authentication from production domains
+        if (verifiedDomains.length === 0) {
+          return NextResponse.json({ 
+            error: 'No verified domains found. Please add and verify at least one domain in your dashboard before using authentication.' 
+          }, { status: 403 })
+        }
+        
+        // Check if domain is in verified list
+        if (!validateEmbedOrigin(request, verifiedDomains, user.xpub)) {
+          console.warn('CORS: Invalid origin for embed login:', origin, 'siteId:', siteId)
+          return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+        }
       }
     }
     
@@ -323,21 +386,32 @@ export async function GET(request: NextRequest) {
   })
   
   // Set CORS headers for dashboard login (Key-Rex domain)
+  // Mobile wallets like Zeus may not send Origin header - allow requests without origin
   const origin = request.headers.get('origin')
   const keyrexDomain = getKeyRexDomain(request)
   
-  // For dashboard logins, validate Key-Rex domain
-  if (origin && !validateDashboardOrigin(request, keyrexDomain)) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('CORS: Invalid origin for dashboard login:', origin)
+  // For dashboard logins, validate Key-Rex domain only if origin is present
+  // Mobile wallets (Zeus, etc.) may not send origin - allow those requests
+  if (origin) {
+    if (!validateDashboardOrigin(request, keyrexDomain)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('CORS: Invalid origin for dashboard login:', origin)
+      }
+      // Still allow for now (mobile wallets might send unexpected origins), but log warning
     }
-    // Still allow for now (Alby might not send origin), but log warning
+    
+    // Set CORS headers only if origin is present
+    const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+  } else {
+    // No origin header - likely a mobile wallet (Zeus, etc.)
+    // Allow the request but don't set CORS headers (not needed for non-browser requests)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Callback request without origin header - likely mobile wallet (Zeus, etc.)')
+    }
   }
-  
-  const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value)
-  })
   
   // Try to set cookie (may not work in Alby's context, but worth trying)
   response.cookies.set('user_xpub', xpub, {

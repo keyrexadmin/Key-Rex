@@ -77,7 +77,7 @@ function SuccessContent() {
             <span className="text-white font-bold text-3xl">⚡</span>
           </div>
           <h1 className="text-2xl font-bold mb-4 text-white">Completing login...</h1>
-          <p className="text-slate-300">Please wait...</p>
+          <p className="text-white/300">Please wait...</p>
         </Card>
       </div>
     </Layout>

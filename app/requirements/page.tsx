@@ -38,7 +38,7 @@ export default function Requirements() {
 
             {/* Overview */}
             <section id="overview">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-semibold text-white mb-4">Overview</h2>
                 <p className="text-white/200 text-base leading-relaxed mb-4">
                   Before you decide to use Key-Rex, it's important to understand what you'll need. Most of these requirements are simple, but there's one critical requirement that's essential for Key-Rex to work: you need a backend server or serverless function.
@@ -49,8 +49,8 @@ export default function Requirements() {
                     You <strong className="text-white">must</strong> have a backend server or serverless function for Key-Rex to work. This is the one requirement that can't be skipped. If you only have a static website with no backend, you'll need to add a serverless function. See the Backend Requirements section below for details and examples.
                   </p>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                  <p className="text-blue-200 text-sm font-semibold mb-2">📋 Getting Started</p>
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                  <p className="text-orange-200 text-sm font-semibold mb-2">📋 Getting Started</p>
                   <p className="text-white/200 text-sm leading-relaxed">
                     To use Key-Rex, you'll need to <strong className="text-white">create a Key-Rex account</strong> first. After signing in with your Lightning wallet, you'll get a unique <code className="bg-dark-800 px-1 rounded">siteId</code> and integration code from your dashboard. This <code className="bg-dark-800 px-1 rounded">siteId</code> is included in your integration code and identifies your website to the Key-Rex service.
                   </p>
@@ -144,7 +144,7 @@ export default function Requirements() {
 
             {/* Browser Requirements */}
             <section id="browser-requirements">
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-2xl">🌐</span>
                   Browser Requirements
@@ -160,7 +160,7 @@ export default function Requirements() {
 
             {/* Framework Compatibility */}
             <section id="framework-compatibility">
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-2xl">💻</span>
                   Framework Compatibility
@@ -176,7 +176,7 @@ export default function Requirements() {
 
             {/* User Requirements */}
             <section id="user-requirements">
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-2xl">📱</span>
                   User Requirements
@@ -190,8 +190,8 @@ export default function Requirements() {
                   <li>Mobile: Mobile wallet app (Phoenix, Zeus recommended)</li>
                   <li>All wallets are free to download and use</li>
                 </ul>
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-4">
-                  <p className="text-blue-200 text-xs">
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mt-4">
+                  <p className="text-orange-200 text-xs">
                     <strong>Note:</strong> Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works best for them.
                   </p>
                 </div>
@@ -200,7 +200,7 @@ export default function Requirements() {
 
             {/* Integration Complexity */}
             <section id="integration-complexity">
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-2xl">🔧</span>
                   Integration Complexity
@@ -221,7 +221,7 @@ export default function Requirements() {
 
             {/* Network Requirements */}
             <section id="network-requirements">
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-2xl">🌍</span>
                   Network Requirements
@@ -242,7 +242,7 @@ export default function Requirements() {
 
             {/* Testing & Staging */}
             <section id="testing">
-              <Card className="p-6 border-2 border-green-500/30 bg-gradient-to-br from-green-500/5 to-green-600/5">
+              <Card className="p-6 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-2xl">🧪</span>
                   Testing & Staging
@@ -257,13 +257,13 @@ export default function Requirements() {
                   <li>Any IP address (e.g., <code className="bg-dark-800 px-1 rounded">192.168.1.1</code>) is automatically allowed for testing</li>
                   <li>Perfect for development and staging environments</li>
                 </ul>
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-3">
-                  <p className="text-blue-200 text-xs font-semibold mb-1">💡 Important</p>
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mt-3">
+                  <p className="text-orange-200 text-xs font-semibold mb-1">💡 Important</p>
                   <p className="text-white/300 text-xs mb-2">
-                    Test domains don't need to be added to your dashboard—they work automatically. Only production domains need to be added manually.
+                    Test domains don't need to be added to your dashboard—they work automatically without verification. Production domains must be added to your dashboard and verified via DNS TXT record to prove ownership before authentication works.
                   </p>
                   <p className="text-white/300 text-xs">
-                    <strong>Domain format:</strong> When adding production domains to your dashboard, use only the hostname (e.g., <code className="bg-dark-900 px-1 rounded">example.com</code>). Don't include protocols (<code className="bg-dark-900 px-1 rounded">https://</code>) or paths (<code className="bg-dark-900 px-1 rounded">/path</code>). Subdomains like <code className="bg-dark-900 px-1 rounded">www.example.com</code> are treated as separate domains and need to be added separately if you want to support both.
+                    <strong>Domain format:</strong> When adding production domains to your dashboard, use only the hostname (e.g., <code className="bg-dark-900 px-1 rounded">example.com</code>). Don't include protocols (<code className="bg-dark-900 px-1 rounded">https://</code>) or paths (<code className="bg-dark-900 px-1 rounded">/path</code>). Subdomains like <code className="bg-dark-900 px-1 rounded">www.example.com</code> are treated as separate domains and need to be added and verified separately if you want to support both.
                   </p>
                 </div>
                 <p className="text-white/400 text-xs mt-3">

@@ -156,3 +156,4 @@ export default function ActivityLogComponent({ xpub, limit = 50 }: ActivityLogPr
 
 
 
+

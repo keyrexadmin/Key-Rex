@@ -91,10 +91,23 @@ export function validateDashboardOrigin(request: NextRequest, keyrexDomain: stri
 /**
  * Validates origin for embed logins (client's allowed domains)
  * @param request - Next.js request object
- * @param allowedDomains - User's allowed domains
- * @returns true if origin is in allowed domains
+ * @param allowedDomains - User's allowed domains (used if xpub not provided)
+ * @param xpub - Optional: User's xpub to check verified domains only
+ * @returns true if origin is in allowed/verified domains
  */
-export function validateEmbedOrigin(request: NextRequest, allowedDomains: string[]): boolean {
+export function validateEmbedOrigin(
+  request: NextRequest, 
+  allowedDomains: string[],
+  xpub?: string
+): boolean {
+  // If xpub provided, check verified domains only
+  if (xpub) {
+    const { getVerifiedDomains } = require('./storage')
+    const verifiedDomains = getVerifiedDomains(xpub)
+    return validateOrigin(request, verifiedDomains)
+  }
+  
+  // Fallback: use provided domains (for backward compatibility)
   return validateOrigin(request, allowedDomains)
 }
 

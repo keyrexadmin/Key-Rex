@@ -68,7 +68,7 @@ export default function CopySuccessModal({ selectedWallet, onDismiss, isVisible 
       aria-labelledby="copy-success-title"
     >
       <div 
-        className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 max-w-md w-full mx-4 border-2 border-green-500/50 shadow-2xl"
+        className="bg-gradient-to-br from-dark-800 to-dark-900 rounded-xl p-6 max-w-md w-full mx-4 border-2 border-green-500/50 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Success Icon */}

@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserByXpub, updateUser, normalizeDomain, addDomain, createUser } from '@/lib/storage'
+import { getUserByXpub, updateUser, normalizeDomain, addDomain, createUser, addDomainVerification, updateDomainVerification } from '@/lib/storage'
 import { signCookieData, verifyCookieData } from '@/lib/cookie-signing'
-import { generateSiteId, validateDomain } from '@/lib/utils'
+import { generateSiteId, validateDomain, isTestDomain } from '@/lib/utils'
+import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
+import { generateVerificationToken } from '@/lib/domain-verification'
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent subscription abuse (per-user for authenticated endpoints)
+  const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (1MB)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 1024 * 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+  
   try {
-    const xpub = request.cookies.get('user_xpub')?.value
     
     if (!xpub) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -67,12 +82,32 @@ export async function POST(request: NextRequest) {
     // Normalize domain
     const normalizedDomain = normalizeDomain(domain.trim())
     
-    // Update user: subscribe and add domain
-    // All users are free tier now
+    // Use addDomain to add the domain (handles verification properly)
+    // Then update subscription status
+    const domainAdded = addDomain(xpub, normalizedDomain)
+    if (!domainAdded) {
+      return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
+    }
+    
+    // Handle domain verification
+    // Test domains are auto-verified
+    if (isTestDomain(normalizedDomain)) {
+      const token = generateVerificationToken()
+      addDomainVerification(xpub, normalizedDomain, token)
+      updateDomainVerification(xpub, normalizedDomain, {
+        status: 'verified',
+        verifiedAt: Date.now()
+      })
+    } else {
+      // Real domains: create pending verification
+      const token = generateVerificationToken()
+      addDomainVerification(xpub, normalizedDomain, token)
+    }
+    
+    // Update subscription status
     const updatedUser = updateUser(xpub, {
       subscribed: true,
       subscriptionTier: 'free',
-      allowedDomains: [normalizedDomain], // Set to single domain array for new subscription
     })
     
     if (!updatedUser) {

@@ -11,11 +11,11 @@ export default function FAQ() {
       questions: [
         {
           q: 'Is Key-Rex really free?',
-          a: 'Yes! Key-Rex has no cost with no hidden fees, no usage limits, and no credit card required. There are no paid tiers or premium features—everything is included at no cost.',
+          a: 'Yes! Key-Rex has no cost with no hidden fees, no usage limits, and no credit card required.',
         },
         {
           q: 'How long does it take to set up?',
-          a: 'Setup takes just a few minutes. You\'ll need a Lightning wallet (like Alby, Phoenix, or Zeus), sign in to create your account, add your domain, and copy the integration code to your website. The entire process typically takes less than 5 minutes.',
+          a: 'Setup takes just a few minutes. You\'ll need a Lightning wallet (such as Alby), sign in to create your account, add and verify your domain (requires adding a DNS TXT record), and copy the integration code to your website. Domain verification can take 5-10 minutes for DNS propagation. Test domains work immediately without verification. The entire process typically takes less than 15 minutes including verification.',
         },
         {
           q: 'Do I need a backend server?',
@@ -31,7 +31,7 @@ export default function FAQ() {
         },
         {
           q: 'Do you offer white-label or custom solutions?',
-          a: 'If you\'re interested in white-label branding (removing Key-Rex references), priority support with SLA commitments, or custom integrations tailored to your infrastructure, we\'re open to discussing paid custom solutions. Contact us through our Contact page to discuss your requirements and we can work together to determine if we can set something up that meets your needs.',
+          a: 'If you\'re interested in white-label branding (removing Key-Rex references), priority support with SLA commitments, or custom integrations tailored to your infrastructure, we\'re open to discussing paid custom solutions. Contact us through our Support page to discuss your requirements and we can work together to determine if we can set something up that meets your needs.',
         },
       ],
     },
@@ -40,7 +40,7 @@ export default function FAQ() {
       questions: [
         {
           q: 'What if my visitors don\'t have Lightning wallets?',
-          a: 'If someone doesn\'t have a Lightning wallet, they won\'t be able to use Key-Rex to sign in. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works for them. Popular Lightning wallets include Alby (browser extension for desktop), Phoenix (mobile app), and Zeus (mobile app)—all are free to download.',
+          a: 'If someone doesn\'t have a Lightning wallet, they won\'t be able to use Key-Rex to sign in. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works for them. Popular Lightning wallets such as Alby (browser extension for desktop), are all are free to download.',
         },
         {
           q: 'Can I use this alongside email/password authentication?',
@@ -77,7 +77,7 @@ export default function FAQ() {
         },
         {
           q: 'Is there a limit on logins or users?',
-          a: 'No limits at all. You can have unlimited authentication attempts, unlimited unique users, and unlimited domains. Everything is free with no restrictions.',
+          a: 'There are no limits for legitimate use. You can have unlimited authentication attempts, unlimited unique users, and unlimited domains—everything is free with no restrictions. To protect against abuse, we have rate limiting and other safeguards in place that help prevent excessive requests from impacting the service, while ensuring normal usage remains unaffected.',
         },
         {
           q: 'What frameworks are supported?',
@@ -98,7 +98,7 @@ export default function FAQ() {
         },
         {
           q: 'What if I lose access to my Lightning wallet?',
-          a: 'If you lose access to your Lightning wallet that you use to sign in to your Key-Rex dashboard, you must create a new Key-Rex account with a different wallet. There is no account recovery—this is by design to prevent bad actors from gaining unauthorized access. Your new account will have a new Site ID, so you\'ll need to update your integration code on your website. For your website users (your customers), an option would be to offer a separate recovery path (such as email-based recovery or a support-reviewed process) so you can verify their identity and then link a new Key-Rex xpub to their existing account. Key-Rex provides the cryptographic identifier; your application controls how recovery and wallet replacement are handled.',
+          a: 'If you lose access to the Lightning wallet you use to sign in to your Key-Rex dashboard, you\'ll need to create a new Key-Rex account with a different wallet. We don\'t offer account recovery—this is intentional to prevent unauthorized access. Your new account will have a new Site ID, so you\'ll need to update the integration code on your website. For your own website users, you can set up your own recovery process (like email verification or a support review) to verify their identity and then link their new Key-Rex identifier to their existing account in your system. Key-Rex provides the cryptographic identifier; you control how account recovery and wallet changes work for your users.',
         },
         {
           q: 'Can users use multiple wallets?',
@@ -123,7 +123,11 @@ export default function FAQ() {
         },
         {
           q: 'Can I use this on multiple domains?',
-          a: 'Yes! You can add unlimited domains and subdomains. Each production domain should be added in your dashboard before authentication works. If you have no domains configured yet, the first domain you use will be automatically captured. Test domains (like localhost, 127.0.0.1, test.example.com, staging.example.com, dev.example.com, etc.) are recognized as test domains and can be added for development. This helps prevent unauthorized use of your integration code.',
+          a: 'Yes! You can add unlimited domains and subdomains. Each production domain must be added in your dashboard and verified before authentication works. Domain verification requires adding a DNS TXT record to prove you own the domain. Test domains (like localhost, 127.0.0.1, test.example.com, staging.example.com, dev.example.com, etc.) are recognized as test domains and work automatically without verification. This helps prevent unauthorized use of your integration code.',
+        },
+        {
+          q: 'How do I verify my domain?',
+          a: 'After adding a domain in your dashboard, you\'ll need to verify ownership by adding a DNS TXT record. The dashboard will show you the exact record to add (format: keyrex-verification=...). Add this TXT record to your domain\'s DNS settings, wait 5-10 minutes for DNS propagation, then click "Verify" in the dashboard. Test domains don\'t require verification and work immediately. See the Domains tab in your dashboard for detailed instructions.',
         },
       ],
     },
@@ -219,11 +223,14 @@ export default function FAQ() {
               </h2>
               <div className="space-y-4">
                 {category.questions.map((faq, faqIndex) => (
-                  <Card key={faqIndex} className="p-6">
+                  <Card key={faqIndex} className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <h3 className="text-white font-semibold text-lg mb-3">
                       {faq.q}
                     </h3>
-                    <p className="text-white/200 text-base leading-relaxed">{faq.a}</p>
+                    <p 
+                      className="text-white/200 text-base leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: faq.a }}
+                    />
                   </Card>
                 ))}
               </div>
@@ -231,7 +238,7 @@ export default function FAQ() {
           ))}
 
           {/* Still Have Questions */}
-          <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90 text-center">
+          <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90 text-center">
             <h2 className="text-2xl font-semibold text-white mb-4">Still Have Questions?</h2>
             <p className="text-white/200 text-base mb-6 leading-relaxed">
               If you didn't find what you're looking for, check out our detailed documentation in the dashboard after you sign up, or browse our open source code to see exactly how everything works under the hood.

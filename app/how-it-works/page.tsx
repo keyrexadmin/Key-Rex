@@ -35,7 +35,7 @@ export default function HowItWorks() {
 
             {/* Overview */}
             <section id="overview">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-semibold text-white mb-4">Overview</h2>
                 <p className="text-white/200 text-base leading-relaxed mb-4">
                   Key-Rex lets your website visitors sign in using their Lightning wallets—these are Bitcoin wallets that work on the Lightning Network. Instead of asking for passwords or email addresses, visitors prove who they are using cryptographic signatures (the same security technology that protects Bitcoin).
@@ -53,7 +53,7 @@ export default function HowItWorks() {
 
             {/* Authentication Flow */}
             <section id="authentication-flow">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-semibold text-white mb-6">Authentication Flow</h2>
                 
                 <div className="space-y-6">
@@ -121,11 +121,11 @@ export default function HowItWorks() {
                   </div>
                 </div>
 
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mt-6">
-                  <p className="text-blue-200 text-sm mb-3">
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mt-6">
+                  <p className="text-orange-200 text-sm mb-3">
                     <strong>Technical Note:</strong> Key-Rex uses LNURL-auth, which is a standard way for Lightning wallets to handle authentication. This means it works with all major Lightning wallet apps, so your visitors can use whichever wallet they prefer.
                   </p>
-                  <p className="text-blue-200 text-sm">
+                  <p className="text-orange-200 text-sm">
                     <strong>Authentication Methods:</strong> Key-Rex supports three authentication methods: <strong>WebLN</strong> (browser extension, one-click authentication - this is the desired/preferred method), <strong>QR code popup</strong> (desktop fallback when WebLN isn't available), and <strong>QR code redirect</strong> (mobile fallback). Many wallets currently don't support QR code scanning for LNURL-auth, but we expect them to rapidly incorporate this technology over time as the Lightning Network ecosystem matures.
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export default function HowItWorks() {
 
             {/* Integration Steps */}
             <section id="integration-steps">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-6">How to Add Key-Rex to Your Website</h2>
                 
                 <div className="space-y-6">
@@ -192,7 +192,7 @@ export default function HowItWorks() {
 
             {/* Lightning Wallets */}
             <section id="lightning-wallets">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-6">What Lightning Wallets Are</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
                   For someone to sign in with Key-Rex, they need a Lightning wallet app on their phone or computer. These are free apps that work with Bitcoin's Lightning Network. Think of them like a digital wallet that can also prove your identity. Here are the most popular options your visitors might use:
@@ -258,7 +258,7 @@ export default function HowItWorks() {
 
             {/* Technical Details */}
             <section id="technical-details">
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-6">Technical Details (For Developers)</h2>
                 <p className="text-white/300 text-sm mb-4">
                   If you're technical and want to understand the underlying technology, here are the key details:

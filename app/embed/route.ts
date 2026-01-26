@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
             let retries = 10;
             while (retries > 0) {
               try {
-                const callbackUrl = baseUrl + '/api/auth/callback?tag=login&k1=' + encodeURIComponent(challenge);
+                const callbackUrl = baseUrl + '/api/auth/callback?k1=' + encodeURIComponent(challenge);
                 const callbackRes = await fetch(callbackUrl, {
                   credentials: 'include',
                 });
@@ -441,7 +441,18 @@ export async function GET(request: NextRequest) {
       const disabledMessage = document.createElement('div');
       disabledMessage.setAttribute('data-keyrex', 'disabled-message');
       disabledMessage.style.cssText = 'background: #fef3c7; border: 2px solid #f59e0b; border-radius: 0.75rem; padding: 1rem; margin: 0 auto; max-width: 420px; font-family: system-ui, -apple-system, sans-serif; text-align: center;';
-      disabledMessage.innerHTML = '<p style="color: #92400e; font-weight: 600; margin: 0;">Key-Rex authentication is currently disabled</p><p style="color: #78350f; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Please contact the website owner to enable authentication.</p>';
+      
+      // SECURITY: Use createElement instead of innerHTML to prevent XSS
+      const p1 = document.createElement('p');
+      p1.style.cssText = 'color: #92400e; font-weight: 600; margin: 0;';
+      p1.textContent = 'Key-Rex authentication is currently disabled';
+      
+      const p2 = document.createElement('p');
+      p2.style.cssText = 'color: #78350f; font-size: 0.875rem; margin: 0.5rem 0 0 0;';
+      p2.textContent = 'Please contact the website owner to enable authentication.';
+      
+      disabledMessage.appendChild(p1);
+      disabledMessage.appendChild(p2);
       container.appendChild(disabledMessage);
       return;
     }
@@ -516,11 +527,11 @@ export async function GET(request: NextRequest) {
     // Very discrete native tooltip for users who don't see their wallet
     logoButton.title = "Don't see your wallet? Click Sign in with Key-Rex";
     logoButton.onclick = handleLogin;
-    const buttonBg = 'white'; // Always white background for logo button to ensure black logo is visible
-    logoButton.style.cssText = 'background: ' + buttonBg + '; border: none; padding: 0.5rem; border-radius: 0.75rem; cursor: pointer; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease; outline: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); min-width: 8rem; overflow: hidden; display: flex; align-items: center; justify-content: center;';
+    const buttonBg = 'rgb(251, 146, 60)'; // Orange-400 background to match navigation sign-in button
+    logoButton.style.cssText = 'background: ' + buttonBg + '; border: none; padding: 0.5rem; border-radius: 0.75rem; cursor: pointer; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease; outline: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); min-width: 12rem; overflow: hidden; display: flex; align-items: center; justify-content: center;';
     
     const logoImg = document.createElement('img');
-    logoImg.src = baseUrl + '/images/keyrex-button-v2signin.png';
+    logoImg.src = baseUrl + '/images/keyrex-websitebutton.png';
     logoImg.alt = 'Sign in with Key-Rex';
     // Increased logo size and zoom to fill button, centered
     logoImg.style.cssText = 'height: auto; width: auto; max-height: 5rem; object-fit: contain; display: block; transform: scale(1.5); transform-origin: center;';
@@ -742,7 +753,17 @@ export async function GET(request: NextRequest) {
     const notification = document.createElement('div');
     notification.setAttribute('data-keyrex', 'success-notification');
     notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: keyrex-slide-in 0.3s ease-out;';
-    notification.innerHTML = '<span style="font-size: 18px;">✓</span> <span>Authentication successful</span>';
+    
+    // SECURITY: Use createElement instead of innerHTML to prevent XSS
+    const checkmark = document.createElement('span');
+    checkmark.style.cssText = 'font-size: 18px;';
+    checkmark.textContent = '✓';
+    
+    const message = document.createElement('span');
+    message.textContent = 'Authentication successful';
+    
+    notification.appendChild(checkmark);
+    notification.appendChild(message);
     
     // Add animation keyframes if not already added
     if (!document.getElementById('keyrex-notification-styles')) {

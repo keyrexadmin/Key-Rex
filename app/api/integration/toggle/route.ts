@@ -18,7 +18,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
+    // SECURITY: Check if user has completed wizard (freeDisclaimerAccepted)
+    const backupCookie = request.cookies.get('user_subscription_backup')?.value
+    if (backupCookie) {
+      const backupData = verifyCookieData(backupCookie)
+      if (backupData && !backupData.freeDisclaimerAccepted) {
+        return NextResponse.json({ 
+          error: 'Wizard not completed. Please complete the onboarding wizard first.',
+          wizardRequired: true 
+        }, { status: 403 })
+      }
+    }
+
     let user = getUserByXpub(xpub)
+    
+    // SECURITY: If user exists in storage, check wizard completion
+    if (user && !user.freeDisclaimerAccepted) {
+      return NextResponse.json({ 
+        error: 'Wizard not completed. Please complete the onboarding wizard first.',
+        wizardRequired: true 
+      }, { status: 403 })
+    }
     if (!user) {
       console.warn('User not found in storage - this may be due to storage reset')
       // Check if user has a valid xpub cookie - if so, they've authenticated

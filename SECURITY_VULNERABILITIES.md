@@ -136,3 +136,4 @@ document.cookie = 'bitpass_return_url=' + returnUrl + '; path=/; max-age=300; Sa
 3. Require origin validation for embedded logins
 
 
+

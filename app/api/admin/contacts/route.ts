@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie } from '@/lib/admin-auth'
 import { getAllContactSubmissions, getUnreadContactSubmissions, updateContactSubmissionStatus, deleteContactSubmission } from '@/lib/storage'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 /**
  * Admin Contact Submissions API Route
@@ -8,8 +9,15 @@ import { getAllContactSubmissions, getUnreadContactSubmissions, updateContactSub
  * Returns all contact form submissions (admin only)
  */
 export async function GET(request: NextRequest) {
-  // Verify admin session
+  // SECURITY: Rate limiting - prevent cost abuse (per-admin)
   const adminSession = request.cookies.get('admin_session')?.value
+  const identifier = adminSession || 'anonymous'
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // Verify admin session
   if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -39,8 +47,21 @@ export async function GET(request: NextRequest) {
  * Update contact submission status
  */
 export async function PATCH(request: NextRequest) {
-  // Verify admin session
+  // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
   const adminSession = request.cookies.get('admin_session')?.value
+  const identifier = adminSession || 'anonymous'
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (10KB)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 10 * 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+  
+  // Verify admin session
   if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -69,8 +90,15 @@ export async function PATCH(request: NextRequest) {
  * Delete contact submission
  */
 export async function DELETE(request: NextRequest) {
-  // Verify admin session
+  // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for delete operations)
   const adminSession = request.cookies.get('admin_session')?.value
+  const identifier = adminSession || 'anonymous'
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // Verify admin session
   if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserBySiteId } from '@/lib/storage'
-import { isDomainAllowed } from '@/lib/storage'
+import { getUserBySiteId, isDomainAllowed, getVerifiedDomains } from '@/lib/storage'
+import { isTestDomain } from '@/lib/utils'
 import { getCorsHeaders } from '@/lib/cors'
 
 /**
@@ -32,19 +32,25 @@ export async function POST(request: NextRequest) {
     
     try {
       const returnUrlObj = new URL(decodeURIComponent(returnUrl))
-      const allowedDomains = user.allowedDomains || []
+      const returnDomain = returnUrlObj.hostname
       
-      // If user has no allowed domains yet, allow any domain (first-use scenario)
-      // Otherwise, validate against allowed domains
-      if (allowedDomains.length === 0) {
-        // First-use: allow the domain from returnUrl
+      // Test domains are always allowed
+      if (isTestDomain(returnDomain)) {
         isValid = true
         validatedUrl = returnUrlObj.toString()
       } else {
-        // Validate against allowed domains
-        isValid = isDomainAllowed(returnUrlObj.hostname, allowedDomains)
-        if (isValid) {
-          validatedUrl = returnUrlObj.toString()
+        // For production domains, check verified domains only
+        const verifiedDomains = getVerifiedDomains(user.xpub)
+        
+        // If user has no verified domains, block redirects to production domains
+        if (verifiedDomains.length === 0) {
+          isValid = false
+        } else {
+          // Validate against verified domains
+          isValid = isDomainAllowed(returnDomain, verifiedDomains)
+          if (isValid) {
+            validatedUrl = returnUrlObj.toString()
+          }
         }
       }
     } catch (e) {

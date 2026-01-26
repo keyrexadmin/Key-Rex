@@ -4,12 +4,24 @@
 export type SubscriptionTier = 'free' // Legacy - all users are now free
 export type EnterpriseFeature = never // Legacy - no longer used
 
+export interface DomainVerification {
+  domain: string
+  status: 'pending' | 'verified' | 'failed' | 'expired'
+  verificationMethod: 'dns_txt'
+  verificationToken: string // Unique token: keyrex-verification={random32chars}
+  verifiedAt?: number // Timestamp when verified (milliseconds since epoch)
+  createdAt: number // When verification was initiated (milliseconds since epoch)
+  lastCheckedAt?: number // Last verification attempt (milliseconds since epoch)
+  errorMessage?: string // Last error if verification failed
+}
+
 export interface User {
   xpub: string
   siteId: string
   subscribed: boolean // Always true for free users
   subscriptionTier?: 'free' // All users are free users
   allowedDomains?: string[] // List of allowed domains (unlimited for all users)
+  domainVerifications?: Map<string, DomainVerification> // domain -> verification status
   freeDisclaimerAccepted?: boolean // If true, user has accepted the free version disclaimer
   freeDisclaimerAcceptedAt?: number // Timestamp when disclaimer was accepted (milliseconds since epoch)
   freeDisclaimerAcceptedIp?: string // IP address when disclaimer was accepted

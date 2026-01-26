@@ -16,14 +16,25 @@ import AnalyticsChart from '@/components/AnalyticsChart'
 import DomainTester from '@/components/DomainTester'
 
 // Domain Manager Component
+interface DomainWithStatus {
+  domain: string
+  verified: boolean
+  status: 'pending' | 'verified' | 'failed' | 'expired'
+  verificationToken?: string
+  errorMessage?: string
+}
+
 function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser: (user: User) => void; onNavigateToTab?: (tab: string) => void }) {
   const toast = useToast()
   const [domains, setDomains] = useState<string[]>(user.allowedDomains || [])
+  const [domainsWithStatus, setDomainsWithStatus] = useState<DomainWithStatus[]>([])
   const [newDomain, setNewDomain] = useState('')
   const [loading, setLoading] = useState(false)
+  const [verifyingDomain, setVerifyingDomain] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [editingDomain, setEditingDomain] = useState<string | null>(null)
   const [editDomainValue, setEditDomainValue] = useState('')
+  const [showingVerificationInstructions, setShowingVerificationInstructions] = useState<string | null>(null)
 
   useEffect(() => {
     loadDomains()
@@ -37,6 +48,17 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
       if (res.ok) {
         const data = await res.json()
         setDomains(data.domains || [])
+        // Update domains with verification status if available
+        if (data.domainsWithStatus) {
+          setDomainsWithStatus(data.domainsWithStatus)
+        } else {
+          // Fallback: create status array from domains (all pending)
+          setDomainsWithStatus((data.domains || []).map((domain: string) => ({
+            domain,
+            verified: isTestDomain(domain), // Test domains are auto-verified
+            status: isTestDomain(domain) ? 'verified' : 'pending'
+          })))
+        }
       }
     } catch (err) {
       console.error('Failed to load domains:', err)
@@ -71,11 +93,25 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
 
       if (res.ok) {
         const data = await res.json()
-        setDomains(data.domains)
+        setDomains(data.domains || [])
         setNewDomain('')
         // Update user in parent
-        setUser({ ...user, allowedDomains: data.domains })
-        toast.showSuccess(`Domain "${newDomain.trim()}" added successfully!`)
+        setUser({ ...user, allowedDomains: data.domains || [] })
+        
+        // Handle verification status
+        if (data.status === 'pending') {
+          // Reload domains to get verification status
+          await loadDomains()
+          toast.showSuccess(`Domain "${newDomain.trim()}" added! Please verify ownership.`)
+          setShowingVerificationInstructions(data.domain)
+        } else if (data.verified || data.status === 'verified') {
+          // Test domain or already verified
+          await loadDomains()
+          toast.showSuccess(`Domain "${newDomain.trim()}" added and verified!`)
+        } else {
+          await loadDomains()
+          toast.showSuccess(`Domain "${newDomain.trim()}" added successfully!`)
+        }
       } else {
         const errorData = await res.json().catch(() => ({}))
         const errorMsg = errorData.error || 'Failed to add domain'
@@ -113,9 +149,10 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
 
       if (res.ok) {
         const data = await res.json()
-        setDomains(data.domains)
+        setDomains(data.domains || [])
         // Update user in parent
-        setUser({ ...user, allowedDomains: data.domains })
+        setUser({ ...user, allowedDomains: data.domains || [] })
+        await loadDomains() // Reload to update verification status
         toast.showSuccess(`Domain "${domain}" removed successfully`)
       } else {
         const errorData = await res.json().catch(() => ({}))
@@ -254,8 +291,48 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
     }
   }
 
+  // Handle domain verification
+  const handleVerifyDomain = async (domain: string) => {
+    setVerifyingDomain(domain)
+    setError('')
+    try {
+      const res = await fetch('/api/domains/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ domain }),
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        if (data.verified) {
+          toast.showSuccess(`Domain "${domain}" verified successfully!`)
+          await loadDomains() // Reload to update status
+        } else {
+          toast.showError(data.error || 'Verification failed. Please check your DNS settings.')
+          await loadDomains() // Reload to get updated error message
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        toast.showError(errorData.error || 'Verification failed')
+      }
+    } catch (err) {
+      toast.showError('Failed to verify domain. Please try again.')
+    } finally {
+      setVerifyingDomain(null)
+    }
+  }
+  
+  // Get domain status
+  const getDomainStatus = (domain: string): DomainWithStatus | undefined => {
+    return domainsWithStatus.find(d => d.domain === domain)
+  }
+  
   // Check if any domains are test domains
   const hasTestDomains = domains.some(domain => isTestDomain(domain))
+  
+  // Check if any domains need verification
+  const hasUnverifiedDomains = domainsWithStatus.some(d => !d.verified && !isTestDomain(d.domain))
 
   return (
     <div className="space-y-4">
@@ -283,6 +360,13 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
         </div>
       )}
       
+      {hasUnverifiedDomains && (
+        <div className="bg-orange-500/10 border-2 border-orange-500/30 text-orange-200 p-4 rounded-lg text-sm">
+          <p className="font-semibold mb-2">⚠️ Domain Verification Required</p>
+          <p className="mb-2">Some domains need verification before they can be used. Please verify domain ownership by adding a DNS TXT record.</p>
+        </div>
+      )}
+      
       {hasTestDomains && (
         <div className="bg-yellow-500/10 border-2 border-yellow-500/30 text-yellow-200 p-3 rounded-lg text-sm">
           <p className="font-semibold mb-1">⚠️ Test Domain Detected</p>
@@ -293,8 +377,14 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
       <div className="space-y-2">
         {domains.length > 0 ? (
           <div className="space-y-2">
-            {domains.map((domain, idx) => (
-              <div key={idx} className="bg-dark-800/70 border-2 border-orange-500/30 p-3 rounded-lg">
+            {domains.map((domain, idx) => {
+              const domainStatus = getDomainStatus(domain)
+              const isVerified = domainStatus?.verified || isTestDomain(domain)
+              const isPending = domainStatus?.status === 'pending' && !isTestDomain(domain)
+              const showInstructions = showingVerificationInstructions === domain
+              
+              return (
+              <div key={idx} className="bg-dark-800/70 border-2 border-orange-500/30 p-3 rounded-lg space-y-3">
                 {editingDomain === domain ? (
                   <div className="space-y-2">
                     <input
@@ -324,37 +414,126 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-mono text-sm">{domain}</span>
-                      {isTestDomain(domain) && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                          TEST DOMAIN
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleStartEditDomain(domain)}
-                        disabled={loading}
-                        className="text-orange-400 hover:text-orange-300 font-medium text-sm disabled:opacity-50 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      {domains.length > 1 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-mono text-sm">{domain}</span>
+                        {isTestDomain(domain) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                            TEST DOMAIN
+                          </span>
+                        )}
+                        {isVerified && !isTestDomain(domain) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                            ✓ VERIFIED
+                          </span>
+                        )}
+                        {isPending && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                            PENDING VERIFICATION
+                          </span>
+                        )}
+                        {domainStatus?.status === 'failed' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">
+                            VERIFICATION FAILED
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {isPending && (
+                          <button
+                            onClick={() => handleVerifyDomain(domain)}
+                            disabled={loading || verifyingDomain === domain}
+                            className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-1.5 px-3 rounded text-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            {verifyingDomain === domain ? (
+                              <>
+                                <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                Verifying...
+                              </>
+                            ) : (
+                              'Verify'
+                            )}
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleRemoveDomain(domain)}
+                          onClick={() => handleStartEditDomain(domain)}
                           disabled={loading}
-                          className="text-red-400 hover:text-red-300 font-medium text-sm disabled:opacity-50 transition-colors"
+                          className="text-orange-400 hover:text-orange-300 font-medium text-sm disabled:opacity-50 transition-colors"
                         >
-                          Remove
+                          Edit
                         </button>
-                      )}
+                        {domains.length > 1 && (
+                          <button
+                            onClick={() => handleRemoveDomain(domain)}
+                            disabled={loading}
+                            className="text-red-400 hover:text-red-300 font-medium text-sm disabled:opacity-50 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                    
+                    {/* Verification Instructions */}
+                    {(isPending || showInstructions) && domainStatus?.verificationToken && (
+                      <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-4 text-sm">
+                        <p className="font-semibold text-orange-200 mb-2">Verify Domain Ownership</p>
+                        <p className="text-white/80 mb-3">Add the following DNS TXT record to verify domain ownership:</p>
+                        <div className="bg-dark-900/80 border border-orange-500/20 rounded p-3 mb-3">
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className="text-orange-400 font-mono text-xs">Type:</span>
+                            <span className="text-white font-mono text-xs">TXT</span>
+                          </div>
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className="text-orange-400 font-mono text-xs">Name:</span>
+                            <span className="text-white font-mono text-xs">{domain}</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="text-orange-400 font-mono text-xs">Value:</span>
+                            <code className="text-white font-mono text-xs break-all">{domainStatus.verificationToken}</code>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 mb-3">
+                          <span className="text-yellow-400">💡</span>
+                          <p className="text-white/70 text-xs">
+                            DNS changes may take 5-10 minutes to propagate. After adding the record, click "Verify" to check.
+                          </p>
+                        </div>
+                        {domainStatus.errorMessage && (
+                          <div className="bg-red-500/10 border border-red-500/30 rounded p-2 mb-3">
+                            <p className="text-red-300 text-xs font-semibold mb-1">Last Error:</p>
+                            <p className="text-red-200 text-xs">{domainStatus.errorMessage}</p>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleVerifyDomain(domain)}
+                            disabled={loading || verifyingDomain === domain}
+                            className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-1.5 px-4 rounded text-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            {verifyingDomain === domain ? (
+                              <>
+                                <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                Verifying...
+                              </>
+                            ) : (
+                              '✓ Verify Domain'
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setShowingVerificationInstructions(null)}
+                            className="text-white/60 hover:text-white/80 text-xs"
+                          >
+                            Hide Instructions
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-            ))}
+            )})}
           </div>
         ) : (
           <div className="bg-dark-800/50 border-2 border-dark-700/50 rounded-lg p-8 text-center">
@@ -449,11 +628,45 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const toast = useToast()
   const [user, setUser] = useState<User | null>(null)
+  const [domainsStatus, setDomainsStatus] = useState<DomainWithStatus[]>([])
   const [usage, setUsage] = useState<UsageStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'login-code' | 'domains' | 'analytics' | 'documentation' | 'troubleshooting' | 'settings'>('overview')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   // Removed: Disclaimer modal - disclaimer is now only shown in OnboardingWizard Step 4
+  
+  // Load domains with verification status
+  useEffect(() => {
+    const loadDomainsStatus = async () => {
+      try {
+        const res = await fetch('/api/domains', {
+          credentials: 'include',
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.domainsWithStatus) {
+            setDomainsStatus(data.domainsWithStatus)
+          } else if (data.domains) {
+            // Fallback: create status array
+            setDomainsStatus(data.domains.map((domain: string) => ({
+              domain,
+              verified: isTestDomain(domain),
+              status: isTestDomain(domain) ? 'verified' : 'pending'
+            })))
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load domains status:', err)
+      }
+    }
+    
+    if (user) {
+      loadDomainsStatus()
+    }
+  }, [user])
+  
+  // Check if user has at least one verified domain
+  const hasVerifiedDomain = domainsStatus.some(d => d.verified || isTestDomain(d.domain))
 
   const loadUser = useCallback(async (forceRefresh = false): Promise<User | null> => {
     try {
@@ -715,7 +928,7 @@ function DashboardContent() {
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-xl p-8 border-4 border-orange-300">
             <h1 className="text-3xl font-bold text-black mb-4">Storage Reset Detected</h1>
-            <p className="text-gray-700 mb-6">
+            <p className="text-white/70 mb-6">
               Your session data was lost due to a server restart (this is expected with in-memory storage during development).
               Your domain settings need to be restored.
             </p>
@@ -735,7 +948,7 @@ function DashboardContent() {
               </button>
               <button
                 onClick={() => loadUser(true)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg transition-colors"
+                className="bg-dark-700 hover:bg-dark-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 Retry
               </button>
@@ -846,11 +1059,11 @@ function DashboardContent() {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center">1</span>
-                      <span className="text-white/80 text-base leading-relaxed">Add your domain in the <strong className="text-white">"Domains"</strong> tab</span>
+                      <span className="text-white/80 text-base leading-relaxed">Add your domain in the <strong className="text-white">"Domains"</strong> tab and verify it</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-dark-700 text-white/80 text-xs font-bold flex items-center justify-center">2</span>
-                      <span className="text-white/80 text-base leading-relaxed">Copy your integration code from the <strong className="text-white">"My Integration Code"</strong> tab</span>
+                      <span className="text-white/80 text-base leading-relaxed">Copy your integration code from the <strong className="text-white">"My Integration Code"</strong> tab (only available after domain verification)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-dark-700 text-white/80 text-xs font-bold flex items-center justify-center">3</span>
@@ -886,7 +1099,7 @@ function DashboardContent() {
             <div className="space-y-6">
               {/* Account Information */}
               {user && (
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <div className="bg-dark-800/70 border-2 border-orange-500/30 rounded-lg p-6">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold text-white">Account Information</h3>
@@ -912,12 +1125,12 @@ function DashboardContent() {
               )}
 
               {/* Integration Status Card */}
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-semibold text-white">Integration Status</h2>
                   <div className={`px-4 py-2 rounded-lg font-semibold ${
                     user?.integrationEnabled !== false
-                      ? 'bg-green-500/20 text-green-400 border-2 border-green-500/30'
+                      ? 'bg-orange-500/20 text-orange-400 border-2 border-orange-500/30'
                       : 'bg-red-500/20 text-red-400 border-2 border-red-500/30'
                   }`}>
                     {user?.integrationEnabled !== false ? '✓ Active' : '✗ Disabled'}
@@ -941,7 +1154,7 @@ function DashboardContent() {
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Domains Card */}
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-white">Domains</h3>
                     <HelpIcon content="Domains are the websites where your Key-Rex authentication button will work. Add all domains (including subdomains) where you plan to use the integration." />
@@ -965,7 +1178,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Usage Stats Card */}
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-white">This Month</h3>
                     <HelpIcon content="Number of unique users who authenticated on your website this month using Key-Rex." />
@@ -983,7 +1196,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* All-Time Stats Card */}
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-white">All Time</h3>
                     <HelpIcon content="Total number of unique users who have ever authenticated on your website using Key-Rex." />
@@ -1003,7 +1216,7 @@ function DashboardContent() {
 
               {/* Warnings & Issues */}
               {user && (
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <h3 className="text-lg font-semibold text-white mb-4">Status & Warnings</h3>
                   <div className="space-y-3">
                     {user.integrationEnabled === false && (
@@ -1045,11 +1258,11 @@ function DashboardContent() {
                       </div>
                     )}
                     {user.allowedDomains && user.allowedDomains.length > 0 && user.integrationEnabled !== false && (
-                      <div className="bg-green-500/10 border-2 border-green-500/30 rounded-lg p-4">
+                      <div className="bg-orange-500/10 border-2 border-orange-500/30 rounded-lg p-4">
                         <div className="flex items-start gap-3">
                           <span className="text-2xl">✓</span>
                           <div className="flex-1">
-                            <p className="font-semibold text-green-400 mb-1">All Systems Operational</p>
+                            <p className="font-semibold text-orange-400 mb-1">All Systems Operational</p>
                             <p className="text-sm text-white/80">
                               Your integration is active and ready to accept authentications.
                             </p>
@@ -1062,7 +1275,7 @@ function DashboardContent() {
               )}
 
               {/* Quick Actions */}
-              <Card className="p-6">
+              <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                 <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <button
@@ -1107,7 +1320,7 @@ function DashboardContent() {
 
           {/* TAB: My Integration Code */}
           {activeTab === 'login-code' && (
-            <Card className="p-8">
+            <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
               <div className="flex items-center gap-2 mb-2">
                 <h2 className="text-2xl font-semibold text-white">Add Key-Rex to Your Website</h2>
                 <HelpIcon content="Copy the integration code below and paste it into your website's HTML. The code includes your unique Site ID and should automatically load the authentication button." />
@@ -1127,7 +1340,7 @@ function DashboardContent() {
                     <p className="text-sm text-white/80">
                       {user?.integrationEnabled !== false ? (
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                           <span>Active — Authentication is enabled on all your domains</span>
                         </span>
                       ) : (
@@ -1189,26 +1402,63 @@ function DashboardContent() {
                 </div>
               </div>
               
+              {/* Check if user has verified domains */}
+              {!hasVerifiedDomain && user?.allowedDomains && user.allowedDomains.length > 0 && (
+                <div className="bg-orange-500/10 border-2 border-orange-500/30 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-orange-400 mb-2">Domain Verification Required</p>
+                      <p className="text-sm text-white/80 mb-3">
+                        Please verify at least one domain before using the integration code. Unverified domains cannot be used for authentication.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('domains')}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
+                      >
+                        Verify Domain →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {hasVerifiedDomain ? (
                 <EmbedCode 
                   key={`embed-${user?.siteId || 'no-site'}`}
                   siteId={user.siteId} 
                   hasCustomStyling={false}
                 />
+              ) : (
+                <div className="bg-dark-800/50 border-2 border-dark-700/50 rounded-lg p-8 text-center">
+                  <div className="text-4xl mb-4">🔒</div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Domain Verification Required</h3>
+                  <p className="text-white/80 text-base mb-4 leading-relaxed">
+                    Please verify at least one domain in the <strong className="text-white">Domains</strong> tab before using the integration code.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('domains')}
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
+                  >
+                    Go to Domains →
+                  </button>
+                </div>
+              )}
 
               {/* Backend Requirements Notice - Moved to bottom */}
-              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-6 mt-6">
+              <div className="bg-orange-500/10 border-2 border-orange-500/30 rounded-lg p-6 mt-6">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 text-2xl">⚠️</div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-blue-300 mb-3">Important: Backend Integration Required</h3>
-                    <p className="text-sm text-blue-200 mb-3">
-                      After a user successfully authenticates, you'll receive their <code className="bg-blue-600/30 px-1.5 py-0.5 rounded text-blue-100 font-mono text-xs">xpub</code> (extended public key) in the <code className="bg-blue-600/30 px-1.5 py-0.5 rounded text-blue-100 font-mono text-xs">KeyRex.onSuccess()</code> callback. You <strong className="text-blue-100">should handle this on your backend</strong> to create user sessions and manage authentication state.
+                    <h3 className="text-lg font-semibold text-orange-300 mb-3">Important: Backend Integration Required</h3>
+                    <p className="text-sm text-orange-200 mb-3">
+                      After a user successfully authenticates, you'll receive their <code className="bg-orange-600/30 px-1.5 py-0.5 rounded text-orange-100 font-mono text-xs">xpub</code> (extended public key) in the <code className="bg-orange-600/30 px-1.5 py-0.5 rounded text-orange-100 font-mono text-xs">KeyRex.onSuccess()</code> callback. You <strong className="text-orange-100">should handle this on your backend</strong> to create user sessions and manage authentication state.
                     </p>
-                    <div className="bg-blue-600/20 rounded-lg p-4 border border-blue-500/30 mb-3">
-                      <p className="text-sm font-semibold text-blue-200 mb-2">What you need to do:</p>
-                      <ol className="text-sm text-blue-200 space-y-1.5 list-decimal list-inside ml-2">
-                        <li>Register a <code className="bg-blue-600/30 px-1.5 py-0.5 rounded text-blue-100 font-mono text-xs">KeyRex.onSuccess()</code> callback in your website's JavaScript</li>
-                        <li>Send the received <code className="bg-blue-600/30 px-1.5 py-0.5 rounded text-blue-100 font-mono text-xs">xpub</code> to your backend server</li>
+                    <div className="bg-orange-600/20 rounded-lg p-4 border border-orange-500/30 mb-3">
+                      <p className="text-sm font-semibold text-orange-200 mb-2">What you need to do:</p>
+                      <ol className="text-sm text-orange-200 space-y-1.5 list-decimal list-inside ml-2">
+                        <li>Register a <code className="bg-orange-600/30 px-1.5 py-0.5 rounded text-orange-100 font-mono text-xs">KeyRex.onSuccess()</code> callback in your website's JavaScript</li>
+                        <li>Send the received <code className="bg-orange-600/30 px-1.5 py-0.5 rounded text-orange-100 font-mono text-xs">xpub</code> to your backend server</li>
                         <li>Create a user session on your backend (store the xpub, generate a session token/cookie)</li>
                         <li>Return the session to your frontend to complete the login flow</li>
                       </ol>
@@ -1221,7 +1471,7 @@ function DashboardContent() {
                     <div className="mt-4">
                       <button
                         onClick={() => setActiveTab('documentation')}
-                        className="text-sm text-blue-300 hover:text-blue-200 font-medium underline flex items-center gap-1"
+                        className="text-sm text-orange-300 hover:text-orange-200 font-medium underline flex items-center gap-1"
                       >
                         View Backend Integration Examples →
                       </button>
@@ -1549,7 +1799,7 @@ function DashboardContent() {
 
               {/* Main Content - Right Side */}
               <div className="flex-1 min-w-0">
-                <Card className="p-8">
+                <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                   <h2 className="text-2xl font-semibold text-white mb-4">Troubleshooting</h2>
                   <p className="text-white/80 mb-6">
                     Having issues with your Key-Rex integration? Use the guides below to diagnose and fix common problems.
@@ -1601,7 +1851,7 @@ function DashboardContent() {
                       const xpubInUrl = urlParams.get('xpub')
                       const cookies = document.cookie.split(';')
                       const hasKeyRexCookies = cookies.some(c => c.trim().startsWith('keyrex_'))
-                      const keyRexExists = typeof window.KeyRex !== 'undefined'
+                      const keyRexExists = typeof (window as any).KeyRex !== 'undefined'
                       const buttonExists = document.getElementById('keyrex-button') !== null
                       
                       advancedChecks = `\n---\n\nADVANCED DIAGNOSTICS (Current Page):\n`
@@ -1610,7 +1860,7 @@ function DashboardContent() {
                       advancedChecks += `${keyRexExists ? '✓' : '✗'} Key-Rex object loaded: ${keyRexExists ? 'Yes' : 'No'}\n`
                       advancedChecks += `${buttonExists ? '✓' : '✗'} Button element exists: ${buttonExists ? 'Yes' : 'No'}\n`
                       
-                      if (keyRexExists && window.KeyRex.init) {
+                      if (keyRexExists && (window as any).KeyRex.init) {
                         advancedChecks += `✓ KeyRex.init() available: Yes\n`
                       }
                     } else {
@@ -1700,7 +1950,7 @@ function DashboardContent() {
                           <span className="text-sm text-white/80">{item.label}</span>
                           <div className="flex items-center gap-2">
                             <span className="text-lg">{item.icon}</span>
-                            <span className={`text-xs font-medium ${item.status ? 'text-green-400' : 'text-red-400'}`}>
+                            <span className={`text-xs font-medium ${item.status ? 'text-orange-400' : 'text-red-400'}`}>
                               {item.status ? 'OK' : 'Issue'}
                             </span>
                           </div>
@@ -1727,7 +1977,7 @@ function DashboardContent() {
                           {allPassed ? (
                             <>
                               <div className="text-6xl mb-3">🟢</div>
-                              <p className="text-lg font-semibold text-green-400 mb-2">All Systems Operational</p>
+                              <p className="text-lg font-semibold text-orange-400 mb-2">All Systems Operational</p>
                               <p className="text-sm text-white/80">Dashboard configuration is correct. Verify website integration using the checklist below.</p>
                             </>
                           ) : somePassed ? (
@@ -1749,20 +1999,20 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                  <h4 className="text-base font-semibold text-blue-300 mb-2">Status Legend</h4>
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                  <h4 className="text-base font-semibold text-orange-300 mb-2">Status Legend</h4>
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🟢</span>
-                      <span className="text-blue-200">OK - Working correctly</span>
+                      <span className="text-orange-200">OK - Working correctly</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🟡</span>
-                      <span className="text-blue-200">Warning - Needs attention</span>
+                      <span className="text-orange-200">Warning - Needs attention</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🔴</span>
-                      <span className="text-blue-200">Issue - Action required</span>
+                      <span className="text-orange-200">Issue - Action required</span>
                     </div>
                   </div>
                 </div>
@@ -1777,7 +2027,7 @@ function DashboardContent() {
                 
                 <div className="space-y-3">
                   {[
-                    { id: 1, text: 'Domain added in dashboard (Domains tab)' },
+                    { id: 1, text: 'Domain added in dashboard (Domains tab) and verified' },
                     { id: 2, text: 'Integration code copied from dashboard' },
                     { id: 3, text: 'Code pasted on your website' },
                     { id: 4, text: 'Script loads successfully (check Network tab in browser dev tools)' },
@@ -1804,7 +2054,7 @@ function DashboardContent() {
                           <span className="font-semibold text-white mr-2">{step.id}.</span>
                           {step.text}
                           {step.id === 1 && isCompleted && (
-                            <span className="ml-2 text-green-400 text-xs">✓ Verified</span>
+                            <span className="ml-2 text-orange-400 text-xs">✓ Verified</span>
                           )}
                         </label>
                       </div>
@@ -1812,8 +2062,8 @@ function DashboardContent() {
                   })}
                 </div>
                 
-                <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                  <p className="text-sm text-blue-200">
+                <div className="mt-4 bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                  <p className="text-sm text-orange-200">
                     <strong>Tip:</strong> If any step is unchecked, refer to the "Common Issues & Solutions" section below for help.
                   </p>
                 </div>
@@ -1828,10 +2078,10 @@ function DashboardContent() {
                 
                 <div className="space-y-6">
                   {/* Correct Example */}
-                  <div className="bg-dark-900/50 rounded-lg p-4 border border-green-500/30">
+                  <div className="bg-dark-900/50 rounded-lg p-4 border border-orange-500/30">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-green-400 font-bold text-lg">✓</span>
-                      <h4 className="text-lg font-semibold text-green-400">Correct Placement</h4>
+                      <span className="text-orange-400 font-bold text-lg">✓</span>
+                      <h4 className="text-lg font-semibold text-orange-400">Correct Placement</h4>
                     </div>
                     <div className="bg-dark-950 rounded-lg p-4 overflow-x-auto">
                       <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
@@ -1904,9 +2154,9 @@ function DashboardContent() {
                   </div>
 
                   {/* Copy-Paste Ready Code */}
-                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                    <h4 className="text-base font-semibold text-blue-300 mb-2">📋 Copy-Paste Ready Code</h4>
-                    <p className="text-sm text-blue-200 mb-3">
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                    <h4 className="text-base font-semibold text-orange-300 mb-2">📋 Copy-Paste Ready Code</h4>
+                    <p className="text-sm text-orange-200 mb-3">
                       Copy this template and replace <code className="bg-dark-800 px-1 rounded">YOUR_SITE_ID</code> with your actual Site ID from the "My Integration Code" tab:
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 overflow-x-auto mb-3">
@@ -1923,7 +2173,7 @@ function DashboardContent() {
                         navigator.clipboard.writeText(code)
                         toast.showSuccess('✓ Code copied to clipboard! Paste it on your website.')
                       }}
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
                     >
                       Copy Code Template
                     </button>
@@ -1944,7 +2194,7 @@ function DashboardContent() {
                     <h4 className="text-lg font-semibold text-white mb-3">What Are Test Domains?</h4>
                     <div className="space-y-3 text-sm text-white/80">
                       <p>
-                        Test domains are automatically recognized and allowed by Key-Rex for local development. You don't need to add them to your domains list in the dashboard.
+                        Test domains are automatically recognized and verified by Key-Rex for local development. They work whether or not you add them to your dashboard—you can add them if you want, but they'll work automatically even if you don't.
                       </p>
                       <div>
                         <p className="font-semibold text-white mb-2">Automatically allowed test domains:</p>
@@ -1955,8 +2205,8 @@ function DashboardContent() {
                           <li><code className="bg-dark-800 px-1 rounded">staging.example.com</code> - Staging subdomains (any subdomain with "staging")</li>
                         </ul>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Automatic:</strong> These domains work immediately without adding them to your dashboard. Perfect for local development and testing.
                         </p>
                       </div>
@@ -1986,7 +2236,7 @@ function DashboardContent() {
                       </div>
                       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 mt-3">
                         <p className="text-xs text-yellow-200">
-                          <strong>Important:</strong> Test domains are for development only. For production, you must add your actual production domain to the dashboard.
+                          <strong>Important:</strong> Test domains are for development only. For production, you must add your actual production domain to the dashboard and verify it via DNS TXT record.
                         </p>
                       </div>
                     </div>
@@ -2015,11 +2265,13 @@ function DashboardContent() {
                       </div>
                       <div>
                         <p className="font-semibold text-white mb-2">Production domain not working:</p>
-                        <p>Remember: Test domains are auto-allowed, but production domains must be added to your dashboard. If your production domain isn't working:</p>
+                        <p>Remember: Test domains are auto-allowed, but production domains must be added to your dashboard and verified. If your production domain isn't working:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
                           <li>Go to "Domains" tab in dashboard</li>
                           <li>Add your production domain (e.g., <code className="bg-dark-800 px-1 rounded">example.com</code>)</li>
-                          <li>Add both www and non-www versions if you use both</li>
+                          <li>Verify domain ownership by adding the DNS TXT record shown in the dashboard</li>
+                          <li>Click "Verify" after adding the DNS record (wait 5-10 minutes for DNS propagation)</li>
+                          <li>Add both www and non-www versions if you use both (each requires separate verification)</li>
                           <li>Verify domain matches exactly as it appears in browser address bar</li>
                         </ul>
                       </div>
@@ -2040,7 +2292,7 @@ function DashboardContent() {
                       <div>
                         <p className="font-semibold text-white mb-2">Things to Check:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
-                          <li>Domain is added in your dashboard (Domains tab)</li>
+                          <li>Domain is added and verified in your dashboard (Domains tab)</li>
                           <li>Integration code is pasted correctly on your website</li>
                           <li>No JavaScript errors in browser console (press F12 to check)</li>
                           <li>Script loads successfully (check Network tab in browser dev tools)</li>
@@ -2068,31 +2320,35 @@ function DashboardContent() {
                       </div>
                       <div>
                         <p className="font-semibold text-white mb-2">Solution:</p>
-                        <p>Try a different Lightning wallet. Recommended wallets: <strong>Alby</strong> (browser extension), <strong>Phoenix</strong> (mobile), or <strong>Zeus</strong> (mobile). Make sure your domain is added in the Domains tab.</p>
+                        <p>Try a different Lightning wallet. Recommended wallets: <strong>Alby</strong> (browser extension), <strong>Phoenix</strong> (mobile), or <strong>Zeus</strong> (mobile). Make sure your domain is added and verified in the Domains tab.</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Issue 3: Domain Not Authorized */}
                   <div className="bg-dark-900/50 rounded-lg p-4 border border-dark-700">
-                    <h4 className="text-lg font-semibold text-orange-400 mb-3">"This domain is not authorized — add it in your dashboard" Error</h4>
+                    <h4 className="text-lg font-semibold text-orange-400 mb-3">"This domain is not verified" or "This domain is not authorized" Error</h4>
                     <div className="space-y-3 text-sm text-white/80">
+                      <div>
+                        <p className="font-semibold text-white mb-2">What This Means:</p>
+                        <p>The domain where you're trying to use Key-Rex authentication is not verified, or it's not in your allowed domains list. Production domains must be verified via DNS TXT record before authentication works.</p>
+                      </div>
                       <div>
                         <p className="font-semibold text-white mb-2">Things to Check:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
-                          <li>Domain is added in your dashboard (Domains tab)</li>
+                          <li>Domain is added and verified in your dashboard (Domains tab)</li>
                           <li>Domain matches exactly (case-insensitive, but subdomains matter)</li>
                           <li>No trailing slashes or paths in the domain</li>
-                          <li>Both www and non-www versions are added if you use both</li>
+                          <li>Both www and non-www versions are added and verified if you use both</li>
                         </ul>
                       </div>
                       <div>
                         <p className="font-semibold text-white mb-2">Solution:</p>
-                        <p>Go to the <strong>Domains</strong> tab and verify your domain is listed. If you use both <code className="bg-dark-800 px-1 rounded">www.example.com</code> and <code className="bg-dark-800 px-1 rounded">example.com</code>, add both separately.</p>
+                        <p>Go to the <strong>Domains</strong> tab, add your domain if it's not listed, and verify it by adding the DNS TXT record shown in the dashboard. After adding the DNS record, wait 5-10 minutes for propagation, then click "Verify". If you use both <code className="bg-dark-800 px-1 rounded">www.example.com</code> and <code className="bg-dark-800 px-1 rounded">example.com</code>, add and verify both separately. Test domains (localhost, *.test, staging.*) work automatically without verification.</p>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mt-2">
-                        <p className="text-xs text-blue-200">
-                          <strong>Note:</strong> Test domains like <code className="bg-blue-600/30 px-1 rounded">localhost</code> and <code className="bg-blue-600/30 px-1 rounded">127.0.0.1</code> are automatically allowed for development and don't need to be added to your domains list.
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-2 mt-2">
+                        <p className="text-xs text-orange-200">
+                          <strong>Note:</strong> Test domains like <code className="bg-orange-600/30 px-1 rounded">localhost</code> and <code className="bg-orange-600/30 px-1 rounded">127.0.0.1</code> are automatically allowed for development and don't need to be added to your domains list.
                         </p>
                       </div>
                     </div>
@@ -2215,9 +2471,9 @@ function DashboardContent() {
                           <li>Button and wallets are rendered automatically</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
-                          <strong>Key Point:</strong> The <code className="bg-blue-600/30 px-1 rounded">KeyRex.init()</code> call in your integration code is optional. The script will work without it, but including it doesn't hurt and can be useful for explicit control.
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
+                          <strong>Key Point:</strong> The <code className="bg-orange-600/30 px-1 rounded">KeyRex.init()</code> call in your integration code is optional. The script will work without it, but including it doesn't hurt and can be useful for explicit control.
                         </p>
                       </div>
                     </div>
@@ -2329,8 +2585,8 @@ document.body.appendChild(script);`}
                           <li>Redirects to QR page, then back to your site with xpub in URL</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Automatic:</strong> This fallback happens automatically - no action needed from you. Users with popup blockers will experience the same redirect flow as mobile users.
                         </p>
                       </div>
@@ -2499,8 +2755,8 @@ document.body.appendChild(script);`}
                           <li>Check that xpub is received correctly</li>
                         </ul>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Tip:</strong> Use browser DevTools device emulation to test mobile behavior, but always test on real devices for production verification.
                         </p>
                       </div>
@@ -2545,7 +2801,7 @@ document.body.appendChild(script);`}
                     {
                       error: '"This domain is not authorized — add it in your dashboard"',
                       meaning: 'The domain where the button is embedded is not in your allowed domains list',
-                      solution: 'Go to the "Domains" tab and add your domain. Make sure it matches exactly (including www vs non-www). Note: Test domains like localhost and 127.0.0.1 are automatically allowed for development.',
+                      solution: 'Go to the "Domains" tab, add your domain, and verify it by adding the DNS TXT record shown. Make sure the domain matches exactly (including www vs non-www). Note: Test domains like localhost and 127.0.0.1 are automatically allowed for development and don\'t require verification.',
                     },
                     {
                       error: '"Key-Rex authentication is currently disabled. Please contact the website owner."',
@@ -2713,8 +2969,8 @@ document.body.appendChild(script);`}
                           <li>Handle session cleanup on logout</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Security Note:</strong> Never trust the xpub alone for authentication. Always verify it came from Key-Rex and create a proper server-side session.
                         </p>
                       </div>
@@ -2767,9 +3023,9 @@ window.KeyRex.onError = function(error) {
                       fix: 'Handle both URL parameter delivery (mobile/redirect) and postMessage delivery (desktop popup). The Key-Rex script handles this automatically, but your backend should accept xpub from either source.',
                     },
                     {
-                      mistake: 'Forgetting to add domain to dashboard',
-                      description: 'Trying to use Key-Rex on a domain that hasn\'t been added to your dashboard.',
-                      fix: 'Add your production domain to the "Domains" tab. Test domains (localhost, 127.0.0.1) are automatically allowed.',
+                      mistake: 'Forgetting to add and verify domain to dashboard',
+                      description: 'Trying to use Key-Rex on a domain that hasn\'t been added to your dashboard or verified.',
+                      fix: 'Add your production domain to the "Domains" tab and verify it by adding the DNS TXT record shown. Test domains (localhost, 127.0.0.1) are automatically allowed and don\'t require verification.',
                     },
                   ].map((item, idx) => (
                     <div key={idx} className="bg-dark-900/50 rounded-lg p-4 border border-red-500/30">
@@ -2890,9 +3146,9 @@ window.KeyRex.onError = function(error) {
                   ))}
                 </div>
 
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mt-6">
-                  <h4 className="text-base font-semibold text-blue-300 mb-2">💡 Pro Tip</h4>
-                  <p className="text-sm text-blue-200">
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mt-6">
+                  <h4 className="text-base font-semibold text-orange-300 mb-2">💡 Pro Tip</h4>
+                  <p className="text-sm text-orange-200">
                     Work through these steps in order. Most issues are found in steps 1-3. If you reach step 6 and still have issues, review the "Backend Integration Troubleshooting" section above.
                   </p>
                 </div>
@@ -3021,7 +3277,7 @@ window.KeyRex.onError = function(error) {
                             <p className="text-xs text-white/60">{wallet.type}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-green-400 font-medium">{wallet.status}</span>
+                            <span className="text-xs text-orange-400 font-medium">{wallet.status}</span>
                             {wallet.link && (
                               <a 
                                 href={wallet.link} 
@@ -3130,8 +3386,8 @@ window.KeyRex.onError = function(error) {
                           <li>Try from a different network (mobile hotspot, different WiFi)</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-2 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Tip:</strong> Open browser Developer Tools (F12), go to Network tab, and reload your page. Look for failed requests (red) to identify the issue.
                         </p>
                       </div>
@@ -3166,8 +3422,8 @@ window.KeyRex.onError = function(error) {
                           <li>URL is cleaned (xpub removed) without page reload</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Automatic:</strong> This cleanup happens automatically - no action needed from you. The xpub is removed from the address bar for privacy and security.
                         </p>
                       </div>
@@ -3262,8 +3518,8 @@ window.history.replaceState({}, '', window.location.pathname);`}
                           <li><code className="bg-dark-800 px-1 rounded">keyrex_xpub_&lt;prefix&gt;</code> - Stores the xpub after authentication (format: <code className="bg-dark-800 px-1 rounded">keyrex_xpub_&lt;first16chars&gt;</code>)</li>
                           <li><code className="bg-dark-800 px-1 rounded">keyrex_return_url</code> - Stores the return URL for redirects</li>
                         </ul>
-                        <div className="bg-green-500/10 border border-green-500/30 rounded p-2 mt-2">
-                          <p className="text-xs text-green-200">
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-2 mt-2">
+                          <p className="text-xs text-orange-200">
                             <strong>Security:</strong> All Key-Rex cookies are httpOnly (not accessible via JavaScript) and set server-side to prevent XSS attacks.
                           </p>
                         </div>
@@ -3279,8 +3535,8 @@ window.history.replaceState({}, '', window.location.pathname);`}
                           <li>Cookies are cleaned up after use</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Cross-Domain Support:</strong> Cookies enable authentication to work even when Key-Rex and your site are on different domains. Cookies are automatically cleaned up after use.
                         </p>
                       </div>
@@ -3392,8 +3648,8 @@ window.history.replaceState({}, '', window.location.pathname);`}
                           <li>If config fails: skeleton is replaced with error message or default config</li>
                         </ol>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Purpose:</strong> The skeleton prevents layout shift and provides immediate visual feedback that something is loading, improving user experience.
                         </p>
                       </div>
@@ -3539,7 +3795,7 @@ document.getElementById('keyrex-button')
                         <p className="font-semibold text-white mb-2">Config API returns 403:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
                           <li>Integration is disabled - enable in "My Integration Code" tab</li>
-                          <li>Domain not authorized - add domain in "Domains" tab</li>
+                          <li>Domain not authorized - add and verify domain in "Domains" tab</li>
                         </ul>
                       </div>
                       <div>
@@ -3675,12 +3931,12 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                             <code className="text-sm text-white/80 font-mono flex-1 break-all">{cmd.command}</code>
                           </div>
                           <p className="text-xs text-white/60 mb-1">{cmd.description}</p>
-                          <p className="text-xs text-green-400">Expected: {cmd.expected}</p>
+                          <p className="text-xs text-orange-400">Expected: {cmd.expected}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
-                      <p className="text-xs text-blue-200">
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
+                      <p className="text-xs text-orange-200">
                         <strong>Tip:</strong> Copy and paste these commands directly into your browser console (F12 → Console tab) to quickly diagnose issues.
                       </p>
                     </div>
@@ -3719,7 +3975,7 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                             Site ID: <Tooltip content="Your unique Site ID is used in the integration code to identify your account. Keep it secure and don't share it publicly."><span className="text-orange-400">{user?.siteId || 'Not available'}</span></Tooltip>
                           </div>
                           <div>Domains: <span className="text-orange-400">{user?.allowedDomains?.length || 0}</span> configured</div>
-                          <div>Integration: <span className={user?.integrationEnabled !== false ? 'text-green-400' : 'text-red-400'}>{user?.integrationEnabled !== false ? 'Enabled' : 'Disabled'}</span></div>
+                          <div>Integration: <span className={user?.integrationEnabled !== false ? 'text-orange-400' : 'text-red-400'}>{user?.integrationEnabled !== false ? 'Enabled' : 'Disabled'}</span></div>
                         </div>
                       </div>
                     </div>
@@ -4017,7 +4273,7 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
 
               {/* Main Content - Right Side */}
               <div className="flex-1 min-w-0">
-                <Card className="p-8">
+                <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                   <h2 className="text-2xl font-semibold text-white mb-4">Integration Documentation</h2>
                   <p className="text-white/80 mb-6">
                     Complete guide to integrating Key-Rex authentication into your website. Follow the steps below to get started.
@@ -4095,9 +4351,9 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                       </div>
                     </div>
 
-                    <div className="mt-6 bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                      <h4 className="text-base font-semibold text-green-300 mb-2">✓ That's It!</h4>
-                      <p className="text-sm text-green-200">
+                    <div className="mt-6 bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                      <h4 className="text-base font-semibold text-orange-300 mb-2">✓ That's It!</h4>
+                      <p className="text-sm text-orange-200">
                         Your authentication button should now appear on your website. Users can click it to sign in with their Lightning wallets.
                       </p>
                     </div>
@@ -4115,7 +4371,7 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                         {[
                           { category: 'Setup', items: [
                             'Copied integration code from "My Integration Code" tab',
-                            'Added domain(s) in "Domains" tab',
+                            'Added domain(s) in "Domains" tab and verified ownership via DNS TXT record',
                             'Verified domain matches exactly (including www/non-www)',
                             'Integration status is enabled (green/active)',
                           ]},
@@ -4163,8 +4419,8 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                           </div>
                         ))}
                       </div>
-                      <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                        <p className="text-xs text-blue-200">
+                      <div className="mt-4 bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                        <p className="text-xs text-orange-200">
                           <strong>Tip:</strong> Print this page or keep it open while setting up your integration to track your progress.
                         </p>
                       </div>
@@ -4214,9 +4470,9 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                             <li>User approves in extension popup</li>
                             <li>xpub is returned immediately via <code className="bg-dark-800 px-1 rounded">KeyRex.onSuccess()</code></li>
                           </ol>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                            <p className="text-xs text-blue-200">
-                              <strong>Note:</strong> Some wallets return <code className="bg-blue-600/30 px-1 rounded">sig</code> and <code className="bg-blue-600/30 px-1 rounded">key</code> directly, while others use the standard LNURL-auth callback flow. Key-Rex handles both automatically.
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                            <p className="text-xs text-orange-200">
+                              <strong>Note:</strong> Some wallets return <code className="bg-orange-600/30 px-1 rounded">sig</code> and <code className="bg-orange-600/30 px-1 rounded">key</code> directly, while others use the standard LNURL-auth callback flow. Key-Rex handles both automatically.
                             </p>
                           </div>
                         </div>
@@ -4263,8 +4519,8 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                             <li>Key-Rex script detects xpub in URL and calls <code className="bg-dark-800 px-1 rounded">KeyRex.onSuccess()</code></li>
                             <li>URL parameter is automatically cleaned up (removed from address bar)</li>
                           </ol>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                            <p className="text-xs text-blue-200">
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                            <p className="text-xs text-orange-200">
                               <strong>Cross-Domain Support:</strong> The redirect flow works even if your site and Key-Rex are on different domains. Cookies are used to store the challenge temporarily.
                             </p>
                           </div>
@@ -4365,8 +4621,8 @@ window.addEventListener('message', function(event) {
                           <li>Click the button to test the authentication flow</li>
                           <li>If you have a Lightning wallet (Alby, Phoenix, Zeus), you should see a login prompt</li>
                         </ol>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                          <p className="text-xs text-blue-200">
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                          <p className="text-xs text-orange-200">
                             <strong>Tip:</strong> If the button doesn't appear, check the browser console (F12) for errors. See the Troubleshooting tab for help.
                           </p>
                         </div>
@@ -4425,9 +4681,9 @@ function LoginPage() {
 export default LoginPage;`}
                           </pre>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
-                          <p className="text-xs text-blue-200">
-                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-blue-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-blue-600/30 px-1 rounded">init()</code> call unless you need to delay initialization.
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mb-3">
+                          <p className="text-xs text-orange-200">
+                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-orange-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-orange-600/30 px-1 rounded">init()</code> call unless you need to delay initialization.
                           </p>
                         </div>
                       <button
@@ -4436,7 +4692,7 @@ export default LoginPage;`}
                           navigator.clipboard.writeText(code)
                           toast.showSuccess('✓ React example copied to clipboard!')
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
                       >
                         Copy React Example
                       </button>
@@ -4482,9 +4738,9 @@ onUnmounted(() => {
 </script>`}
                           </pre>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
-                          <p className="text-xs text-blue-200">
-                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-blue-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-blue-600/30 px-1 rounded">init()</code> call unless you need to delay initialization.
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mb-3">
+                          <p className="text-xs text-orange-200">
+                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-orange-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-orange-600/30 px-1 rounded">init()</code> call unless you need to delay initialization.
                           </p>
                         </div>
                       <button
@@ -4493,7 +4749,7 @@ onUnmounted(() => {
                           navigator.clipboard.writeText(code)
                           toast.showSuccess('✓ Vue example copied to clipboard!')
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
                       >
                         Copy Vue Example
                       </button>
@@ -4542,9 +4798,9 @@ export default function LoginPage() {
 }`}
                           </pre>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
-                          <p className="text-xs text-blue-200">
-                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-blue-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-blue-600/30 px-1 rounded">init()</code> call unless you need to delay initialization. For Next.js, you can also add the scripts directly in <code className="bg-dark-800 px-1 rounded">pages/_document.js</code> or <code className="bg-dark-800 px-1 rounded">app/layout.tsx</code> using Next.js Script component.
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mb-3">
+                          <p className="text-xs text-orange-200">
+                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-orange-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-orange-600/30 px-1 rounded">init()</code> call unless you need to delay initialization. For Next.js, you can also add the scripts directly in <code className="bg-dark-800 px-1 rounded">pages/_document.js</code> or <code className="bg-dark-800 px-1 rounded">app/layout.tsx</code> using Next.js Script component.
                           </p>
                         </div>
                       <button
@@ -4553,7 +4809,7 @@ export default function LoginPage() {
                           navigator.clipboard.writeText(code)
                           toast.showSuccess('✓ Next.js example copied to clipboard!')
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
                       >
                         Copy Next.js Example
                       </button>
@@ -4593,9 +4849,9 @@ export default function LoginPage() {
 </html>`}
                         </pre>
                       </div>
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
-                        <p className="text-xs text-blue-200">
-                          <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-blue-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-blue-600/30 px-1 rounded">init()</code> call unless you need to delay initialization.
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mb-3">
+                        <p className="text-xs text-orange-200">
+                          <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-orange-600/30 px-1 rounded">KeyRex.init()</code> when the DOM is ready. You can omit the manual <code className="bg-orange-600/30 px-1 rounded">init()</code> call unless you need to delay initialization.
                         </p>
                       </div>
                       <button
@@ -4604,7 +4860,7 @@ export default function LoginPage() {
                           navigator.clipboard.writeText(code)
                           toast.showSuccess('✓ HTML example copied to clipboard!')
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
                       >
                         Copy HTML Example
                       </button>
@@ -4948,8 +5204,8 @@ db.users.createIndex({ xpub: 1 }, { unique: true });
                           <li><strong className="text-white">Use HTTPS:</strong> Always use HTTPS in production to protect session cookies</li>
                           <li><strong className="text-white">HttpOnly cookies:</strong> Set session cookies with <code className="bg-dark-800 px-1 rounded">HttpOnly</code> flag to prevent XSS attacks</li>
                           <li><strong className="text-white">Secure cookies:</strong> Use <code className="bg-dark-800 px-1 rounded">Secure</code> flag in production (HTTPS only)</li>
-                          <li><strong className="text-white">Session expiration:</strong> Set reasonable expiration times (e.g., 7 days) and implement refresh tokens for longer sessions</li>
-                          <li><strong className="text-white">Rate limiting:</strong> Implement rate limiting on login endpoints to prevent abuse</li>
+                          <li><strong className="text-white">Session expiration:</strong> Key-Rex sessions expire after 30 days. For longer sessions, implement refresh tokens in your application.</li>
+                          <li><strong className="text-white">Rate limiting:</strong> Key-Rex automatically implements rate limiting on all endpoints to prevent abuse. No additional rate limiting needed on your side.</li>
                           <li><strong className="text-white">CORS:</strong> Configure CORS properly to only allow requests from your frontend domain</li>
                           <li><strong className="text-white">Input validation:</strong> Validate and sanitize all inputs, including xpub format</li>
                         </ul>
@@ -5036,9 +5292,9 @@ SESSION_EXPIRY_DAYS=7`}
                         <p className="text-sm text-white/80 mb-3">
                           Initializes the Key-Rex integration. <strong className="text-white">Note:</strong> The script automatically initializes when the DOM is ready, so calling <code className="bg-dark-800 px-1 rounded">KeyRex.init()</code> is optional in most cases.
                         </p>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
-                          <p className="text-xs text-blue-200">
-                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-blue-600/30 px-1 rounded">KeyRex.init()</code> when the page loads. You only need to call it manually if you want to delay initialization or re-initialize after the page has loaded.
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mb-3">
+                          <p className="text-xs text-orange-200">
+                            <strong>Auto-Initialization:</strong> The embed script automatically calls <code className="bg-orange-600/30 px-1 rounded">KeyRex.init()</code> when the page loads. You only need to call it manually if you want to delay initialization or re-initialize after the page has loaded.
                           </p>
                         </div>
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
@@ -5252,9 +5508,9 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           </div>
                         </div>
 
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
-                          <p className="text-xs text-blue-200">
-                            <strong>Important:</strong> You don't need to handle these methods manually. Key-Rex automatically tries all methods in order and calls your <code className="bg-blue-600/30 px-1 rounded">KeyRex.onSuccess()</code> callback when the xpub is found. Just register your callback and handle the xpub when it arrives.
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
+                          <p className="text-xs text-orange-200">
+                            <strong>Important:</strong> You don't need to handle these methods manually. Key-Rex automatically tries all methods in order and calls your <code className="bg-orange-600/30 px-1 rounded">KeyRex.onSuccess()</code> callback when the xpub is found. Just register your callback and handle the xpub when it arrives.
                           </p>
                         </div>
                       </div>
@@ -5386,8 +5642,8 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                             <li>Authentication flow works normally</li>
                             <li><code className="bg-dark-800 px-1 rounded">KeyRex.onError()</code> is called to notify you of the fallback</li>
                           </ul>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                            <p className="text-xs text-blue-200">
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                            <p className="text-xs text-orange-200">
                               <strong>Note:</strong> This fallback ensures your site remains functional even if the BitPass API is temporarily unavailable. The button will work, but you may want to monitor for configuration API failures.
                             </p>
                           </div>
@@ -5519,9 +5775,9 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           </div>
                         </div>
 
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-4">
-                          <p className="text-xs text-blue-200">
-                            <strong>Detection:</strong> BitPass checks for <code className="bg-blue-600/30 px-1 rounded">#keyrex-container</code> when <code className="bg-blue-600/30 px-1 rounded">init()</code> is called (or auto-initializes). If found, the button is placed there. Otherwise, it's appended to <code className="bg-blue-600/30 px-1 rounded">&lt;body&gt;</code>.
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
+                          <p className="text-xs text-orange-200">
+                            <strong>Detection:</strong> BitPass checks for <code className="bg-orange-600/30 px-1 rounded">#keyrex-container</code> when <code className="bg-orange-600/30 px-1 rounded">init()</code> is called (or auto-initializes). If found, the button is placed there. Otherwise, it's appended to <code className="bg-orange-600/30 px-1 rounded">&lt;body&gt;</code>.
                           </p>
                         </div>
                       </div>
@@ -5540,7 +5796,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">🔒 Security Considerations</h4>
                         <ul className="space-y-2 text-sm text-white/80 list-disc list-inside ml-2">
-                          <li><strong className="text-white">Domain Authorization:</strong> Always add your domains in the dashboard. Only authorized domains can use your integration code.</li>
+                          <li><strong className="text-white">Domain Authorization:</strong> Always add and verify your domains in the dashboard. Production domains require DNS TXT record verification to prove ownership. Only verified domains can use your integration code.</li>
                           <li><strong className="text-white">HTTPS Required:</strong> Use HTTPS in production. Authentication requires secure connections.</li>
                           <li><strong className="text-white">Site ID Protection:</strong> Never expose your siteId in client-side code that could be copied. The embed script handles this securely.</li>
                           <li><strong className="text-white">Session Management:</strong> Implement proper session handling on your backend. The xpub returned is a public identifier, not a secret.</li>
@@ -5607,9 +5863,9 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                               <li>No manual cookie handling required</li>
                             </ul>
                           </div>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                            <p className="text-xs text-blue-200">
-                              <strong>Best Practice:</strong> Don't manually parse URL parameters or cookies. BitPass handles all xpub retrieval automatically. Just register your <code className="bg-blue-600/30 px-1 rounded">KeyRex.onSuccess()</code> callback and handle the xpub when it arrives.
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                            <p className="text-xs text-orange-200">
+                              <strong>Best Practice:</strong> Don't manually parse URL parameters or cookies. BitPass handles all xpub retrieval automatically. Just register your <code className="bg-orange-600/30 px-1 rounded">KeyRex.onSuccess()</code> callback and handle the xpub when it arrives.
                             </p>
                           </div>
                         </div>
@@ -5696,8 +5952,8 @@ if (!popup) {
 // No action needed from you - BitPass handles it automatically`}
                             </pre>
                           </div>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                            <p className="text-xs text-blue-200">
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                            <p className="text-xs text-orange-200">
                               <strong>User Experience:</strong> Users with popup blockers will experience the same redirect flow as mobile users. The authentication still works, just with a different UX pattern.
                             </p>
                           </div>
@@ -5705,9 +5961,9 @@ if (!popup) {
                       </div>
 
                       {/* General Tips */}
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-5">
-                        <h4 className="text-base font-semibold text-blue-300 mb-3">💡 General Tips</h4>
-                        <ul className="space-y-2 text-sm text-blue-200 list-disc list-inside ml-2">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-5">
+                        <h4 className="text-base font-semibold text-orange-300 mb-3">💡 General Tips</h4>
+                        <ul className="space-y-2 text-sm text-orange-200 list-disc list-inside ml-2">
                           <li>Test your integration in multiple browsers (Chrome, Firefox, Safari, Edge)</li>
                           <li>Test with different Lightning wallets (Alby, Phoenix, Zeus)</li>
                           <li>Always test on mobile devices - many users will authenticate from mobile</li>
@@ -5738,8 +5994,8 @@ if (!popup) {
                           <li>Open the page in your browser</li>
                           <li>Click the button and test with a Lightning wallet</li>
                         </ol>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                          <p className="text-xs text-blue-200">
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                          <p className="text-xs text-orange-200">
                             <strong>Tip:</strong> Test domains (localhost, 127.0.0.1, test subdomains) are automatically recognized and don't require strict domain matching.
                           </p>
                         </div>
@@ -5775,7 +6031,7 @@ console.log('Button element:', document.getElementById('keyrex-button'));
                         <ol className="list-decimal list-inside space-y-2 text-sm text-white/80 ml-2">
                           <li><strong className="text-white">Check Browser Console:</strong> Open DevTools (F12) → Console tab. Look for red error messages.</li>
                           <li><strong className="text-white">Check Network Tab:</strong> Verify the embed script loads (status 200). Check config request succeeds.</li>
-                          <li><strong className="text-white">Verify Domain:</strong> Ensure your domain is added in the dashboard and matches exactly.</li>
+                          <li><strong className="text-white">Verify Domain:</strong> Ensure your domain is added and verified in the dashboard (production domains require DNS TXT record verification) and matches exactly.</li>
                           <li><strong className="text-white">Check Integration Status:</strong> Verify integration is enabled in the "My Integration Code" tab.</li>
                           <li><strong className="text-white">Test Wallet:</strong> Try different Lightning wallets (Alby, Phoenix, Zeus).</li>
                           <li><strong className="text-white">Clear Cache:</strong> Hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to clear cached scripts.</li>
@@ -5877,8 +6133,8 @@ function triggerBitPassLogin() {
 </script>`}
                           </pre>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                          <p className="text-xs text-blue-200">
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                          <p className="text-xs text-orange-200">
                             <strong>Note:</strong> The embed script creates one button by default. Custom buttons can trigger the same authentication flow.
                           </p>
                         </div>
@@ -6016,9 +6272,9 @@ window.addEventListener('message', function(event) {
                               <strong>Security:</strong> Always verify <code className="bg-yellow-600/30 px-1 rounded">event.origin</code> matches your BitPass domain before processing messages. This prevents malicious sites from sending fake authentication messages.
                             </p>
                           </div>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                            <p className="text-xs text-blue-200">
-                              <strong>Note:</strong> You typically don't need to handle postMessage manually. Key-Rex automatically processes these messages and calls your <code className="bg-blue-600/30 px-1 rounded">KeyRex.onSuccess()</code> or <code className="bg-blue-600/30 px-1 rounded">KeyRex.onError()</code> callbacks.
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                            <p className="text-xs text-orange-200">
+                              <strong>Note:</strong> You typically don't need to handle postMessage manually. Key-Rex automatically processes these messages and calls your <code className="bg-orange-600/30 px-1 rounded">KeyRex.onSuccess()</code> or <code className="bg-orange-600/30 px-1 rounded">KeyRex.onError()</code> callbacks.
                             </p>
                           </div>
                         </div>
@@ -6063,9 +6319,9 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                               <li>Wallet logos: Maintain visibility in both modes</li>
                             </ul>
                           </div>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                            <p className="text-xs text-blue-200">
-                              <strong>Automatic:</strong> No configuration needed. BitPass detects your site's theme and adapts automatically. Works with CSS <code className="bg-blue-600/30 px-1 rounded">prefers-color-scheme</code> and common dark mode class names.
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                            <p className="text-xs text-orange-200">
+                              <strong>Automatic:</strong> No configuration needed. BitPass detects your site's theme and adapts automatically. Works with CSS <code className="bg-orange-600/30 px-1 rounded">prefers-color-scheme</code> and common dark mode class names.
                             </p>
                           </div>
                         </div>
@@ -6111,8 +6367,8 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
 // No manual control needed - BitPass handles it automatically`}
                             </pre>
                           </div>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                            <p className="text-xs text-blue-200">
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                            <p className="text-xs text-orange-200">
                               <strong>User Experience:</strong> The skeleton provides immediate visual feedback that something is loading, preventing users from thinking the page is broken. The animation is subtle and respects accessibility preferences.
                             </p>
                           </div>
@@ -6142,8 +6398,8 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                             <li><strong className="text-white">Public:</strong> Safe to store in your database (not a secret)</li>
                             <li><strong className="text-white">Persistent:</strong> Never changes for a given wallet</li>
                           </ul>
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                            <p className="text-xs text-blue-200">
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                            <p className="text-xs text-orange-200">
                               <strong>Key Point:</strong> The xpub is like a username that's cryptographically tied to the user's wallet. You need to map it to your own user IDs to know which account to log them into.
                             </p>
                           </div>
@@ -6598,8 +6854,8 @@ app.post('/api/users/link-wallet', authenticateUser, async (req, res) => {
 });`}
                           </pre>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mt-3">
-                          <p className="text-xs text-blue-200">
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
+                          <p className="text-xs text-orange-200">
                             <strong>Tip:</strong> This flow requires the user to be already authenticated (logged in with email/password, etc.). They're linking their wallet as an additional login method.
                           </p>
                         </div>
@@ -7134,8 +7390,8 @@ app.post('/api/auth/confirm-and-link', async (req, res) => {
                             </div>
                           </div>
 
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                            <p className="text-xs text-blue-200">
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
+                            <p className="text-xs text-orange-200">
                               <strong>Security Note:</strong> Email verification is more secure than password confirmation since it doesn't require users to enter passwords. However, password confirmation is faster if users remember their credentials.
                             </p>
                           </div>
@@ -7565,9 +7821,9 @@ app.post('/api/users/update-wallet-verification', authenticateUser, async (req, 
                       </div>
 
                       {/* Summary */}
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                        <h4 className="text-base font-semibold text-green-300 mb-2">✓ Summary</h4>
-                        <ul className="text-sm text-green-200 space-y-1 list-disc list-inside ml-2">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                        <h4 className="text-base font-semibold text-orange-300 mb-2">✓ Summary</h4>
+                        <ul className="text-sm text-orange-200 space-y-1 list-disc list-inside ml-2">
                           <li>Store xpub in your database (unique, nullable column)</li>
                           <li>New users: Create account when xpub is not found</li>
                           <li>Existing users: Link wallet while logged in (account settings)</li>
@@ -7593,7 +7849,7 @@ app.post('/api/users/update-wallet-verification', authenticateUser, async (req, 
                         },
                         {
                           q: "Can I use this on multiple domains?",
-                          a: "Yes! Add all your domains in the Domains tab. Each domain must be added separately (including www and non-www versions if you use both)."
+                          a: "Yes! Add all your domains in the Domains tab and verify each one. Production domains require DNS TXT record verification to prove ownership. Each domain must be added and verified separately (including www and non-www versions if you use both). Test domains work automatically without verification."
                         },
                         {
                           q: "Can I customize the button text or styling?",
@@ -7635,12 +7891,12 @@ app.post('/api/users/update-wallet-verification', authenticateUser, async (req, 
                       ))}
                     </div>
 
-                    <div className="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                      <h4 className="text-base font-semibold text-blue-300 mb-2">Still Have Questions?</h4>
-                      <p className="text-sm text-blue-200 mb-2">
+                    <div className="mt-6 bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                      <h4 className="text-base font-semibold text-orange-300 mb-2">Still Have Questions?</h4>
+                      <p className="text-sm text-orange-200 mb-2">
                         If you can't find the answer you're looking for:
                       </p>
-                      <ul className="text-sm text-blue-200 space-y-1 list-disc list-inside ml-2">
+                      <ul className="text-sm text-orange-200 space-y-1 list-disc list-inside ml-2">
                         <li>Check the <strong>Troubleshooting</strong> tab for common issues and solutions</li>
                         <li>Review the <strong>API Reference</strong> section for technical details</li>
                         <li>Use the <strong>Integration Checker</strong> in the Troubleshooting tab to diagnose issues</li>
@@ -8036,9 +8292,9 @@ KeyRex.onError(function(error) {
                       </div>
 
                       {/* Additional Information */}
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-5">
-                        <h4 className="text-base font-semibold text-blue-300 mb-3">💡 Pro Tips</h4>
-                        <ul className="space-y-2 text-sm text-blue-200 list-disc list-inside ml-2">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-5">
+                        <h4 className="text-base font-semibold text-orange-300 mb-3">💡 Pro Tips</h4>
+                        <ul className="space-y-2 text-sm text-orange-200 list-disc list-inside ml-2">
                           <li>Use the <strong>Integration Checklist</strong> above to ensure nothing is missed during setup</li>
                           <li>Bookmark the <strong>Quick Reference Card</strong> for easy access to common commands</li>
                           <li>Monitor your <strong>Analytics tab</strong> regularly to track integration health</li>
@@ -8056,7 +8312,7 @@ KeyRex.onError(function(error) {
 
           {/* TAB: Settings */}
           {activeTab === 'settings' && (
-            <Card className="p-8">
+            <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
               <h2 className="text-2xl font-semibold text-white mb-4">Settings</h2>
               
               {/* Account Information */}
@@ -8207,7 +8463,7 @@ KeyRex.onError(function(error) {
                       toast.showError('Failed to export activity log')
                     }
                   }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
                 >
                   Export Activity Log (JSON)
                 </button>
@@ -8248,7 +8504,7 @@ KeyRex.onError(function(error) {
 
           {/* TAB: Domains */}
           {activeTab === 'domains' && (
-            <Card className="p-8">
+            <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-semibold text-white mb-4">Domain Management</h2>
               
               {/* Domain Management - All users have unlimited domains */}
@@ -8269,7 +8525,7 @@ KeyRex.onError(function(error) {
               </div>
               
               {/* Domain Format Instructions */}
-              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-6 mb-6">
+              <div className="bg-orange-500/10 border-2 border-orange-500/30 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-white mb-3">How to Enter Domains</h3>
                 <p className="text-sm text-white/80 mb-4">
                   Enter the domain(s) where your Key-Rex authentication button will be used. You can add multiple domains, and you can always add, edit, or remove domains later.
@@ -8279,28 +8535,28 @@ KeyRex.onError(function(error) {
                   <p className="text-sm font-semibold text-white mb-3">✓ Correct Format Examples:</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start gap-2">
-                      <span className="text-green-400 mt-1 font-bold">✓</span>
+                      <span className="text-orange-400 mt-1 font-bold">✓</span>
                       <div>
                         <span className="text-white/80 font-mono">example.com</span>
                         <span className="text-white/60 ml-2">(main domain)</span>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-400 mt-1 font-bold">✓</span>
+                      <span className="text-orange-400 mt-1 font-bold">✓</span>
                       <div>
                         <span className="text-white/80 font-mono">login.example.com</span>
                         <span className="text-white/60 ml-2">(subdomain)</span>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-400 mt-1 font-bold">✓</span>
+                      <span className="text-orange-400 mt-1 font-bold">✓</span>
                       <div>
                         <span className="text-white/80 font-mono">app.mysite.com</span>
                         <span className="text-white/60 ml-2">(subdomain)</span>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-400 mt-1 font-bold">✓</span>
+                      <span className="text-orange-400 mt-1 font-bold">✓</span>
                       <div>
                         <span className="text-white/80 font-mono">www.example.com</span>
                         <span className="text-white/60 ml-2">(www subdomain)</span>
@@ -8390,7 +8646,7 @@ KeyRex.onError(function(error) {
           {activeTab === 'analytics' && (
             <>
               {/* SECTION 1: Overview - High-Level Summary */}
-              <Card className="p-8">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-2">Overview</h2>
                 <p className="text-sm text-white/60 mb-6">High-level login statistics at a glance</p>
                 
@@ -8455,14 +8711,14 @@ KeyRex.onError(function(error) {
                       <div className="mb-6">
                         <h3 className="text-lg font-semibold text-white mb-3">New vs Returning Users</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="bg-dark-800/70 p-4 rounded-lg border border-green-500/30">
+                          <div className="bg-dark-800/70 p-4 rounded-lg border border-orange-500/30">
                             <div className="text-sm text-white/80 mb-1">New Users (First-Time)</div>
-                            <div className="text-3xl font-bold text-green-400 mb-1">{usage.newUsers || 0}</div>
+                            <div className="text-3xl font-bold text-orange-400 mb-1">{usage.newUsers || 0}</div>
                             <div className="text-xs text-white/60">{usage.newUserPercentage || 0}% of total users</div>
                           </div>
                           <div className="bg-dark-800/70 p-4 rounded-lg border border-blue-500/30">
                             <div className="text-sm text-white/80 mb-1">Returning Users</div>
-                            <div className="text-3xl font-bold text-blue-400 mb-1">{usage.returningUsers || 0}</div>
+                            <div className="text-3xl font-bold text-orange-400 mb-1">{usage.returningUsers || 0}</div>
                             <div className="text-xs text-white/60">{usage.returningUserPercentage || 0}% of total users</div>
                           </div>
                         </div>
@@ -8505,7 +8761,7 @@ KeyRex.onError(function(error) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="bg-dark-800/70 p-4 rounded-lg border border-dark-700">
                             <div className="text-sm text-white/80 mb-1">Week-over-Week Growth</div>
-                            <div className={`text-3xl font-bold mb-1 ${(usage.wowGrowth || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <div className={`text-3xl font-bold mb-1 ${(usage.wowGrowth || 0) >= 0 ? 'text-orange-400' : 'text-red-400'}`}>
                               {(usage.wowGrowth || 0) >= 0 ? '+' : ''}{usage.wowGrowth || 0}%
                             </div>
                             <div className="text-xs text-white/60">
@@ -8514,7 +8770,7 @@ KeyRex.onError(function(error) {
                           </div>
                           <div className="bg-dark-800/70 p-4 rounded-lg border border-dark-700">
                             <div className="text-sm text-white/80 mb-1">Month-over-Month Growth</div>
-                            <div className={`text-3xl font-bold mb-1 ${(usage.momGrowth || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <div className={`text-3xl font-bold mb-1 ${(usage.momGrowth || 0) >= 0 ? 'text-orange-400' : 'text-red-400'}`}>
                               {(usage.momGrowth || 0) >= 0 ? '+' : ''}{usage.momGrowth || 0}%
                             </div>
                             <div className="text-xs text-white/60">

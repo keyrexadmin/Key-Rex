@@ -21,20 +21,41 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
+  // SECURITY: Check if user has completed wizard (freeDisclaimerAccepted)
+  const backupCookie = request.cookies.get('user_subscription_backup')?.value
+  if (backupCookie) {
+    const backupData = verifyCookieData(backupCookie)
+    if (backupData && !backupData.freeDisclaimerAccepted) {
+      return NextResponse.json({ 
+        error: 'Wizard not completed. Please complete the onboarding wizard first.',
+        wizardRequired: true 
+      }, { status: 403 })
+    }
+  }
+  
+  // Also check user in storage
+  let user = getUserByXpub(xpub)
+  if (user && !user.freeDisclaimerAccepted) {
+    return NextResponse.json({ 
+      error: 'Wizard not completed. Please complete the onboarding wizard first.',
+      wizardRequired: true 
+    }, { status: 403 })
+  }
+  
   if (process.env.NODE_ENV === 'development') {
     console.log('=== /api/usage called ===')
     console.log('Cookie xpub:', xpub ? xpub.substring(0, 20) + '...' : 'NOT FOUND')
   }
   
-  let user = getUserByXpub(xpub)
   if (!user) {
     console.warn('User not found in storage - this may be due to storage reset')
     // Check if user has a valid xpub cookie - if so, they've authenticated
     // Try to restore from backup cookie or create minimal user
-    const backupCookie = request.cookies.get('user_subscription_backup')?.value
-    if (backupCookie) {
+    // Reuse backupCookie from earlier (line 25) - if not set, check again
+    const restoreBackupCookie = backupCookie || request.cookies.get('user_subscription_backup')?.value
+    if (restoreBackupCookie) {
       // Verify cryptographic signature - returns null if tampered
-      const backup = verifyCookieData(backupCookie)
+      const backup = verifyCookieData(restoreBackupCookie)
       if (backup) {
         try {
           console.log('Found subscription backup, creating user with backup data')

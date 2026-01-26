@@ -89,7 +89,7 @@ export default function Support() {
 
             {/* Service Availability */}
             <section id="service-availability">
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-2xl font-semibold text-white mb-4">Service Availability & Uptime</h2>
                 
                 <div className="space-y-4">
@@ -134,7 +134,7 @@ export default function Support() {
 
             {/* Support Model */}
             <section id="support-model">
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-2xl font-semibold text-white mb-4">Support Model</h2>
                 
                 <div className="space-y-6">
@@ -185,7 +185,7 @@ export default function Support() {
                         </p>
                       </div>
 
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
                         <h4 className="text-blue-400 font-semibold mb-2">Best Practices for Getting Help</h4>
                         <p className="text-white/200 text-base leading-relaxed mb-2">
                           To get the fastest help:
@@ -257,7 +257,7 @@ export default function Support() {
 
             {/* Data Retention & Privacy */}
             <section id="data-retention">
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-2xl font-semibold text-white mb-4">Data Retention & Privacy</h2>
                 
                 <div className="space-y-4">
@@ -350,7 +350,7 @@ export default function Support() {
 
             {/* Custom Solutions */}
             <section id="custom-solutions">
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <div className="text-center mb-6">
                   <div className="text-4xl mb-3">💼</div>
                   <h2 className="text-2xl font-semibold text-white mb-2">Need Something Custom?</h2>
@@ -419,7 +419,7 @@ export default function Support() {
 
             {/* Before Contacting Support */}
             <section id="before-contacting">
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="text-3xl">💡</div>
                   <div className="flex-1">
@@ -480,11 +480,11 @@ export default function Support() {
 
             {/* Contact Form */}
             <section id="contact-form" ref={formRef}>
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-2xl font-bold text-white mb-6">Send Us a Message</h2>
                 
                 {submitted ? (
-                  <div className="bg-green-500/10 border-2 border-green-500/30 rounded-lg p-6 text-center">
+                  <div className="bg-orange-500/10 border-2 border-orange-500/30 rounded-lg p-6 text-center">
                     <div className="text-4xl mb-3">✓</div>
                     <h3 className="text-white font-semibold text-lg mb-2">Message Sent!</h3>
                     <p className="text-white/300 text-sm mb-4">

@@ -103,3 +103,4 @@ useEffect(() => {
 **Implement the fix above** to check wizard completion status when the wizard opens. This will ensure returning users are immediately redirected to their dashboard instead of being forced through the wizard again.
 
 
+

@@ -37,3 +37,4 @@ document.cookie = 'bitpass_k1=' + challenge + '; path=/; max-age=300';
 **After fixes:** ✅ **PRODUCTION READY**
 
 
+

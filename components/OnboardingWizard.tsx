@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import LoginButton from './LoginButton'
+import { isTestDomain } from '@/lib/utils'
 
 interface OnboardingWizardProps {
   isOpen: boolean
@@ -82,10 +83,18 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
         console.log('User authenticated - wizard is open, proceeding through wizard flow')
         return true
       } else {
+        // 401 is expected when user is not authenticated - don't log as error
+        if (res.status !== 401 && process.env.NODE_ENV === 'development') {
+          console.warn('Authentication check returned non-401 error:', res.status)
+        }
         setIsAuthenticated(false)
         return false
       }
     } catch (error) {
+      // Only log network errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error checking account status:', error)
+      }
       setIsAuthenticated(false)
       return false
     } finally {
@@ -342,7 +351,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
       />
       
       {/* Wizard Container */}
-      <div className="relative w-full max-w-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-orange-500/20 overflow-hidden max-h-[85vh] flex flex-col">
+      <div className="relative w-full max-w-2xl bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 rounded-2xl shadow-2xl border border-orange-500/20 overflow-hidden max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between border-b border-orange-400/30">
           <div className="flex items-center gap-3">
@@ -587,9 +596,12 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                 </button>
               </div>
 
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <p className="text-sm text-blue-200">
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                <p className="text-sm text-orange-200 mb-2">
                   <strong>Note:</strong> You can add, edit, or remove domains at any time in your dashboard after setup.
+                </p>
+                <p className="text-sm text-orange-200">
+                  <strong>Domain Verification:</strong> Real domains require DNS verification to ensure you own them. Test domains (localhost, *.test, staging.*) are automatically verified. You'll verify domains in your dashboard after completing setup.
                 </p>
               </div>
             </div>
@@ -606,6 +618,15 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                   Please read and accept the terms and conditions to continue to your dashboard.
                 </p>
               </div>
+              
+              {/* Domain Verification Reminder */}
+              {domains.some(d => d.trim() && !isTestDomain(d.trim())) && (
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                  <p className="text-sm text-orange-200">
+                    <strong>Next Step:</strong> After accepting, you'll need to verify your domain(s) in the dashboard before using the integration code. Verification requires adding a DNS TXT record to prove domain ownership.
+                  </p>
+                </div>
+              )}
 
               <div className="bg-dark-800/70 border border-orange-500/20 rounded-lg p-6 max-h-[400px] overflow-y-auto">
                 <p className="text-white/100 mb-4 leading-relaxed">
@@ -614,6 +635,22 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                 <ul className="list-disc list-inside space-y-2 text-white/200">
                   <li>You acknowledge and accept that Key-Rex collects and stores certain data necessary for the operation of the service. This includes, but is not limited to: your xpub (extended public key), site ID, domain configurations, usage statistics (login counts, analytics data, unique user counts), activity logs, disclaimer acceptance metadata (timestamp, IP address, user agent), and any contact form submissions you may send. By using Key-Rex, you explicitly consent to Key-Rex collecting, storing, and using this data for the purpose of providing and improving the authentication service, generating analytics, maintaining service security, and for administrative purposes. You understand that this data is stored in our systems and may be retained for as long as your account is active or as required for service operation.</li>
                   <li>You acknowledge and agree that Key-Rex may aggregate, anonymize, and commercialize usage statistics and analytics data derived from all users' use of the service. This includes, but is not limited to: wallet usage statistics, authentication patterns, browser and device analytics, and other anonymized metrics. Key-Rex may share, license, or sell this aggregated and anonymized data to third parties, including but not limited to wallet providers, technology partners, researchers, or other interested parties. When sharing data with specific parties (such as a featured wallet company), Key-Rex may provide statistics related to that party's products or services while keeping competitor information anonymized or hidden. You understand that no personally identifiable information (such as your xpub, site ID, or domain names) will be shared in these commercial arrangements, and all data will be aggregated across all users in a way that prevents identification of individual accounts or websites. By using Key-Rex, you explicitly consent to this commercial use of aggregated, anonymized data.</li>
+                  <li>You represent and warrant that you own or have legal authority to use any domain(s) you register with Key-Rex. You agree to only use Key-Rex on domains that you own, control, or have explicit written permission to use. You are solely responsible for ensuring you have the legal right to use Key-Rex on any domain you register.</li>
+                  <li>You agree not to use Key-Rex fraudulently, to impersonate other websites or entities, or in any manner that violates the rights of others, including but not limited to trademark, copyright, or other intellectual property rights. You agree not to use Key-Rex in any way that is deceptive, misleading, or intended to mislead users about the identity of the website or service they are accessing.</li>
+                  <li>Key-Rex may suspend or terminate your access to the service at any time if it determines, in its sole discretion, that you are using the service on a domain you do not own or control, or in a fraudulent, deceptive, or otherwise unlawful manner. Key-Rex is not obligated to investigate or verify domain ownership, but may do so at its discretion.</li>
+                  <li>You agree not to use Key-Rex for any illegal, unlawful, or prohibited purpose, including but not limited to: money laundering, terrorism financing, drug trafficking, human trafficking, fraud, theft, extortion, harassment, stalking, or any other criminal activity. You agree not to use Key-Rex in any way that violates applicable local, state, national, or international laws or regulations.</li>
+                  <li>You agree not to abuse, attack, or attempt to compromise the Key-Rex service, including but not limited to: denial of service (DoS) attacks, distributed denial of service (DDoS) attacks, reverse engineering, decompiling, disassembling, or attempting to extract the source code of the service, attempting to gain unauthorized access to Key-Rex systems or data, or any other activity intended to disrupt, damage, or interfere with the service or its security.</li>
+                  <li>You are responsible for maintaining the security and confidentiality of your account credentials, including but not limited to: your xpub, site ID, and any authentication tokens. You agree not to share your account credentials with any third party, and you are fully responsible for all activities that occur under your account, whether authorized by you or not. You must immediately notify Key-Rex of any unauthorized access or use of your account.</li>
+                  <li>You represent and warrant that you are of legal age to enter into this agreement in your jurisdiction (typically 18 years of age or older). If you are using Key-Rex on a website that provides age-restricted content or services, you are solely responsible for implementing appropriate age verification measures and ensuring compliance with all applicable age-restriction laws and regulations.</li>
+                  <li>You agree not to use Key-Rex for spam, phishing, malware distribution, or any other malicious activities. You agree not to use Key-Rex to send unsolicited communications, to impersonate others for fraudulent purposes, to distribute malicious software, or to engage in any activity that could harm users or their devices.</li>
+                  <li>You agree not to claim, imply, or suggest that Key-Rex, its staff, or its partners endorse, sponsor, or are affiliated with your website, product, or service, unless you have obtained explicit written permission from Key-Rex. You may not use Key-Rex branding, logos, or trademarks in any way that suggests endorsement or partnership without prior written consent.</li>
+                  <li>Key-Rex is not responsible for, and disclaims all liability related to, the content, nature, or purpose of any website or service that uses Key-Rex authentication. This includes, but is not limited to: gambling websites, adult content websites, financial services, cryptocurrency exchanges, or any other type of website or service. You are solely responsible for ensuring that your use of Key-Rex complies with all applicable laws and regulations governing your industry, business, or website content.</li>
+                  <li>You agree not to create multiple accounts or use any method to circumvent restrictions, limits, or policies imposed by Key-Rex. Each individual or entity is permitted to maintain only one active account unless explicitly authorized by Key-Rex in writing.</li>
+                  <li>You agree to comply with all terms of service, terms of use, and other agreements governing any third-party services you use in connection with Key-Rex, including but not limited to: Lightning Network wallet providers, payment processors, hosting providers, and any other services. You acknowledge that violations of third-party terms of service may result in termination of your Key-Rex account.</li>
+                  <li>You represent and warrant that your use of Key-Rex does not violate any export control laws, sanctions, or trade restrictions applicable in your jurisdiction or any other jurisdiction. You agree not to use Key-Rex if you are located in, or are a resident or national of, any country that is subject to comprehensive trade sanctions or embargoes, or if you are on any restricted or denied persons list maintained by any government authority.</li>
+                  <li>You are solely responsible for ensuring that your use of Key-Rex, and your collection, storage, and processing of any data through your website or service, complies with all applicable data protection, privacy, and consumer protection laws, including but not limited to: GDPR, CCPA, COPPA, and any other applicable local, state, national, or international laws. Key-Rex is not responsible for your compliance with such laws, and you agree to indemnify Key-Rex from any claims, damages, or penalties arising from your failure to comply with such laws.</li>
+                  <li>You agree not to use Key-Rex in any way that violates the intellectual property rights of others, including but not limited to: patents, trademarks, trade secrets, copyrights, or any other proprietary rights. This prohibition extends beyond domain ownership to include all forms of intellectual property.</li>
+                  <li>You agree not to attempt to reverse engineer, decompile, disassemble, or otherwise attempt to derive the source code, algorithms, or underlying ideas of the Key-Rex service, except to the extent that such activity is expressly permitted by applicable law notwithstanding this restriction. Any security research or vulnerability testing must be conducted in good faith, with prior written authorization from Key-Rex, and in compliance with responsible disclosure practices. Unauthorized security testing or hacking attempts may result in immediate termination of your account and potential legal action.</li>
                   <li>There is no warranty, support, or service level agreement. Key-Rex makes no representations or warranties regarding the service's availability, uptime, functionality, or compatibility with your website, systems, or third-party services.</li>
                   <li>You are fully responsible for any issues, claims, or damages arising from your use or your users' use of the service, including but not limited to: financial losses, lost profits, lost revenue, business interruption, loss of business opportunities, loss of goodwill, or any other economic or non-economic damages.</li>
                   <li>You are fully responsible for managing your integration through the dashboard. The dashboard is where you control all aspects of your integration, including enabling or disabling it. You acknowledge that you have not relied on any representations or promises beyond what is stated in this disclaimer.</li>

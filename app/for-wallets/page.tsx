@@ -221,7 +221,7 @@ export default function ForWallets() {
 
             {/* Get Started Section */}
             <section id="get-started" ref={formRef}>
-              <Card className="p-8 border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-3xl font-bold text-white mb-6 text-center">
                   Get Started
                 </h2>
@@ -230,8 +230,8 @@ export default function ForWallets() {
                 </p>
 
                 {submitted ? (
-                  <div className="bg-green-500/20 border-2 border-green-500/50 rounded-lg p-6 text-center">
-                    <p className="text-green-400 font-semibold text-lg mb-2">Thank you for your interest!</p>
+                  <div className="bg-orange-500/20 border-2 border-orange-500/50 rounded-lg p-6 text-center">
+                    <p className="text-orange-400 font-semibold text-lg mb-2">Thank you for your interest!</p>
                     <p className="text-white/300 text-sm">
                       We've received your message and will get back to you within 24-48 hours with partnership information.
                     </p>

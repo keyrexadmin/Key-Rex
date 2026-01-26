@@ -679,7 +679,7 @@ export default function AdminLoginPage() {
             {/* Animated Checkmark */}
             <div className="animate-scale-in">
               <svg 
-                className="w-24 h-24 text-green-400 drop-shadow-lg"
+                className="w-24 h-24 text-orange-400 drop-shadow-lg"
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -748,7 +748,7 @@ export default function AdminLoginPage() {
           </Link>
         </div>
         
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-orange-500/20 p-8">
+        <div className="bg-dark-200/90 rounded-2xl shadow-2xl border border-orange-500/20 p-8">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full mb-4">
@@ -857,14 +857,14 @@ export default function AdminLoginPage() {
                     ? 'bg-red-500/20 border-red-500/50'
                     : networkStatus === 'slow'
                     ? 'bg-yellow-500/20 border-yellow-500/50'
-                    : 'bg-green-500/20 border-green-500/50'
+                    : 'bg-orange-500/20 border-orange-500/50'
                 }`}>
                   <p className={`text-xs font-medium ${
                     networkStatus === 'offline'
                       ? 'text-red-300'
                       : networkStatus === 'slow'
                       ? 'text-yellow-300'
-                      : 'text-green-300'
+                      : 'text-orange-300'
                   }`}>
                     {networkStatus === 'offline' && '⚠️ No internet connection'}
                     {networkStatus === 'slow' && '🐌 Slow connection detected'}
@@ -902,9 +902,9 @@ export default function AdminLoginPage() {
                       : 'This will open your Lightning wallet app directly'}
                   </p>
                   {deepLinkAttempted && (
-                    <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-3 mt-2">
+                    <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3 mt-2">
                       <p className="text-blue-300 text-xs text-center">
-                        <strong className="text-blue-200">Important:</strong> After approving in your wallet, return to this browser tab to complete authentication.
+                        <strong className="text-orange-200">Important:</strong> After approving in your wallet, return to this browser tab to complete authentication.
                       </p>
                     </div>
                   )}
@@ -990,8 +990,8 @@ export default function AdminLoginPage() {
 
                         {/* Simple feedback for when modal is not shown */}
                         {copied && !showCopyModal && (
-                          <div className="mt-3 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
-                            <p className="text-green-300 text-sm text-center font-semibold">
+                          <div className="mt-3 p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
+                            <p className="text-orange-300 text-sm text-center font-semibold">
                               ✓ LNURL copied! Now paste it into your desktop wallet.
                             </p>
                           </div>
@@ -1119,7 +1119,7 @@ export default function AdminLoginPage() {
                         </div>
                         {/* Simple feedback for when modal is not shown */}
                         {copied && !showCopyModal && (
-                          <p className="text-green-400 text-xs text-center mt-2">
+                          <p className="text-orange-400 text-xs text-center mt-2">
                             LNURL copied to clipboard! Paste it into your wallet app.
                           </p>
                         )}
@@ -1131,7 +1131,7 @@ export default function AdminLoginPage() {
 
               {/* Authentication Status */}
               {authStatus === 'waiting' && (
-                <div className="p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+                <div className="p-4 bg-orange-500/20 border border-orange-500/50 rounded-lg">
                   <div className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
                     <p className="text-blue-400 text-sm font-semibold">Waiting for authentication...</p>
@@ -1143,7 +1143,7 @@ export default function AdminLoginPage() {
                           <p className="text-blue-300 text-xs text-center">
                             <strong>Did you approve in your wallet?</strong> Return to this browser tab to complete authentication.
                           </p>
-                          <p className="text-blue-200 text-xs text-center font-semibold">
+                          <p className="text-orange-200 text-xs text-center font-semibold">
                             ⚠️ Keep this tab open while you approve in your wallet
                           </p>
                         </>
@@ -1165,8 +1165,8 @@ export default function AdminLoginPage() {
               )}
 
               {authStatus === 'success' && (
-                <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
-                  <p className="text-green-400 text-sm font-semibold text-center">
+                <div className="p-4 bg-orange-500/20 border border-orange-500/50 rounded-lg">
+                  <p className="text-orange-400 text-sm font-semibold text-center">
                     ✓ {authMessage}
                   </p>
                 </div>
@@ -1223,7 +1223,7 @@ export default function AdminLoginPage() {
 
           {/* Pre-click Information */}
           {!showQRCode && (
-            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="text-blue-300 text-xs text-center">
                 <span className="font-semibold">💡 Tip:</span> If you don't have a Lightning wallet browser extension (like Alby), you can use a mobile wallet to scan a QR code.
               </p>

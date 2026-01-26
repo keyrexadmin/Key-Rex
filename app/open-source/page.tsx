@@ -80,7 +80,7 @@ export default function OpenSource() {
         {
           path: 'app/embed/route.ts',
           description:
-            'Serves the embeddable JavaScript for the Key-Rex button, including domain checks and branding rules.',
+            'Serves the embeddable JavaScript for the Key-Rex button, including verified domain validation and branding rules.',
         },
         {
           path: 'app/embed/qr/page.tsx',
@@ -93,7 +93,7 @@ export default function OpenSource() {
         {
           path: 'app/api/verify/route.ts',
           description:
-            'Verifies each login, enforces domain allowlists, records analytics, and respects integration shutdown.',
+            'Verifies each login, enforces verified domain checks (only verified domains can authenticate), records analytics, and respects integration shutdown.',
         },
       ],
     },
@@ -106,7 +106,11 @@ export default function OpenSource() {
         },
         {
           path: 'app/api/domains/route.ts',
-          description: 'Create, update, and delete allowed domains for a Key-Rex account.',
+          description: 'Create, update, and delete allowed domains for a Key-Rex account. Manages domain verification status (pending, verified, failed).',
+        },
+        {
+          path: 'app/api/domains/verify/route.ts',
+          description: 'Verifies domain ownership by checking DNS TXT records. Production domains require verification before authentication works.',
         },
         {
           path: 'app/api/embed/config/route.ts',
@@ -146,7 +150,11 @@ export default function OpenSource() {
         },
         {
           path: 'lib/utils.ts',
-          description: 'Utility helpers including device/wallet detection used for analytics.',
+          description: 'Utility helpers including device/wallet detection used for analytics, domain validation, and verification token generation.',
+        },
+        {
+          path: 'lib/domain-verification.ts',
+          description: 'DNS TXT record lookup and domain verification logic. Checks for keyrex-verification tokens in domain DNS records.',
         },
       ],
     },
@@ -202,7 +210,7 @@ export default function OpenSource() {
 
             {/* Overview */}
             <div id="overview" className="space-y-4 scroll-mt-24">
-              <Card className="p-6 border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90">
+              <Card className="p-6 border-2 border-orange-500/30 bg-dark-200/90">
                 <h2 className="text-2xl font-semibold text-white mb-3">What This Page Is For</h2>
                 <p className="text-white/200 text-base leading-relaxed mb-3">
                   This page is here to give you a clear, non-technical-first overview of how the Key-Rex codebase is structured, what is
@@ -268,7 +276,7 @@ export default function OpenSource() {
             {/* License */}
             <div id="license" className="space-y-4 scroll-mt-24">
               <h2 className="text-2xl font-semibold text-white mb-3">License</h2>
-              <Card className="p-6 border-l-4 border-green-500 bg-dark-800/70">
+              <Card className="p-6 border-l-4 border-orange-500 bg-dark-200/90">
                 <p className="text-white/200 mb-2">
                   <strong>Key-Rex is released under the MIT License.</strong>
                 </p>
@@ -354,7 +362,7 @@ export default function OpenSource() {
                         <strong>Site ID</strong> – a unique ID that ties your Key-Rex account to the embed script on your site.
                       </li>
                       <li>
-                        <strong>Allowed domains</strong> – the list of domains that are permitted to use your Key-Rex integration.
+                        <strong>Allowed domains and verification status</strong> – the list of domains that are permitted to use your Key-Rex integration. Production domains require DNS TXT record verification to prove ownership before authentication works. Test domains (localhost, *.test, staging.*) are automatically verified.
                       </li>
                       <li>
                         <strong>Analytics metrics</strong> – counts of logins and high-level patterns (e.g., per domain, per wallet type,
@@ -508,7 +516,7 @@ export default function OpenSource() {
                   <li>Share feedback on documentation gaps or confusing areas so the public pages and dashboard docs can be improved.</li>
                   <li>Check the <code className="bg-dark-900 px-1 rounded">CHANGELOG.md</code> file for version history and recent changes.</li>
                 </ul>
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-3">
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mt-3">
                   <h4 className="text-blue-400 font-semibold mb-2 text-xs">Third-Party Dependencies</h4>
                   <p className="text-white/300 text-xs mb-2">
                     Key-Rex uses several open source libraries. Key dependencies include:

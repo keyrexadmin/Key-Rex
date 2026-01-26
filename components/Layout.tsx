@@ -1,8 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { usePathname } from 'next/navigation'
 import LoginButton from './LoginButton'
 
 interface LayoutProps {
@@ -11,8 +10,19 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, showNav = true }: LayoutProps) {
-  const pathname = usePathname()
+  // Use state to track pathname after mount to avoid hydration issues
+  const [pathname, setPathname] = useState('/')
+  const [logoSrc, setLogoSrc] = useState('/images/keyrex-logov2.png')
   const isHomePage = pathname === '/'
+  
+  useEffect(() => {
+    // Set pathname after mount
+    if (typeof window !== 'undefined') {
+      setPathname(window.location.pathname)
+      // Add cache-busting query parameter to force browser to reload image
+      setLogoSrc(`/images/keyrex-logov2.png?t=${Date.now()}`)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: '#1a1a1a' }}>
@@ -33,22 +43,25 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
       {/* Navigation Bar */}
       {showNav && (
         <nav className="sticky top-0 z-50 border-b border-orange-500/30 backdrop-blur-md" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center h-16">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center h-20">
               {/* Logo - Left Side */}
-              <div className="flex-shrink-0 h-full flex items-end -ml-4 sm:-ml-6">
-                <Link href="/" className="flex items-center group pb-2" aria-label="Key-Rex Home">
-                  <Image
-                    src="/images/keyrex-logov2.png"
+              <div className="flex-shrink-0 h-full flex items-center -ml-4 sm:-ml-6">
+                <Link href="/" className="flex items-center group" aria-label="Key-Rex Home">
+                  <img
+                    src={logoSrc}
                     alt="Key-Rex"
-                    width={192}
-                    height={71}
                     className="transform group-hover:scale-110 transition-transform duration-200 object-contain"
-                    priority
                     style={{ 
-                      height: '4.439rem',
-                      width: 'auto',
-                      marginBottom: '-0.5rem'
+                      height: '5.11rem',
+                      width: 'auto'
+                    }}
+                    onError={(e) => {
+                      console.error('Failed to load logo image:', logoSrc)
+                      // Fallback to original path without cache-busting
+                      if (logoSrc.includes('?t=')) {
+                        e.currentTarget.src = '/images/keyrex-logov2.png'
+                      }
                     }}
                   />
                 </Link>
@@ -56,7 +69,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
 
               {/* Navigation Links - Centered */}
               <div className="flex-1 flex justify-center items-center">
-                <div className="hidden md:flex items-center space-x-1 flex-nowrap">
+                <div className="hidden md:flex items-center space-x-3 flex-nowrap">
                   <NavLink href="/how-it-works" active={pathname === '/how-it-works'}>How It Works</NavLink>
                   <NavLink href="/why-bitpass" active={pathname === '/why-bitpass'}>Why Key-Rex</NavLink>
                   <NavLink href="/requirements" active={pathname === '/requirements'}>Requirements</NavLink>
@@ -73,15 +86,18 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
                 <div className="hidden md:block h-8 w-px bg-orange-500/30 mx-4 flex-shrink-0"></div>
               )}
 
-              {/* Sign In Button - Right Side */}
-              <div className="flex-shrink-0">
+              {/* Sign In Button - Far Right Side */}
+              <div className="flex-shrink-0 ml-auto">
                 {pathname !== '/dashboard' && (
                   <div className="flex items-center gap-3">
-                    <span className="text-white/80 text-sm hidden sm:inline">Already have a <span className="font-semibold text-orange-400">Key-Rex</span> Account?</span>
+                    <span className="text-white/80 text-sm hidden sm:inline">
+                      <span className="block">Already have a</span>
+                      <span className="block font-semibold text-orange-400">Key-Rex Account?</span>
+                    </span>
                     <LoginButton 
-                      buttonImage="/images/keyrex-button-v2signin.png"
+                      buttonImage="/images/keyrex-websitebutton.png"
                       imageAlt="Sign in with Key-Rex"
-                      buttonClassName="bg-white hover:bg-white/95 active:bg-white/90 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 hover:shadow-xl shadow-lg border-2 border-orange-500/40 hover:border-orange-500/80 active:border-orange-500 flex items-center justify-center h-14 max-h-14 w-32 overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-[#1a1a1a]"
+                      buttonClassName="bg-orange-400 hover:bg-orange-500 active:bg-orange-600 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 hover:shadow-xl shadow-lg border-2 border-orange-400/40 hover:border-orange-400/80 active:border-orange-400 flex items-center justify-center h-14 max-h-14 w-32 overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:ring-offset-2 focus:ring-offset-[#1a1a1a]"
                       compact={true}
                     />
                   </div>
@@ -146,7 +162,7 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   return (
     <Link
       href={href}
-      className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-[#1a1a1a] ${
+      className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-[#1a1a1a] ${
         active
           ? 'bg-orange-500/30 text-orange-400 border border-orange-500/50 shadow-sm'
           : 'text-white/80 hover:text-orange-400 hover:bg-dark-800/70'

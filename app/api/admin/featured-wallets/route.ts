@@ -7,6 +7,7 @@ import {
   reorderFeaturedWallets,
 } from '@/lib/storage'
 import { FeaturedWallet } from '@/types'
+import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
 
 // Master xpub for admin access - set via environment variable
 const MASTER_XPUB = process.env.MASTER_XPUB || ''
@@ -20,7 +21,13 @@ function isAdmin(xpub: string | undefined): boolean {
 }
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent cost abuse (per-admin)
   const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
 
   if (!isAdmin(xpub)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -31,7 +38,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
   const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (10KB)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 10 * 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
 
   if (!isAdmin(xpub)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -74,7 +93,19 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
   const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (10KB)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 10 * 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
 
   if (!isAdmin(xpub)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -104,7 +135,13 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for delete operations)
   const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
 
   if (!isAdmin(xpub)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -134,7 +171,19 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
   const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (10KB)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 10 * 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
 
   if (!isAdmin(xpub)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })

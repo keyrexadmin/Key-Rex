@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { recordLogin, getUserBySiteId, isDomainAllowed, updateUser, normalizeDomain, markAuthSessionAsUsed } from '@/lib/storage'
-import { detectWallet, detectBrowser, detectDeviceType } from '@/lib/utils'
+import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, markAuthSessionAsUsed, getVerifiedDomains } from '@/lib/storage'
+import { detectWallet, detectBrowser, detectDeviceType, isTestDomain } from '@/lib/utils'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
@@ -56,26 +56,26 @@ export async function POST(request: NextRequest) {
         requestDomain = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0]
       }
       
-      // FIRST-USE DOMAIN CAPTURE: If user has no domains yet, capture this one (all users can have domains)
-      if ((!user.allowedDomains || user.allowedDomains.length === 0) && requestDomain) {
-        const normalizedDomain = normalizeDomain(requestDomain)
-        if (process.env.NODE_ENV === 'development') {
-          console.log('First-use domain capture:', normalizedDomain)
-        }
-        const updated = updateUser(user.xpub, {
-          allowedDomains: [normalizedDomain]
-        })
-        if (updated && process.env.NODE_ENV === 'development') {
-          console.log('Domain captured:', normalizedDomain)
-        }
-      }
+      // SECURITY: Only allow verified domains
+      // Removed auto-add domain logic - users must explicitly add and verify domains
       
-      // Check if domain is allowed
-      const allowedDomains = user.allowedDomains || []
-      if (allowedDomains.length > 0 && !isDomainAllowed(requestDomain, allowedDomains)) {
-        return NextResponse.json({ 
-          error: 'This domain is not authorized — add it in your dashboard' 
-        }, { status: 403 })
+      // Test domains are always allowed (auto-verified)
+      if (!isTestDomain(requestDomain)) {
+        const verifiedDomains = getVerifiedDomains(user.xpub)
+        
+        // If user has no verified domains, block authentication from production domains
+        if (verifiedDomains.length === 0) {
+          return NextResponse.json({ 
+            error: 'No verified domains found. Please add and verify at least one domain in your dashboard before using authentication.' 
+          }, { status: 403 })
+        }
+        
+        // If user has verified domains, only allow those domains
+        if (!isDomainAllowed(requestDomain, verifiedDomains)) {
+          return NextResponse.json({ 
+            error: 'This domain is not verified. Please verify domain ownership in your dashboard.' 
+          }, { status: 403 })
+        }
       }
     } else {
       // SECURITY: Require origin for embedded logins

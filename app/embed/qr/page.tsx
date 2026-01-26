@@ -47,6 +47,7 @@ function QRContent() {
   const deepLinkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const redirectCancelledRef = useRef<boolean>(false)
+  const urlUpdateRef = useRef<boolean>(false) // Track if we've updated the URL to prevent loops
   const toast = useToast()
   
   // Detect if opened in popup (not redirect mode and has opener)
@@ -138,10 +139,20 @@ function QRContent() {
       const { k1: newK1, lnurl: lnurlBech32 } = await lnurlRes.json()
       
       // Update k1 in URL using router to trigger searchParams update
-      if (typeof window !== 'undefined') {
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.set('k1', newK1)
-        router.replace(newUrl.toString(), { scroll: false })
+      // Only update if URL doesn't already have the correct k1 and we haven't already updated
+      if (typeof window !== 'undefined' && !urlUpdateRef.current) {
+        const currentUrl = new URL(window.location.href)
+        const currentK1 = currentUrl.searchParams.get('k1')
+        // Only update if the URL k1 doesn't match the new k1
+        if (currentK1 !== newK1) {
+          urlUpdateRef.current = true // Mark that we're updating
+          currentUrl.searchParams.set('k1', newK1)
+          router.replace(currentUrl.toString(), { scroll: false })
+          // Reset the flag after a delay to allow URL to update
+          setTimeout(() => {
+            urlUpdateRef.current = false
+          }, 1000)
+        }
       }
       
       // Generate new QR code
@@ -151,8 +162,8 @@ function QRContent() {
         callbackUrl = `${domain}/api/admin/auth/login?k1=${newK1}`
       } else {
         callbackUrl = siteId 
-          ? `${domain}/api/auth/callback?tag=login&k1=${newK1}&siteId=${siteId}`
-          : `${domain}/api/auth/callback?tag=login&k1=${newK1}`
+          ? `${domain}/api/auth/callback?k1=${newK1}&siteId=${siteId}`
+          : `${domain}/api/auth/callback?k1=${newK1}`
       }
       
       const plainLnurl = callbackUrl
@@ -161,9 +172,11 @@ function QRContent() {
       setLnurl(plainLnurl)
       setLightningLnurl(lightningProtocol)
       
-      // Generate QR code image
+      // Use the bech32-encoded LNURL we already fetched for the QR code
+      // QR codes should contain bech32 LNURL (lnurl...), not lightning: protocol URL
+      // This is what Zeus and other wallets expect
       const qrSize = isMobile ? 300 : 350
-      QRCode.toDataURL(lightningProtocol, {
+      QRCode.toDataURL(lnurlBech32, {
         width: qrSize,
         margin: 2,
         color: {
@@ -332,52 +345,146 @@ function QRContent() {
   }, [showSuccessAnimation])
 
   // Generate QR code and LNURL
+  // Use a ref to prevent multiple simultaneous fetches
+  const qrFetchRef = useRef(false)
   useEffect(() => {
-    if (k1) {
+    if (k1 && !qrFetchRef.current) {
+      qrFetchRef.current = true
       setLoading(true)
       const domain = window.location.origin
       
-      // Determine callback URL based on admin mode or regular user mode
-      let callbackUrl: string
-      if (isAdmin) {
-        // Admin authentication uses different callback endpoint
-        callbackUrl = `${domain}/api/admin/auth/login?k1=${k1}`
-      } else {
-        // Regular user authentication
-        callbackUrl = siteId 
-          ? `${domain}/api/auth/callback?tag=login&k1=${k1}&siteId=${siteId}`
-          : `${domain}/api/auth/callback?tag=login&k1=${k1}`
-      }
+      console.log('[QR Page] Starting QR code generation for k1:', k1)
       
-      const plainLnurl = callbackUrl
-      const lightningProtocol = `lightning:${callbackUrl}`
-      
-      setLnurl(plainLnurl)
-      setLightningLnurl(lightningProtocol)
-      
-      // Generate QR code with responsive size
-      const qrSize = isMobile ? 280 : 320
-      QRCode.toDataURL(lightningProtocol, { 
-        width: qrSize,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
+      // Fetch bech32-encoded LNURL from server using the existing k1
+      // We need to encode the callback URL with the current k1 into bech32 format
+      // For QR codes, we need the bech32-encoded LNURL, not the lightning: protocol URL
+      fetch('/api/auth/lnurl', {
+        credentials: 'include', // Include cookies for same-origin requests
       })
-      .then((dataUrl) => {
-        setQrCode(dataUrl)
-        setLoading(false)
-        setAuthStatus('waiting')
-        setAuthMessage(isAdmin ? 'Waiting for authentication...' : '')
-      })
-      .catch((err) => {
-        console.error('QR code generation error:', err)
-        toast.showError('Failed to generate QR code. Please try again.')
-        setLoading(false)
-      })
+        .then(async res => {
+          console.log('[QR Page] LNURL fetch response status:', res.status)
+          if (!res.ok) {
+            const errorText = await res.text()
+            let errorMessage = 'Failed to get LNURL from server'
+            try {
+              const errorData = JSON.parse(errorText)
+              errorMessage = errorData.error || errorMessage
+            } catch {
+              errorMessage = errorText || errorMessage
+            }
+            console.error('[QR Page] LNURL fetch failed:', res.status, errorMessage)
+            
+            // If rate limited, show user-friendly message and auto-retry after delay
+            if (res.status === 429) {
+              console.log('[QR Page] Rate limited, will retry in 3 seconds...')
+              toast.showError('Too many requests. Retrying automatically...')
+              
+              // Auto-retry after 3 seconds (give rate limit time to reset)
+              setTimeout(() => {
+                console.log('[QR Page] Retrying after rate limit delay...')
+                qrFetchRef.current = false // Reset ref to allow retry
+                setLoading(true) // Show loading state
+                // Simply reload the page to retry - this is cleaner than complex retry logic
+                // The rate limit should be reset by then
+                window.location.reload()
+              }, 3000)
+              
+              setLoading(false)
+              return null
+            }
+            
+            throw new Error(`${errorMessage} (Status: ${res.status})`)
+          }
+          const data = await res.json()
+          console.log('[QR Page] LNURL fetch successful, received data:', { k1: data.k1, hasLnurl: !!data.lnurl })
+          return data
+        })
+        .then(data => {
+          if (!data) {
+            console.log('[QR Page] No data returned (rate limited), aborting')
+            return // Rate limited, already handled
+          }
+          
+          const newK1 = data.k1
+          const lnurlBech32 = data.lnurl // This is the bech32-encoded LNURL (starts with lnurl...)
+          
+          console.log('[QR Page] Processing LNURL data, newK1:', newK1, 'lnurlBech32 length:', lnurlBech32?.length)
+          
+          if (!lnurlBech32) {
+            console.error('[QR Page] No lnurlBech32 in response data')
+            throw new Error('No LNURL received from server')
+          }
+          
+          // Update k1 in URL to match the server-generated one (if different)
+          // Only update if URL doesn't already have the correct k1 and we haven't already updated
+          if (typeof window !== 'undefined' && newK1 !== k1 && !urlUpdateRef.current) {
+            const currentUrl = new URL(window.location.href)
+            const currentK1 = currentUrl.searchParams.get('k1')
+            // Only update if the URL k1 doesn't match the new k1
+            if (currentK1 !== newK1) {
+              urlUpdateRef.current = true // Mark that we're updating
+              currentUrl.searchParams.set('k1', newK1)
+              router.replace(currentUrl.toString(), { scroll: false })
+              // Reset the flag after a delay to allow URL to update
+              setTimeout(() => {
+                urlUpdateRef.current = false
+              }, 1000)
+            }
+          }
+          
+          // Determine callback URL based on admin mode or regular user mode
+          let callbackUrl: string
+          if (isAdmin) {
+            callbackUrl = `${domain}/api/admin/auth/login?k1=${newK1}`
+          } else {
+            callbackUrl = siteId 
+              ? `${domain}/api/auth/callback?k1=${newK1}&siteId=${siteId}`
+              : `${domain}/api/auth/callback?k1=${newK1}`
+          }
+          
+          const plainLnurl = callbackUrl
+          const lightningProtocol = `lightning:${callbackUrl}`
+          
+          setLnurl(plainLnurl)
+          setLightningLnurl(lightningProtocol)
+          
+          console.log('[QR Page] Generating QR code with bech32 LNURL, length:', lnurlBech32.length)
+          
+          // Generate QR code with bech32-encoded LNURL (Zeus and other wallets expect this format)
+          // QR codes should contain bech32 LNURL (lnurl...), not lightning: protocol URL
+          const qrSize = isMobile ? 280 : 320
+          return QRCode.toDataURL(lnurlBech32, {
+            width: qrSize,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          })
+        })
+        .then((dataUrl) => {
+          if (dataUrl) {
+            console.log('[QR Page] QR code generated successfully, dataUrl length:', dataUrl.length)
+            setQrCode(dataUrl)
+            setLoading(false)
+            setAuthStatus('waiting')
+            setAuthMessage(isAdmin ? 'Waiting for authentication...' : '')
+            qrFetchRef.current = false
+          } else {
+            console.error('[QR Page] QR code generation returned no dataUrl')
+            toast.showError('Failed to generate QR code. Please try again.')
+            setLoading(false)
+            qrFetchRef.current = false
+          }
+        })
+        .catch((err) => {
+          console.error('[QR Page] QR code generation error:', err)
+          toast.showError('Failed to generate QR code. Please try again.')
+          setLoading(false)
+          qrFetchRef.current = false
+        })
     }
-  }, [siteId, k1, isMobile, isAdmin, toast])
+  }, [siteId, k1, isMobile, isAdmin, toast, router])
 
   // Poll for admin authentication status
   useEffect(() => {
@@ -539,7 +646,7 @@ function QRContent() {
                 // Auto-redirect back to return URL if available (after showing success)
                 // SECURITY: Validate returnUrl against allowed domains to prevent open redirect attacks
                 // Priority: 1. returnUrl parameter, 2. httpOnly cookie (via API), 3. document.referrer
-                let redirectTo = null;
+                let redirectTo: string | null = null;
                 if (returnUrl) {
                   redirectTo = decodeURIComponent(returnUrl);
                   console.log('Key-Rex QR: Using returnUrl parameter:', redirectTo);
@@ -619,7 +726,7 @@ function QRContent() {
                   
                   // Redirect after 3.5 seconds (gives time to see countdown and success)
                   redirectTimeoutRef.current = setTimeout(() => {
-                    if (!redirectCancelledRef.current) { // Only redirect if user didn't click "Return Now"
+                    if (!redirectCancelledRef.current && redirectTo) { // Only redirect if user didn't click "Return Now" and redirectTo is set
                       console.log('Key-Rex QR: Redirecting to:', redirectTo);
                       window.location.href = redirectTo;
                     }
@@ -757,13 +864,83 @@ function QRContent() {
     }
   }
 
+  // If k1 is missing, fetch a new one from the server
+  // Use a ref to prevent multiple simultaneous fetches
+  const k1FetchRef = useRef(false)
+  useEffect(() => {
+    if (!k1 && !loading && !k1FetchRef.current) {
+      k1FetchRef.current = true
+      setLoading(true)
+      fetch('/api/auth/lnurl', {
+        credentials: 'include',
+      })
+        .then(async res => {
+          if (!res.ok) {
+            const errorText = await res.text()
+            let errorMessage = 'Failed to get LNURL from server'
+            try {
+              const errorData = JSON.parse(errorText)
+              errorMessage = errorData.error || errorMessage
+            } catch {
+              errorMessage = errorText || errorMessage
+            }
+            console.error('LNURL fetch failed:', res.status, errorMessage)
+            
+            // If rate limited, show user-friendly message
+            if (res.status === 429) {
+              toast.showError('Too many requests. Please wait a moment and refresh the page.')
+            } else {
+              toast.showError(`Failed to get authentication challenge: ${errorMessage}`)
+            }
+            setLoading(false)
+            k1FetchRef.current = false
+            return
+          }
+          return res.json()
+        })
+        .then(data => {
+          if (data && data.k1) {
+            // Update URL with the new k1 only if it's different and we haven't already updated
+            if (!urlUpdateRef.current) {
+              const currentUrl = new URL(window.location.href)
+              const currentK1 = currentUrl.searchParams.get('k1')
+              // Only update if the URL k1 doesn't match the new k1
+              if (currentK1 !== data.k1) {
+                urlUpdateRef.current = true // Mark that we're updating
+                currentUrl.searchParams.set('k1', data.k1)
+                router.replace(currentUrl.toString(), { scroll: false })
+                // Reset the flag after a delay to allow URL to update
+                setTimeout(() => {
+                  urlUpdateRef.current = false
+                }, 1000)
+              }
+            }
+            // Reset ref after a delay to allow URL update
+            setTimeout(() => {
+              k1FetchRef.current = false
+            }, 1000)
+          } else {
+            setLoading(false)
+            k1FetchRef.current = false
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching k1:', err)
+          toast.showError('Failed to initialize authentication. Please try again.')
+          setLoading(false)
+          k1FetchRef.current = false
+        })
+    }
+  }, [k1, loading, router, toast])
+  
+  // Show loading state while fetching k1
   if (!k1) {
     return (
       <Layout showNav={false}>
         <div className="min-h-screen flex items-center justify-center p-4">
-          <Card variant="danger" className="p-6 text-center max-w-md">
-            <p className="text-red-400 font-semibold">Invalid parameters</p>
-            <p className="text-slate-400 text-sm mt-2">Missing required authentication parameter (k1).</p>
+          <Card variant="default" className="p-6 text-center max-w-md">
+            <p className="text-white font-semibold">Initializing authentication...</p>
+            <p className="text-white/400 text-sm mt-2">Please wait while we prepare your QR code.</p>
           </Card>
         </div>
       </Layout>
@@ -805,8 +982,8 @@ function QRContent() {
           animation: scale-in 0.5s ease-out;
         }
       `}</style>
-      <div className="flex items-center justify-center p-4 py-6">
-        <Card className="p-4 sm:p-6 max-w-lg w-full text-center" role="main" aria-labelledby="qr-page-heading">
+      <div className="flex items-center justify-center p-4 py-6" role="main" aria-labelledby="qr-page-heading">
+        <Card className="p-4 sm:p-6 max-w-lg w-full text-center">
           {/* Header */}
           <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg border-2 border-orange-400/30">
             <span className="text-white font-bold text-2xl">⚡</span>
@@ -816,7 +993,7 @@ function QRContent() {
             {isAdmin ? 'Admin Portal Authentication' : 'Scan with your Lightning wallet'}
           </h2>
           
-          <p className="text-slate-300 text-sm mb-4" role="note" aria-describedby="qr-page-heading">
+          <p className="text-white/300 text-sm mb-4" role="note" aria-describedby="qr-page-heading">
             {isAdmin 
               ? 'Scan this QR code with your mobile Lightning wallet to sign in to the admin portal.'
               : isRedirect && !isPopup
@@ -832,11 +1009,11 @@ function QRContent() {
           {isAdmin && authStatus !== 'waiting' && (
             <div className={`mb-4 p-4 rounded-lg border ${
               authStatus === 'success' 
-                ? 'bg-green-500/20 border-green-500/50' 
+                ? 'bg-orange-500/20 border-orange-500/50' 
                 : 'bg-red-500/20 border-red-500/50'
             }`}>
               <p className={`text-sm font-semibold ${
-                authStatus === 'success' ? 'text-green-400' : 'text-red-400'
+                authStatus === 'success' ? 'text-orange-400' : 'text-red-400'
               }`}>
                 {authStatus === 'success' ? '✓ ' : '✗ '}
                 {authMessage}
@@ -846,7 +1023,7 @@ function QRContent() {
 
           {/* Waiting for Admin Authentication */}
           {isAdmin && authStatus === 'waiting' && qrCode && !loading && (
-            <div className="mb-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+            <div className="mb-4 p-4 bg-orange-500/20 border border-orange-500/50 rounded-lg">
               <div className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
                 <p className="text-blue-400 text-sm font-semibold">Waiting for authentication...</p>
@@ -869,7 +1046,7 @@ function QRContent() {
                 {/* Animated Checkmark */}
                 <div className="animate-scale-in">
                   <svg 
-                    className="w-24 h-24 text-green-400 drop-shadow-lg"
+                    className="w-24 h-24 text-orange-400 drop-shadow-lg"
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -914,11 +1091,11 @@ function QRContent() {
           {!isAdmin && authStatus !== 'waiting' && (
             <div className={`mb-4 p-4 rounded-lg border ${
               authStatus === 'success' 
-                ? 'bg-green-500/20 border-green-500/50' 
+                ? 'bg-orange-500/20 border-orange-500/50' 
                 : 'bg-red-500/20 border-red-500/50'
             }`}>
               <p className={`text-sm font-semibold ${
-                authStatus === 'success' ? 'text-green-400' : 'text-red-400'
+                authStatus === 'success' ? 'text-orange-400' : 'text-red-400'
               }`}>
                 {authStatus === 'success' ? '✓ ' : '✗ '}
                 {authMessage}
@@ -930,10 +1107,10 @@ function QRContent() {
                       {/* More prominent success message */}
                       <div className="flex flex-col items-center gap-2">
                         <div className="text-4xl mb-1">✓</div>
-                        <p className="text-green-300 text-base font-semibold text-center">
+                        <p className="text-orange-300 text-base font-semibold text-center">
                           Authentication Successful!
                         </p>
-                        <p className="text-green-200 text-sm text-center">
+                        <p className="text-orange-200 text-sm text-center">
                           Your sign-in information has been saved
                         </p>
                       </div>
@@ -941,29 +1118,29 @@ function QRContent() {
                       {document.referrer && document.referrer !== window.location.href ? (
                         <div className="space-y-2">
                           {redirectCountdown !== null && redirectCountdown > 0 ? (
-                            <p className="text-slate-300 text-sm text-center">
-                              Redirecting in <span className="font-bold text-green-400">{redirectCountdown}</span> second{redirectCountdown !== 1 ? 's' : ''}...
+                            <p className="text-white/300 text-sm text-center">
+                              Redirecting in <span className="font-bold text-orange-400">{redirectCountdown}</span> second{redirectCountdown !== 1 ? 's' : ''}...
                             </p>
                           ) : (
-                            <p className="text-slate-300 text-sm text-center">
+                            <p className="text-white/300 text-sm text-center">
                               Redirecting you back to the website...
                             </p>
                           )}
                           <Button
                             onClick={handleReturnNow}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                           >
                             Return Now
                           </Button>
                         </div>
                       ) : (
                         <>
-                          <p className="text-green-200 text-sm text-center font-semibold">
+                          <p className="text-orange-200 text-sm text-center font-semibold">
                             ✓ Your authentication information has been saved
                           </p>
                           <Button
                             onClick={() => window.history.back()}
-                            className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+                            className="w-full mt-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                           >
                             Return to Website
                           </Button>
@@ -972,10 +1149,10 @@ function QRContent() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-green-300 text-xs text-center">
+                      <p className="text-orange-300 text-xs text-center">
                         Your authentication was successful! Return to the website to complete sign-in.
                       </p>
-                      <p className="text-green-200 text-xs text-center font-semibold">
+                      <p className="text-orange-200 text-xs text-center font-semibold">
                         ✓ Your authentication information has been saved
                       </p>
                     </>
@@ -984,9 +1161,9 @@ function QRContent() {
               )}
               {authStatus === 'error' && (
                 <div className="mt-3 space-y-3">
-                  <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                    <p className="text-slate-300 text-xs font-semibold mb-2">Troubleshooting Tips:</p>
-                    <ul className="text-slate-400 text-xs space-y-1 ml-4 list-disc">
+                  <div className="bg-dark-800/50 rounded-lg p-3 border border-dark-700/50">
+                    <p className="text-white/300 text-xs font-semibold mb-2">Troubleshooting Tips:</p>
+                    <ul className="text-white/400 text-xs space-y-1 ml-4 list-disc">
                       <li>Make sure your wallet supports LNURL-auth</li>
                       <li>Check that you have a stable internet connection</li>
                       <li>Try scanning again with a new QR code</li>
@@ -1015,7 +1192,7 @@ function QRContent() {
                             window.close()
                           }
                         }}
-                        className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
+                        className="w-full bg-dark-700 hover:bg-dark-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
                       >
                         Close and Try Again from Website
                       </button>
@@ -1029,7 +1206,7 @@ function QRContent() {
           {/* Waiting for Regular User Authentication */}
           {!isAdmin && authStatus === 'waiting' && qrCode && !loading && (
             <div 
-              className="mb-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg"
+              className="mb-4 p-4 bg-orange-500/20 border border-orange-500/50 rounded-lg"
               role="status"
               aria-live="polite"
               aria-label="Waiting for authentication"
@@ -1089,7 +1266,7 @@ function QRContent() {
 
           {/* Keep Popup Open Reminder - Desktop users in popup */}
           {isPopup && !isMobile && authStatus === 'waiting' && qrCode && !loading && (
-            <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+            <div className="mb-4 p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
               <p className="text-blue-300 text-xs text-center">
                 ⚠️ <strong>Keep this window open</strong> while you scan the QR code with your mobile wallet.
               </p>
@@ -1103,7 +1280,7 @@ function QRContent() {
                 ? 'bg-red-500/20 border-red-500/50'
                 : timeRemaining < 60 
                 ? 'bg-orange-500/20 border-orange-500/50' 
-                : 'bg-slate-800/50 border-slate-700/50'
+                : 'bg-dark-800/50 border-dark-700/50'
             }`}>
               {timeRemaining === 0 ? (
                 <div className="space-y-2">
@@ -1122,7 +1299,7 @@ function QRContent() {
                 </div>
               ) : (
                 <p className={`text-xs font-semibold ${
-                  timeRemaining < 60 ? 'text-orange-300' : 'text-slate-400'
+                  timeRemaining < 60 ? 'text-orange-300' : 'text-white/400'
                 }`}>
                   {timeRemaining < 60 ? '⏰ ' : ''}
                   Authentication expires in {formatTime(timeRemaining)}
@@ -1139,14 +1316,14 @@ function QRContent() {
                 ? 'bg-red-500/20 border-red-500/50'
                 : networkStatus === 'slow'
                 ? 'bg-yellow-500/20 border-yellow-500/50'
-                : 'bg-green-500/20 border-green-500/50'
+                : 'bg-orange-500/20 border-orange-500/50'
             }`}>
               <p className={`text-xs font-medium ${
                 networkStatus === 'offline'
                   ? 'text-red-300'
                   : networkStatus === 'slow'
                   ? 'text-yellow-300'
-                  : 'text-green-300'
+                  : 'text-orange-300'
               }`}>
                 {networkStatus === 'offline' && '⚠️ No internet connection'}
                 {networkStatus === 'slow' && '🐌 Slow connection detected'}
@@ -1202,13 +1379,13 @@ function QRContent() {
               >
                 📱 Open in Wallet
               </a>
-              <p className="text-slate-400 text-xs text-center">
+              <p className="text-white/400 text-xs text-center">
                 {deepLinkAttempted 
                   ? 'If you have multiple wallets, choose one from the list that appears'
                   : 'This will open your Lightning wallet app directly'}
               </p>
               {deepLinkAttempted && (
-                <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-3 mt-2">
+                <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3 mt-2">
                   <p className="text-blue-300 text-xs text-center">
                     <strong className="text-blue-200">Important:</strong> After approving in your wallet, return to this browser tab to complete authentication.
                   </p>
@@ -1221,13 +1398,13 @@ function QRContent() {
           {!isMobile && !isAdmin && qrCode && !loading && lnurl && (
             <div className="mb-6">
               {/* Tab Buttons */}
-              <div className="flex gap-2 mb-4 border-b border-slate-700/50">
+              <div className="flex gap-2 mb-4 border-b border-dark-700/50">
                 <button
                   onClick={() => setActiveTab('mobile')}
                   className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors border-b-2 ${
                     activeTab === 'mobile'
                       ? 'text-orange-400 border-orange-400 bg-orange-500/10'
-                      : 'text-slate-400 border-transparent hover:text-slate-300'
+                      : 'text-white/400 border-transparent hover:text-white/300'
                   }`}
                   aria-selected={activeTab === 'mobile'}
                   role="tab"
@@ -1239,7 +1416,7 @@ function QRContent() {
                   className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors border-b-2 ${
                     activeTab === 'desktop'
                       ? 'text-orange-400 border-orange-400 bg-orange-500/10'
-                      : 'text-slate-400 border-transparent hover:text-slate-300'
+                      : 'text-white/400 border-transparent hover:text-white/300'
                   }`}
                   aria-selected={activeTab === 'desktop'}
                   role="tab"
@@ -1272,13 +1449,13 @@ function QRContent() {
                   {isMobile && !isAdmin && (
                     <div className="mb-3 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
                       <p className="text-red-300 text-xs font-semibold mb-2">⚠️ Mobile Wallet QR Scanners Don't Work for Authentication</p>
-                      <p className="text-slate-300 text-xs mb-2">
+                      <p className="text-white/300 text-xs mb-2">
                         Most mobile wallet QR scanners (Phoenix, Zeus, etc.) are designed for <strong>payment invoices only</strong>, not LNURL-auth authentication. 
                         Scanning will give errors like "not a lightning invoice" or "not a valid address".
                       </p>
-                      <div className="bg-slate-800/50 rounded p-2 mt-2">
-                        <p className="text-green-300 text-xs font-semibold mb-1">✅ Use This Instead:</p>
-                        <ol className="text-slate-300 text-xs space-y-1 ml-4 list-decimal">
+                      <div className="bg-dark-800/50 rounded p-2 mt-2">
+                        <p className="text-orange-300 text-xs font-semibold mb-1">✅ Use This Instead:</p>
+                        <ol className="text-white/300 text-xs space-y-1 ml-4 list-decimal">
                           <li>Tap the <strong>"Open in Wallet"</strong> button above (uses deep link - most reliable)</li>
                           <li>Or copy the LNURL below and look for an "Authenticate"/"Login" option in your wallet's menu</li>
                           <li>Or use Alby browser extension on desktop (automatic, no scanning needed)</li>
@@ -1291,16 +1468,16 @@ function QRContent() {
                   <div className="mb-4">
                     <button
                       onClick={() => setShowScanningTips(!showScanningTips)}
-                      className="w-full text-left p-2 bg-slate-800/30 hover:bg-slate-800/50 rounded-lg border border-slate-700/30 transition-colors"
+                      className="w-full text-left p-2 bg-dark-800/30 hover:bg-dark-800/50 rounded-lg border border-dark-700/30 transition-colors"
                       aria-expanded={showScanningTips}
                       aria-controls="scanning-tips-content"
                       aria-label={showScanningTips ? 'Hide scanning tips' : 'Show scanning tips'}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-400 text-xs font-medium">
+                        <span className="text-white/400 text-xs font-medium">
                           💡 Scanning Tips
                         </span>
-                        <span className="text-slate-500 text-xs" aria-hidden="true">
+                        <span className="text-white/500 text-xs" aria-hidden="true">
                           {showScanningTips ? '▼' : '▶'}
                         </span>
                       </div>
@@ -1308,11 +1485,11 @@ function QRContent() {
                     {showScanningTips && (
                       <div 
                         id="scanning-tips-content"
-                        className="mt-2 bg-slate-800/30 rounded-lg p-3 border border-slate-700/30"
+                        className="mt-2 bg-dark-800/30 rounded-lg p-3 border border-dark-700/30"
                         role="region"
                         aria-label="Scanning tips"
                       >
-                        <ul className="text-slate-400 text-xs space-y-1.5 ml-4 list-disc">
+                        <ul className="text-white/400 text-xs space-y-1.5 ml-4 list-disc">
                           <li>Hold your phone steady while scanning</li>
                           <li>Ensure good lighting for better recognition</li>
                           <li>Move closer if the code doesn't scan immediately</li>
@@ -1328,14 +1505,14 @@ function QRContent() {
               {activeTab === 'desktop' && (
                 <div role="tabpanel" aria-labelledby="desktop-tab" className="space-y-4">
                   {/* Phase 2: Wallet Selector */}
-                  <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
-                    <label className="block text-slate-300 text-xs font-semibold mb-2">
+                  <div className="bg-dark-800/30 rounded-lg p-4 border border-dark-700/30">
+                    <label className="block text-white/300 text-xs font-semibold mb-2">
                       Select your desktop wallet:
                     </label>
                     <select
                       value={selectedWallet}
                       onChange={(e) => setSelectedWallet(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="">Choose your wallet...</option>
                       <option value="alby">Alby (Browser Extension or Desktop)</option>
@@ -1364,18 +1541,18 @@ function QRContent() {
 
                     {/* Simple feedback for when modal is not shown */}
                     {copied && !showCopyModal && (
-                      <div className="mt-3 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
-                        <p className="text-green-300 text-sm text-center font-semibold">
+                      <div className="mt-3 p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
+                        <p className="text-orange-300 text-sm text-center font-semibold">
                           ✓ LNURL copied! Now paste it into your desktop wallet.
                         </p>
                       </div>
                     )}
 
                     {/* Manual Copy Fallback */}
-                    <div className="mt-4 bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                      <p className="text-slate-400 text-xs mb-2 text-left">Or copy manually:</p>
-                      <div className="bg-slate-950 rounded p-2 text-left">
-                        <code className="text-xs text-slate-300 break-all select-all">
+                    <div className="mt-4 bg-dark-900/50 rounded-lg p-3 border border-dark-700/50">
+                      <p className="text-white/400 text-xs mb-2 text-left">Or copy manually:</p>
+                      <div className="bg-dark-950 rounded p-2 text-left">
+                        <code className="text-xs text-white/300 break-all select-all">
                           {lightningLnurl}
                         </code>
                       </div>
@@ -1384,7 +1561,7 @@ function QRContent() {
 
                   {/* Phase 2: Wallet-Specific Instructions */}
                   {selectedWallet && (
-                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                    <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50">
                       <h4 className="text-white font-semibold text-sm mb-3">
                         How to use with {selectedWallet === 'alby' ? 'Alby' :
                                          selectedWallet === 'zeus' ? 'Zeus' :
@@ -1395,61 +1572,61 @@ function QRContent() {
                                          'your wallet'}:
                       </h4>
                       {selectedWallet === 'zeus' && (
-                        <div className="text-slate-300 text-xs space-y-3">
+                        <div className="text-white/300 text-xs space-y-3">
                           <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3">
                             <p className="text-yellow-300 font-semibold mb-2">⚠️ Zeus LNURL-auth Limitation</p>
-                            <p className="text-slate-300 text-xs mb-2">
+                            <p className="text-white/300 text-xs mb-2">
                               When you paste the LNURL into Zeus, it may generate a signature but <strong>not automatically submit it</strong> back to complete authentication.
                             </p>
-                            <p className="text-slate-300 text-xs">
+                            <p className="text-white/300 text-xs">
                               <strong>This is a limitation of Zeus</strong> - the wallet should automatically send the signature back, but it doesn't always do this.
                             </p>
                           </div>
                           <div>
                             <p className="font-semibold mb-2">Recommended: Use "Open in Wallet" Button Instead</p>
-                            <p className="text-slate-300 text-xs mb-2">For mobile users, use the <strong>"Open in Wallet"</strong> button above (if available) - this uses deep linking and works better than manual pasting.</p>
+                            <p className="text-white/300 text-xs mb-2">For mobile users, use the <strong>"Open in Wallet"</strong> button above (if available) - this uses deep linking and works better than manual pasting.</p>
                           </div>
                           <div>
                             <p className="font-semibold mb-2">If You See a Signature in Zeus:</p>
-                            <ol className="space-y-1.5 ml-5 list-decimal text-slate-300 text-xs">
+                            <ol className="space-y-1.5 ml-5 list-decimal text-white/300 text-xs">
                               <li>Zeus should automatically submit the signature - wait a few seconds</li>
                               <li>If nothing happens, <strong>return to this browser tab</strong> and refresh the page</li>
                               <li>If authentication still doesn't complete, Zeus may not fully support LNURL-auth</li>
                               <li>Try using the "Open in Wallet" button or use a different wallet like Alby extension</li>
                             </ol>
-                            <p className="mt-2 text-slate-400 italic text-xs">
+                            <p className="mt-2 text-white/400 italic text-xs">
                               Note: You cannot manually submit the signature - it must be sent automatically by the wallet to the callback URL.
                             </p>
                           </div>
                         </div>
                       )}
                       {selectedWallet === 'alby' && (
-                        <div className="text-slate-300 text-xs space-y-3">
-                          <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3">
-                            <p className="text-green-300 font-semibold mb-2">✅ Alby Browser Extension (Automatic - Recommended)</p>
-                            <ol className="space-y-1.5 ml-5 list-decimal text-slate-300">
+                        <div className="text-white/300 text-xs space-y-3">
+                          <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3">
+                            <p className="text-orange-300 font-semibold mb-2">✅ Alby Browser Extension (Automatic - Recommended)</p>
+                            <ol className="space-y-1.5 ml-5 list-decimal text-white/300">
                               <li>Make sure the Alby browser extension is installed and enabled</li>
                               <li>Go back to the website and click the <strong>Key-Rex logo button</strong></li>
                               <li>Alby will automatically pop up asking you to approve the authentication</li>
                               <li>Click <strong>Approve</strong> in the Alby popup</li>
                               <li>You're done! No copying or pasting needed.</li>
                             </ol>
-                            <p className="mt-2 text-slate-400 text-xs">⚠️ <strong>Important:</strong> The Alby browser extension does NOT have a manual "paste LNURL" option. It only works automatically via WebLN. Don't paste into the "Send" field - that's for payments, not authentication.</p>
+                            <p className="mt-2 text-white/400 text-xs">⚠️ <strong>Important:</strong> The Alby browser extension does NOT have a manual "paste LNURL" option. It only works automatically via WebLN. Don't paste into the "Send" field - that's for payments, not authentication.</p>
                           </div>
-                          <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-3">
+                          <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3">
                             <p className="text-blue-300 font-semibold mb-2">🧪 For Manual Testing</p>
-                            <p className="text-slate-300 text-xs mb-2">If you need to test manual LNURL-auth pasting, try these options:</p>
-                            <ul className="ml-5 list-disc space-y-1 text-slate-300">
+                            <p className="text-white/300 text-xs mb-2">If you need to test manual LNURL-auth pasting, try these options:</p>
+                            <ul className="ml-5 list-disc space-y-1 text-white/300">
                               <li><strong>Alby Hub (Desktop App):</strong> Check if there's an "Authenticate", "LNURL", or "Connect" option in the menu or settings. If you find it, paste the LNURL there.</li>
                               <li><strong>Mobile wallets:</strong> Phoenix, Zeus, or Breez - scan the QR code or paste LNURL in their authentication section</li>
                               <li><strong>Other desktop wallets:</strong> Select "Sparrow Wallet" or "Electrum" from the dropdown above for manual paste instructions</li>
                             </ul>
-                            <p className="mt-2 text-slate-400 text-xs italic">Note: Alby Hub may or may not support manual LNURL-auth. If you can't find an option, use a mobile wallet or other desktop wallet instead.</p>
+                            <p className="mt-2 text-white/400 text-xs italic">Note: Alby Hub may or may not support manual LNURL-auth. If you can't find an option, use a mobile wallet or other desktop wallet instead.</p>
                           </div>
                         </div>
                       )}
                       {selectedWallet === 'sparrow' && (
-                        <ol className="text-slate-300 text-xs space-y-2 ml-5 list-decimal">
+                        <ol className="text-white/300 text-xs space-y-2 ml-5 list-decimal">
                           <li>Open Sparrow Wallet</li>
                           <li>Go to <strong>Tools</strong> → <strong>Sign Message</strong> (or look for LNURL option)</li>
                           <li>Paste the copied LNURL into the input field</li>
@@ -1457,7 +1634,7 @@ function QRContent() {
                         </ol>
                       )}
                       {selectedWallet === 'electrum' && (
-                        <ol className="text-slate-300 text-xs space-y-2 ml-5 list-decimal">
+                        <ol className="text-white/300 text-xs space-y-2 ml-5 list-decimal">
                           <li>Open Electrum</li>
                           <li>Look for <strong>Tools</strong> → <strong>Sign/Verify Message</strong> or LNURL option</li>
                           <li>Paste the copied LNURL into the input field</li>
@@ -1465,7 +1642,7 @@ function QRContent() {
                         </ol>
                       )}
                       {selectedWallet === 'bluewallet' && (
-                        <ol className="text-slate-300 text-xs space-y-2 ml-5 list-decimal">
+                        <ol className="text-white/300 text-xs space-y-2 ml-5 list-decimal">
                           <li>Open BlueWallet Desktop</li>
                           <li>Look for <strong>LNURL</strong> or <strong>Authenticate</strong> option in the menu</li>
                           <li>Paste the copied LNURL</li>
@@ -1473,7 +1650,7 @@ function QRContent() {
                         </ol>
                       )}
                       {selectedWallet === 'wasabi' && (
-                        <ol className="text-slate-300 text-xs space-y-2 ml-5 list-decimal">
+                        <ol className="text-white/300 text-xs space-y-2 ml-5 list-decimal">
                           <li>Open Wasabi Wallet</li>
                           <li>Go to <strong>Tools</strong> → <strong>Sign Message</strong> (if available)</li>
                           <li>Paste the copied LNURL</li>
@@ -1481,7 +1658,7 @@ function QRContent() {
                         </ol>
                       )}
                       {selectedWallet === 'other' && (
-                        <div className="text-slate-300 text-xs space-y-2">
+                        <div className="text-white/300 text-xs space-y-2">
                           <p>For other desktop wallets:</p>
                           <ol className="ml-5 list-decimal space-y-1.5">
                             <li>Open your desktop Lightning wallet</li>
@@ -1489,7 +1666,7 @@ function QRContent() {
                             <li>Paste the copied LNURL into the appropriate field</li>
                             <li>Approve the authentication request</li>
                           </ol>
-                          <p className="mt-2 text-slate-400 italic">
+                          <p className="mt-2 text-white/400 italic">
                             Note: Not all desktop wallets support LNURL-auth. If your wallet doesn't have this option, you may need to use a mobile wallet instead.
                           </p>
                         </div>
@@ -1523,25 +1700,25 @@ function QRContent() {
           {/* Mobile/Admin: Copy Buttons (original layout) */}
           {lnurl && !loading && (isMobile || isAdmin) && (
             <div className="space-y-3 mb-6">
-              <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-700/30">
+              <div className="bg-dark-800/30 rounded-lg p-3 border border-dark-700/30">
                 {isMobile && !isAdmin ? (
-                  <p className="text-slate-400 text-xs mb-2 text-center">
-                    <strong className="text-slate-300">Alternative:</strong> If "Open in Wallet" didn't work or you don't have a wallet installed, copy the LNURL below and paste it into your wallet
+                  <p className="text-white/400 text-xs mb-2 text-center">
+                    <strong className="text-white/300">Alternative:</strong> If "Open in Wallet" didn't work or you don't have a wallet installed, copy the LNURL below and paste it into your wallet
                   </p>
                 ) : (
-                  <p className="text-slate-400 text-xs mb-2 text-center">
-                    <strong className="text-slate-300">Desktop wallet users:</strong> Copy the LNURL below and paste it into your wallet
+                  <p className="text-white/400 text-xs mb-2 text-center">
+                    <strong className="text-white/300">Desktop wallet users:</strong> Copy the LNURL below and paste it into your wallet
                   </p>
                 )}
                 <Button
                   onClick={() => copyToClipboard(lightningLnurl, 'lightning')}
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+                  className="w-full bg-dark-700 hover:bg-dark-600 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                 >
                   {copied ? '✓ Copied!' : '📋 Copy LNURL'}
                 </Button>
                 {/* Simple feedback for when modal is not shown */}
                 {copied && !showCopyModal && (
-                  <p className="text-green-400 text-xs text-center mt-2">
+                  <p className="text-orange-400 text-xs text-center mt-2">
                     {isMobile && !isAdmin
                       ? 'LNURL copied to clipboard! Paste it into your wallet app.'
                       : 'LNURL copied to clipboard! Paste it into your desktop wallet.'}
@@ -1554,7 +1731,7 @@ function QRContent() {
           {/* Instructions - Simplified for desktop users (instructions are in tabs) */}
           {(!isMobile || isAdmin) && (
             <div 
-              className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 text-left"
+              className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50 text-left"
               role="region"
               aria-labelledby="instructions-heading"
             >
@@ -1564,24 +1741,24 @@ function QRContent() {
               </h3>
               
               {isMobile && isAdmin ? (
-                <div className="text-slate-300 text-sm space-y-3">
+                <div className="text-white/300 text-sm space-y-3">
                   <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3">
                     <p className="text-yellow-300 font-semibold mb-2">⚠️ Important: Not all wallets support LNURL-auth</p>
-                    <p className="text-slate-300 text-xs">Some wallets (like Phoenix) have QR scanners designed for payments, not authentication. Use a wallet that supports LNURL-auth.</p>
+                    <p className="text-white/300 text-xs">Some wallets (like Phoenix) have QR scanners designed for payments, not authentication. Use a wallet that supports LNURL-auth.</p>
                   </div>
                   <div>
                     <p className="font-semibold mb-2">How to use LNURL-auth (mobile wallets):</p>
-                    <ol className="space-y-2 ml-5 list-decimal text-slate-300 text-xs">
+                    <ol className="space-y-2 ml-5 list-decimal text-white/300 text-xs">
                       <li><strong>Use the "Open in Wallet" button</strong> above - this uses deep linking and works with most wallets</li>
                       <li><strong>Or copy the LNURL</strong> and look for "Authenticate", "Login", or "LNURL" option in your wallet's menu</li>
                       <li><strong>Don't use QR scanners</strong> - they're for payments, not authentication</li>
                     </ol>
                     <p className="mt-3 font-semibold mb-2">Recommended for desktop:</p>
-                    <p className="text-slate-300 text-xs ml-5"><strong>Alby browser extension</strong> - works automatically via WebLN, no scanning or pasting needed</p>
+                    <p className="text-white/300 text-xs ml-5"><strong>Alby browser extension</strong> - works automatically via WebLN, no scanning or pasting needed</p>
                   </div>
                 </div>
               ) : !isMobile && !isAdmin ? (
-                <div className="text-slate-300 text-xs space-y-2">
+                <div className="text-white/300 text-xs space-y-2">
                   <p>
                     Use the tabs above to switch between <strong>Mobile Wallet</strong> (scan QR code) and <strong>Desktop Wallet</strong> (copy LNURL) options.
                   </p>
@@ -1591,15 +1768,15 @@ function QRContent() {
                 </div>
               ) : null}
 
-              <div className="mt-4 pt-3 border-t border-slate-700/50">
-                <p className="text-slate-400 text-xs mb-2">
-                  <strong className="text-slate-300">Best methods for LNURL-auth:</strong>
+              <div className="mt-4 pt-3 border-t border-dark-700/50">
+                <p className="text-white/400 text-xs mb-2">
+                  <strong className="text-white/300">Best methods for LNURL-auth:</strong>
                 </p>
-                <ul className="text-slate-400 text-xs ml-4 list-disc space-y-1">
+                <ul className="text-white/400 text-xs ml-4 list-disc space-y-1">
                   <li><strong>Mobile:</strong> Use the "Open in Wallet" button above (deep link) - works with most wallets</li>
                   <li><strong>Desktop:</strong> Alby browser extension (automatic via WebLN)</li>
                 </ul>
-                <p className="text-slate-400 text-xs mt-2">
+                <p className="text-white/400 text-xs mt-2">
                   <strong>Note:</strong> Mobile wallet QR scanners don't work for authentication (they're for payments only). Use the "Open in Wallet" button or Alby extension instead.
                 </p>
               </div>
@@ -1609,7 +1786,7 @@ function QRContent() {
           {/* Instructions for Mobile End Users */}
           {isMobile && !isAdmin && (
             <div 
-              className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 text-left"
+              className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50 text-left"
               role="region"
               aria-labelledby="instructions-heading"
             >
@@ -1623,7 +1800,7 @@ function QRContent() {
                   <span className="text-orange-400">📱</span>
                   Using a mobile wallet?
                 </h4>
-                <ol className="text-slate-300 text-xs space-y-1.5 ml-5 list-decimal">
+                <ol className="text-white/300 text-xs space-y-1.5 ml-5 list-decimal">
                   <li>Tap the "Open in Wallet" button above</li>
                   <li>If you have multiple wallets installed, choose one from the list that appears</li>
                   <li>Your Lightning wallet app will open automatically</li>
@@ -1633,15 +1810,15 @@ function QRContent() {
                 </ol>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-700/50">
-                <p className="text-slate-400 text-xs mb-2">
-                  <strong className="text-slate-300">Best methods:</strong>
+              <div className="mt-4 pt-3 border-t border-dark-700/50">
+                <p className="text-white/400 text-xs mb-2">
+                  <strong className="text-white/300">Best methods:</strong>
                 </p>
-                <ul className="text-slate-400 text-xs ml-4 list-disc space-y-1 mb-2">
+                <ul className="text-white/400 text-xs ml-4 list-disc space-y-1 mb-2">
                   <li><strong>Mobile:</strong> Use "Open in Wallet" button (works with Phoenix, Zeus, Breez, etc.)</li>
                   <li><strong>Desktop:</strong> Alby browser extension (automatic)</li>
                 </ul>
-                <p className="text-slate-400 text-xs">
+                <p className="text-white/400 text-xs">
                   <strong>Note:</strong> Mobile wallet QR scanners don't work for authentication. Use the "Open in Wallet" button or Alby extension.
                 </p>
               </div>
@@ -1672,7 +1849,7 @@ export default function QRPage() {
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-slate-400">Loading...</p>
+            <p className="text-white/400">Loading...</p>
           </div>
         </div>
       </Layout>

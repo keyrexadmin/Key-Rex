@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie } from '@/lib/admin-auth'
 import { getUserByXpub, getUsageStats, getActivityLogs } from '@/lib/storage'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 /**
  * Admin User Detail API Route
@@ -9,16 +10,24 @@ import { getUserByXpub, getUsageStats, getActivityLogs } from '@/lib/storage'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { xpub: string } }
+  { params }: { params: Promise<{ xpub: string }> }
 ) {
-  // Verify admin session
+  // SECURITY: Rate limiting - prevent cost abuse (per-admin)
   const adminSession = request.cookies.get('admin_session')?.value
+  const identifier = adminSession || 'anonymous'
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // Verify admin session
   if (!adminSession || !getAdminSessionFromCookie(adminSession)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
   try {
-    const xpub = decodeURIComponent(params.xpub)
+    const resolvedParams = await params
+    const xpub = decodeURIComponent(resolvedParams.xpub)
     const user = getUserByXpub(xpub)
     
     if (!user) {

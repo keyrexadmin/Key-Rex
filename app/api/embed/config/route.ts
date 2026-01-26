@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserBySiteId, getAllUsers } from '@/lib/storage'
+import { getUserBySiteId, getAllUsers, getVerifiedDomains } from '@/lib/storage'
 import { getFeaturedWallets } from '@/lib/storage'
-import { EmbedConfig } from '@/types'
+import { EmbedConfig, FeaturedWallet } from '@/types'
 import { validateEmbedOrigin, getCorsHeaders } from '@/lib/cors'
 import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
+import { isTestDomain } from '@/lib/utils'
 
 function getBaseUrl(request: NextRequest): string {
   return process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
@@ -51,18 +52,42 @@ export async function GET(request: NextRequest) {
   // Get user by siteId (for dashboard preview)
   const user = getUserBySiteId(siteId)
   
-  // Validate origin for embed config requests
+  // Validate origin for embed config requests (check verified domains only)
   const origin = request.headers.get('origin')
   if (user && origin) {
-    const allowedDomains = user.allowedDomains || []
-    if (allowedDomains.length > 0 && !validateEmbedOrigin(request, allowedDomains)) {
-      console.warn('CORS: Invalid origin for config request:', origin, 'siteId:', siteId)
-      return NextResponse.json({ 
-        error: 'Origin not authorized' 
-      }, { 
-        status: 403,
-        headers: getCorsHeaders(origin, 'GET, OPTIONS', 'Content-Type, Cache-Control')
-      })
+    // Extract domain from origin
+    let requestDomain: string | null = null
+    try {
+      const url = new URL(origin)
+      requestDomain = url.hostname
+    } catch {
+      requestDomain = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0]
+    }
+    
+    // Test domains are always allowed
+    if (requestDomain && !isTestDomain(requestDomain)) {
+      const verifiedDomains = getVerifiedDomains(user.xpub)
+      
+      // If user has no verified domains, block config requests from production domains
+      if (verifiedDomains.length === 0) {
+        return NextResponse.json({ 
+          error: 'No verified domains found. Please add and verify at least one domain in your dashboard.' 
+        }, { 
+          status: 403,
+          headers: getCorsHeaders(origin, 'GET, OPTIONS', 'Content-Type, Cache-Control')
+        })
+      }
+      
+      // Check if domain is in verified list
+      if (!validateEmbedOrigin(request, verifiedDomains, user.xpub)) {
+        console.warn('CORS: Invalid origin for config request:', origin, 'siteId:', siteId)
+        return NextResponse.json({ 
+          error: 'Origin not authorized' 
+        }, { 
+          status: 403,
+          headers: getCorsHeaders(origin, 'GET, OPTIONS', 'Content-Type, Cache-Control')
+        })
+      }
     }
   }
   
@@ -82,10 +107,38 @@ export async function GET(request: NextRequest) {
       
       // Ensure we have featured wallets (use defaults if storage is empty)
       const baseUrl = getBaseUrl(request)
-      const defaultWallets = featuredWallets.length > 0 ? featuredWallets : [
-        { name: 'Alby', url: 'https://getalby.com', logoUrl: baseUrl + '/images/wallets/alby-logo.svg' },
-        { name: 'Phoenix', url: 'https://phoenix.acinq.co', logoUrl: baseUrl + '/images/wallets/phoenix-logo.svg' },
-        { name: 'Zeus', url: 'https://zeusln.app', logoUrl: baseUrl + '/images/wallets/zeus-logo.svg' }
+      const now = Date.now()
+      const defaultWallets: FeaturedWallet[] = featuredWallets.length > 0 ? featuredWallets : [
+        { 
+          id: 'alby-default',
+          name: 'Alby', 
+          downloadUrl: 'https://getalby.com', 
+          logoUrl: baseUrl + '/images/wallets/alby-logo.svg',
+          enabled: true,
+          priority: 1,
+          createdAt: now,
+          updatedAt: now
+        },
+        { 
+          id: 'phoenix-default',
+          name: 'Phoenix', 
+          downloadUrl: 'https://phoenix.acinq.co', 
+          logoUrl: baseUrl + '/images/wallets/phoenix-logo.svg',
+          enabled: true,
+          priority: 2,
+          createdAt: now,
+          updatedAt: now
+        },
+        { 
+          id: 'zeus-default',
+          name: 'Zeus', 
+          downloadUrl: 'https://zeusln.app', 
+          logoUrl: baseUrl + '/images/wallets/zeus-logo.svg',
+          enabled: true,
+          priority: 3,
+          createdAt: now,
+          updatedAt: now
+        }
       ]
       
       const defaultConfig: EmbedConfig = {

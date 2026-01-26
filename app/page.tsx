@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import Layout from '@/components/Layout'
 import Card from '@/components/Card'
 import OnboardingWizard from '@/components/OnboardingWizard'
@@ -10,40 +9,85 @@ import KeyRexButtonPreview from '@/components/KeyRexButtonPreview'
 
 function HomeContent() {
   const [wizardOpen, setWizardOpen] = useState(false)
-  const searchParams = useSearchParams()
+  const [imageSrc, setImageSrc] = useState('/images/keyrex-mainlandingpage.png')
+  const [mounted, setMounted] = useState(false)
+
+  // Set cache-busting parameter only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setImageSrc(`/images/keyrex-mainlandingpage.png?t=${Date.now()}`)
+  }, [])
 
   // Check if we should open wizard from URL hash or query param
+  // Do this in a single useEffect after mount to avoid multiple renders
   useEffect(() => {
-    // Check for hash
-    if (typeof window !== 'undefined' && window.location.hash === '#get-started') {
-      setWizardOpen(true)
-      // Remove hash from URL
-      window.history.replaceState(null, '', window.location.pathname)
-    }
-    // Check for query params
-    if (searchParams.get('setup') === 'true' || searchParams.get('wizard') === 'true') {
-      setWizardOpen(true)
-      // Clean up URL by removing query param
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(null, '', window.location.pathname)
+    if (typeof window === 'undefined') return
+    
+    try {
+      setMounted(true)
+      
+      // Check for hash
+      if (window.location.hash === '#get-started') {
+        setWizardOpen(true)
+        try {
+          window.history.replaceState(null, '', window.location.pathname)
+        } catch (e) {
+          // Safari may have issues with replaceState, ignore
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Safari replaceState error (ignored):', e)
+          }
+        }
+        return
+      }
+      
+      // Check for query params
+      try {
+        const searchParams = new URLSearchParams(window.location.search)
+        const setup = searchParams.get('setup')
+        const wizard = searchParams.get('wizard')
+        if (setup === 'true' || wizard === 'true') {
+          setWizardOpen(true)
+          try {
+            window.history.replaceState(null, '', window.location.pathname)
+          } catch (e) {
+            // Safari may have issues with replaceState, ignore
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Safari replaceState error (ignored):', e)
+            }
+          }
+        }
+      } catch (e) {
+        // Safari may have issues with URLSearchParams, ignore
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Safari URLSearchParams error (ignored):', e)
+        }
+      }
+    } catch (error) {
+      // Catch any Safari-specific errors and log them
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Safari initialization error:', error)
       }
     }
-  }, [searchParams])
+  }, [])
 
   return (
     <Layout showNav={true}>
       <OnboardingWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
       <div className="min-h-screen flex flex-col">
         {/* Hero Section */}
-        <section className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 animate-fade-in">
+        <section className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-4 pb-20 animate-fade-in">
           <div className="max-w-4xl w-full text-center space-y-8">
             {/* Main Heading */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-              Key-Rex
-              <span className="block text-3xl sm:text-4xl lg:text-5xl text-orange-400 mt-4">
+            <div className="mb-6 leading-tight">
+              <img 
+                src={imageSrc}
+                alt="Key-Rex" 
+                className="mx-auto max-w-full h-auto"
+                style={{ maxHeight: '20rem' }}
+              />
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl text-orange-400 mt-4 text-center">
                 Lightning Wallet Authentication
-              </span>
-            </h1>
+              </h1>
+            </div>
 
             {/* Subheading */}
             <p className="text-xl sm:text-2xl text-white/90 max-w-2xl mx-auto leading-relaxed mb-8">
@@ -98,7 +142,7 @@ function HomeContent() {
                 </div>
                 <button
                   onClick={() => setWizardOpen(true)}
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold text-base py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl border border-orange-500/30 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold text-base py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl border border-orange-500/30 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-dark-900"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -136,11 +180,11 @@ function HomeContent() {
                   
                   <div className="bg-dark-900/80 border border-dark-700 rounded-lg p-4 overflow-x-auto">
                     <pre className="text-xs text-white/300 font-mono">
-                      <code className="block mb-3 text-green-400">// Frontend: Add to your HTML</code>
+                      <code className="block mb-3 text-orange-400">// Frontend: Add to your HTML</code>
                       <code className="block mb-1">{'<script src="https://keyrex.example.com/embed?siteId=YOUR_SITE_ID"></script>'}</code>
                       <code className="block mb-4">{'<div id="keyrex-container"></div>'}</code>
                       
-                      <code className="block mb-3 text-green-400">// Backend: Handle authentication callback</code>
+                      <code className="block mb-3 text-orange-400">// Backend: Handle authentication callback</code>
                       <code className="block mb-1 text-white/400">// Your backend receives: {'{'} xpub: "xpub_..." {'}'}</code>
                       <code className="block mb-1 text-white/400">// Create session and redirect user</code>
                       <code className="block text-white/400">// See dashboard for full examples</code>
@@ -163,8 +207,8 @@ function HomeContent() {
                 Before you decide if Key-Rex is right for your website, here are a couple of important things to understand. Most websites can use Key-Rex, but there are a few requirements to be aware of.
               </p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6" role="list">
-                <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-dark-200/90 to-dark-300/90 hover:border-orange-500/50 transition-all duration-200" role="listitem">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90 hover:border-orange-500/50 transition-all duration-200">
                   <div className="text-center mb-4">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-500/30 mb-4">
                       <span className="text-3xl">⚠️</span>
@@ -184,9 +228,9 @@ function HomeContent() {
                   </div>
                 </Card>
 
-                <Card className="p-8 border-2 border-blue-500/30 bg-gradient-to-br from-dark-200/90 to-dark-300/90 hover:border-blue-500/50 transition-all duration-200" role="listitem">
+                <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90 hover:border-orange-500/50 transition-all duration-200">
                   <div className="text-center mb-4">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/20 border-2 border-blue-500/30 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-500/30 mb-4">
                       <span className="text-3xl">ℹ️</span>
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-3">Your Visitors Need Lightning Wallets</h3>
@@ -195,7 +239,7 @@ function HomeContent() {
                     For someone to sign in with Key-Rex, they need a Lightning wallet app (like Alby, Phoenix, or Zeus). These are free to download. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works best for them.
                   </p>
                   <div className="text-center">
-                    <Link href="/how-it-works#lightning-wallets" className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                    <Link href="/how-it-works#lightning-wallets" className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">
                       Wallet options
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -204,9 +248,9 @@ function HomeContent() {
                   </div>
                 </Card>
 
-                <Card className="p-8 border-2 border-green-500/30 bg-gradient-to-br from-dark-200/90 to-dark-300/90 hover:border-green-500/50 transition-all duration-200" role="listitem">
+                <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90 hover:border-orange-500/50 transition-all duration-200">
                   <div className="text-center mb-4">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/30 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-500/30 mb-4">
                       <span className="text-3xl">🔗</span>
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-3">Works With Your Existing Users</h3>
@@ -215,7 +259,7 @@ function HomeContent() {
                     Already have user accounts? Key-Rex can connect to your existing system. New visitors can sign in and you create accounts for them, while existing users can link their Lightning wallet to their current account. You don't have to replace anything—just add Key-Rex alongside your current sign-in methods.
                   </p>
                   <div className="text-center">
-                    <Link href="/faq#category-4" className="inline-flex items-center gap-1 text-green-400 hover:text-green-300 text-sm font-medium transition-colors">
+                    <Link href="/faq#category-4" className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">
                       Learn more in FAQ
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -241,7 +285,7 @@ function HomeContent() {
                 Why Should You Consider Key-Rex?
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" role="list">
-                <Card className="p-6 text-center" role="listitem">
+                <Card className="p-6 text-center">
                   <div className="text-3xl mb-2">🔐</div>
                   <h3 className="text-xl font-semibold text-white mb-1">No More Password Breaches</h3>
                   <p className="text-white/400 text-sm leading-relaxed">Users sign in with cryptographic proof—no passwords that can be stolen</p>
@@ -277,50 +321,50 @@ function HomeContent() {
               <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-6">
                 No Cost
               </h2>
-              <Card className="p-8 border-2 border-orange-500/30 bg-gradient-to-br from-dark-200/90 to-dark-300/90 shadow-lg">
+              <Card className="p-8 border-2 border-orange-500/30 bg-dark-200/90 shadow-lg">
                 <div className="text-center mb-8">
                   <p className="text-white/80 text-lg leading-relaxed">No credit card needed. No hidden fees. No limits. No catch.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-green-500/30 transition-all duration-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                        <span className="text-green-400 text-lg font-bold">✓</span>
-                      </div>
+                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-orange-500/30 transition-all duration-200">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
+                          <span className="text-orange-400 text-lg font-bold">✓</span>
+                        </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-white mb-1.5">Unlimited Sign-Ins</h3>
                         <p className="text-white/400 text-sm leading-relaxed">As many sign-ins as you need—no limits on visitors or usage</p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-green-500/30 transition-all duration-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                        <span className="text-green-400 text-lg font-bold">✓</span>
-                      </div>
+                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-orange-500/30 transition-all duration-200">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
+                          <span className="text-orange-400 text-lg font-bold">✓</span>
+                        </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-white mb-1.5">Unlimited Domains</h3>
                         <p className="text-white/400 text-sm leading-relaxed">Add as many domains and subdomains as you need</p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-green-500/30 transition-all duration-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                        <span className="text-green-400 text-lg font-bold">✓</span>
-                      </div>
+                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-orange-500/30 transition-all duration-200">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
+                          <span className="text-orange-400 text-lg font-bold">✓</span>
+                        </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-white mb-1.5">See How It's Being Used</h3>
                         <p className="text-white/400 text-sm leading-relaxed">Track sign-ins, see which wallets your visitors use, and understand usage patterns</p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-green-500/30 transition-all duration-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                        <span className="text-green-400 text-lg font-bold">✓</span>
-                      </div>
+                  <div className="bg-dark-800/50 rounded-lg p-5 border border-dark-700/50 hover:border-orange-500/30 transition-all duration-200">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
+                          <span className="text-orange-400 text-lg font-bold">✓</span>
+                        </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-white mb-1.5">You Can See the Code</h3>
                         <p className="text-white/400 text-sm leading-relaxed">All code is open source, so you can verify exactly how it works</p>
@@ -390,14 +434,6 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <Layout showNav={true}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-white">Loading...</div>
-        </div>
-      </Layout>
-    }>
-      <HomeContent />
-    </Suspense>
+    <HomeContent />
   )
 }

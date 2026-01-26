@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, createUser, getAuthSession } from '@/lib/storage'
 import { generateSiteId } from '@/lib/utils'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent session fixation attacks and cost abuse
+  const rateLimit = rateLimitMiddleware(request, 10, 60000) // 10 requests per minute (allows retries for auth flow)
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (1MB)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 1024 * 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+  
   try {
     const body = await request.json()
     const { xpub, k1 } = body

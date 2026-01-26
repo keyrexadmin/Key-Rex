@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
   if (backupCookie) {
     // Verify cryptographic signature - returns null if tampered
     subscriptionBackup = verifyCookieData(backupCookie)
+    
+    // NOTE: We don't block here for wizard completion - let the user data be returned
+    // Dashboard access is protected by middleware, not by blocking /api/user
     if (subscriptionBackup && process.env.NODE_ENV === 'development') {
       console.log('✓ Found and verified subscription backup in cookie (signature valid)')
       
@@ -58,6 +61,11 @@ export async function GET(request: NextRequest) {
   }
   
   let user = getUserByXpub(xpub)
+  
+  // NOTE: We don't block here for wizard completion - let the user data be returned
+  // The wizard needs to check user status to proceed through the flow
+  // Dashboard access is protected by middleware, not by blocking /api/user
+  
   console.log('User found in storage:', user ? 'YES' : 'NO')
   
   // If user doesn't exist, create a new user

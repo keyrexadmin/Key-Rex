@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, deleteUser } from '@/lib/storage'
+import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent account deletion abuse (stricter for destructive action)
   const xpub = request.cookies.get('user_xpub')?.value
+  const identifier = xpub || getClientIP(request)
+  const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 5, 60000) // 5 requests per minute (strict for deletion)
+  if (!rateLimit.allowed) {
+    return rateLimit.response as NextResponse
+  }
+  
+  // SECURITY: Request body size limit (1KB - delete should not have body, but protect against abuse)
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 1024) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
   
   console.log('=== Delete API called ===')
   console.log('Cookie xpub:', xpub ? xpub.substring(0, 20) + '...' : 'NOT FOUND')

@@ -132,107 +132,23 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
               console.log('If you did not see an Alby popup, Alby may have auto-approved this request')
               
               // WebLN's lnurl() resolves when callback succeeds
-              // Different wallets return different formats:
-              // - Some return { status: 'OK', xpub: '...' }
-              // - Some return { status: 'OK', key: '...', sig: '...' }
-              // - Some return just { status: 'OK' }
-              // - Some return the raw callback response
-              // - Alby might return { status: 'OK' } but the callback happens separately
+              // Alby should have called the callback by now
+              // The callback stores the k1->xpub mapping
+              // We need to retrieve the xpub and set the session
+              console.log('WebLN completed. Retrieving xpub from callback...')
               
-              let xpubToUse: string | null = null
-              let keyFromResult: string | null = null
-              let sigFromResult: string | null = null
+              // Poll the callback endpoint to get the xpub (Alby may still be processing)
+              const retrieveUrl = `${window.location.origin}/api/auth/callback?tag=login&k1=${encodeURIComponent(challenge)}`
+              let retrievedXpub: string | null = null
               
-              // Try to extract key and sig from result (some wallets return them)
-              if (result && typeof result === 'object') {
-                console.log('Result object keys:', Object.keys(result))
-                if ('key' in result && typeof result.key === 'string') {
-                  keyFromResult = result.key
-                  if (keyFromResult) {
-                    console.log('Found key in WebLN result:', keyFromResult.substring(0, 20) + '...')
-                  }
+              // Try multiple times with delays (Alby might take a moment to call the callback)
+              for (let attempt = 0; attempt < 10; attempt++) {
+                if (attempt > 0) {
+                  // Wait before retrying (increasing delay)
+                  await new Promise(resolve => setTimeout(resolve, 500 + (attempt * 200)))
                 }
-                if ('sig' in result && typeof result.sig === 'string') {
-                  sigFromResult = result.sig
-                  if (sigFromResult) {
-                    console.log('Found sig in WebLN result:', sigFromResult.substring(0, 20) + '...')
-                  }
-                }
-                // Check alternative key names
-                if (!keyFromResult) {
-                  const altKey = (result as any).pubkey || (result as any).publicKey || (result as any).pubKey
-                  if (altKey && typeof altKey === 'string') {
-                    keyFromResult = altKey
-                    console.log('Found key in alternative field:', keyFromResult.substring(0, 20) + '...')
-                  }
-                }
-              }
-              
-              // Since Alby calls the callback but doesn't return the result,
-              // and the in-memory storage isn't persisting, we need to manually call the callback
-              // if we have key/sig, OR wait for Alby's callback and then immediately retrieve the xpub
-              // by calling the callback again (it will return the xpub if user already exists)
-              
-              // First, try to manually call the callback if we have key/sig
-              if (keyFromResult && sigFromResult && challenge) {
-                console.log('=== Found key and sig in WebLN result, manually calling callback ===')
-                try {
-                  const callbackUrl = `${window.location.origin}/api/auth/callback?tag=login&k1=${encodeURIComponent(challenge)}&sig=${encodeURIComponent(sigFromResult)}&key=${encodeURIComponent(keyFromResult)}`
-                  console.log('Calling callback URL:', callbackUrl.substring(0, 100) + '...')
-                  const callbackRes = await fetch(callbackUrl, {
-                    method: 'GET',
-                    credentials: 'include',
-                  })
-                  console.log('Manual callback response status:', callbackRes.status)
-                  if (callbackRes.ok) {
-                    const callbackData = await callbackRes.json()
-                    console.log('Manual callback response:', callbackData)
-                    if (callbackData.xpub) {
-                      xpubToUse = callbackData.xpub
-                      console.log('Got xpub from manual callback:', xpubToUse ? xpubToUse.substring(0, 20) + '...' : 'null')
-
-                      // Set session immediately with the xpub from callback
-                      if (xpubToUse) {
-                        console.log('Setting session with xpub from manual callback...')
-                        const sessionRes = await fetch('/api/auth/set-session', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                        })
-                        
-                        if (sessionRes.ok) {
-                          console.log('Session set successfully from manual callback')
-                          await new Promise(resolve => setTimeout(resolve, 500))
-                          const userRes = await fetch('/api/user', { credentials: 'include' })
-                          if (userRes.ok) {
-                            const userData = await userRes.json()
-                            console.log('Login successful with manual callback, user:', userData)
-                            handleLoginSuccess()
-                            return
-                          }
-                        }
-                      }
-                    }
-                  }
-                } catch (callbackError) {
-                  console.error('Error manually calling callback:', callbackError)
-                }
-              } else {
-                // If we don't have key/sig, Alby should have called the callback already
-                // The callback creates the user and stores the k1->xpub mapping
-                // We can try to retrieve it by calling the callback again with just the k1
-                console.log('No key/sig in WebLN result. Alby should have called the callback.')
-                console.log('Attempting to retrieve xpub from callback using k1...')
                 
-                // Wait a moment for Alby's callback to complete
-                await new Promise(resolve => setTimeout(resolve, 2000))
-                
-                // Try to retrieve xpub by calling callback with just k1 (no sig/key)
-                // The callback will check if there's a stored session for this k1
                 try {
-                  const retrieveUrl = `${window.location.origin}/api/auth/callback?tag=login&k1=${encodeURIComponent(challenge)}`
-                  console.log('Calling callback to retrieve xpub:', retrieveUrl.substring(0, 100) + '...')
                   const retrieveRes = await fetch(retrieveUrl, {
                     method: 'GET',
                     credentials: 'include',
@@ -240,429 +156,101 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
                   
                   if (retrieveRes.ok) {
                     const retrieveData = await retrieveRes.json()
-                    console.log('Retrieve response:', retrieveData)
-                    if (retrieveData.xpub) {
-                      xpubToUse = retrieveData.xpub
-                      console.log('Got xpub from callback retrieval:', xpubToUse ? xpubToUse.substring(0, 20) + '...' : 'null')
-                      
-                      // Set session with retrieved xpub
-                      if (xpubToUse) {
-                        const sessionRes = await fetch('/api/auth/set-session', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                        })
-                        
-                        if (sessionRes.ok) {
-                          console.log('Session set successfully from callback retrieval')
-                          await new Promise(resolve => setTimeout(resolve, 500))
-                          const userRes = await fetch('/api/user', { credentials: 'include' })
-                          if (userRes.ok) {
-                            const userData = await userRes.json()
-                            console.log('Login successful with callback retrieval, user:', userData)
-                            handleLoginSuccess()
-                            return
-                          }
-                        } else {
-                          const errorData = await sessionRes.json().catch(() => ({}))
-                          console.error('Failed to set session:', errorData)
-                        }
-                      }
-                    } else {
-                      console.warn('Callback retrieval response does not contain xpub')
-                      console.warn('Response keys:', Object.keys(retrieveData))
-                      console.warn('Full response:', JSON.stringify(retrieveData, null, 2))
-                      
-                      // Check if this is the initial LNURL-auth format (means callback hasn't been called by Alby yet)
-                      if (retrieveData.tag === 'login' && retrieveData.k1) {
-                        console.warn('Received initial LNURL-auth format - Alby may not have called the callback yet')
-                        console.warn('This could mean:')
-                        console.warn('1. Alby is still processing the authentication')
-                        console.warn('2. Alby encountered an error calling the callback')
-                        console.warn('3. Signature verification failed when Alby called the callback')
-                        console.warn('Waiting longer for Alby to complete callback...')
-                        
-                        // Wait longer and retry multiple times
-                        for (let retry = 0; retry < 5; retry++) {
-                          await new Promise(resolve => setTimeout(resolve, 2000))
-                          console.log(`Retry ${retry + 1}/5: Checking if callback completed...`)
-                          const retryRes = await fetch(retrieveUrl, {
-                            method: 'GET',
-                            credentials: 'include',
-                          })
-                          if (retryRes.ok) {
-                            const retryData = await retryRes.json()
-                            if (retryData.xpub) {
-                              xpubToUse = retryData.xpub
-                              console.log('✓ Got xpub on retry:', xpubToUse ? xpubToUse.substring(0, 20) + '...' : 'null')
-                              // Try set-session
-                              if (xpubToUse) {
-                                const sessionRes = await fetch('/api/auth/set-session', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  credentials: 'include',
-                                  body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                                })
-                                if (sessionRes.ok) {
-                                  await new Promise(resolve => setTimeout(resolve, 500))
-                                  const userRes = await fetch('/api/user', { credentials: 'include' })
-                                  if (userRes.ok) {
-                                    handleLoginSuccess()
-                                    return
-                                  }
-                                } else {
-                                  const sessionError = await sessionRes.json().catch(() => ({}))
-                                  console.error('Failed to set session on retry:', sessionError)
-                                }
-                              }
-                              break // Found xpub, exit retry loop
-                            } else if (retryData.tag === 'login') {
-                              console.log(`Retry ${retry + 1}: Still waiting for Alby callback...`)
-                            }
-                          }
-                        }
-                      }
-                    }
-                  } else {
-                    const errorText = await retrieveRes.text().catch(() => 'Unknown error')
-                    console.log('Callback retrieval failed, status:', retrieveRes.status, 'error:', errorText)
-                  }
-                } catch (retrieveError) {
-                  console.error('Error retrieving xpub from callback:', retrieveError)
-                }
-                
-                // Fallback: Check if we have a user cookie (the callback might have set it)
-                console.log('Fallback: Checking if user cookie was set...')
-                const userCheckRes = await fetch('/api/user', { credentials: 'include' })
-                if (userCheckRes.ok) {
-                  const userData = await userCheckRes.json()
-                  console.log('User found after callback!', userData)
-                  handleLoginSuccess()
-                  return
-                }
-              }
-              
-              if (result) {
-                // Try to extract xpub from result
-                if (typeof result === 'object' && 'xpub' in result) {
-                  xpubToUse = (result as any).xpub
-                  console.log('Found xpub in WebLN result:', xpubToUse?.substring(0, 20) + '...')
-                }
-              }
-              
-              // If we have xpub, set the session cookie
-              if (xpubToUse) {
-                console.log('Setting session cookie with xpub from WebLN result')
-                const sessionRes = await fetch('/api/auth/set-session', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: 'include',
-                  body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                })
-                
-                console.log('Set-session response status:', sessionRes.status)
-                
-                if (sessionRes.ok) {
-                  // Wait a bit for cookie to propagate
-                  await new Promise(resolve => setTimeout(resolve, 300))
-                  
-                  // Verify the session was set
-                  const userRes = await fetch('/api/user', {
-                    credentials: 'include',
-                    cache: 'no-store',
-                  })
-                  
-                  console.log('User API response status:', userRes.status)
-                  
-                  if (userRes.ok) {
-                    const userData = await userRes.json()
-                    console.log('Login successful, user:', userData)
-                    handleLoginSuccess()
-                    return
-                  } else {
-                    const errorText = await userRes.text().catch(() => 'Unknown error')
-                    console.error('Failed to verify session after setting cookie:', errorText)
-                  }
-                } else {
-                  const errorText = await sessionRes.text().catch(() => 'Unknown error')
-                  console.error('Failed to set session cookie:', errorText)
-                }
-              } else {
-                console.log('No xpub in WebLN result, will try to fetch from server using k1')
-                // Try to get xpub from server using the k1 challenge
-                try {
-                  console.log('Waiting for callback to complete (5 seconds)...')
-                  console.log('NOTE: Alby should call the callback URL automatically. If this fails, the callback may not be working.')
-                  
-                  // Poll the callback endpoint directly to see if it completed
-                  // The callback should have already been called by Alby, so we can try calling it again
-                  // with a dummy request to check if the session was stored
-                  await new Promise(resolve => setTimeout(resolve, 2000))
-                  
-                  console.log('Fetching xpub from server using k1:', challenge.substring(0, 16) + '...')
-                  let xpubRes = await fetch(`/api/auth/get-xpub?k1=${encodeURIComponent(challenge)}`, {
-                    credentials: 'include',
-                  })
-                  
-                  console.log('Get-xpub response status:', xpubRes.status)
-                  
-                  // Retry get-xpub a few times in case callback is still processing
-                  let retries = 5
-                  while (!xpubRes.ok && retries > 0) {
-                    console.log(`Get-xpub failed (${xpubRes.status}), retrying... (${retries} left)`)
-                    await new Promise(resolve => setTimeout(resolve, 1000))
-                    xpubRes = await fetch(`/api/auth/get-xpub?k1=${encodeURIComponent(challenge)}`, {
-                      credentials: 'include',
-                    })
-                    retries--
-                  }
-                  
-                  if (xpubRes.ok) {
-                    const { xpub: serverXpub } = await xpubRes.json()
-                    if (serverXpub) {
-                      console.log('Retrieved xpub from server:', serverXpub.substring(0, 20) + '...')
-                      xpubToUse = serverXpub
-                      
-                      // Set session with retrieved xpub
-                      if (xpubToUse) {
-                        console.log('Calling /api/auth/set-session with xpub:', xpubToUse.substring(0, 20) + '...')
-                        const sessionRes = await fetch('/api/auth/set-session', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                        })
-                        
-                        console.log('Set-session response status:', sessionRes.status)
-                        const sessionData = await sessionRes.json().catch(() => ({}))
-                        console.log('Set-session response:', sessionData)
-                        
-                        if (sessionRes.ok) {
-                          console.log('Session set successfully, response data:', sessionData)
-                          console.log('Note: httpOnly cookies won\'t appear in document.cookie (this is expected)')
-                          
-                          // Test if cookie is being set by checking a test endpoint
-                          await new Promise(resolve => setTimeout(resolve, 500))
-                          const testCookieRes = await fetch('/api/test-cookie', {
-                            credentials: 'include',
-                          })
-                          const testCookieData = await testCookieRes.json()
-                          console.log('Test cookie endpoint result:', testCookieData)
-                          
-                          // Wait a bit longer for cookie to be set
-                          await new Promise(resolve => setTimeout(resolve, 500))
-                          
-                          // Try multiple times with increasing delays
-                          for (let attempt = 0; attempt < 5; attempt++) {
-                            console.log(`Attempting /api/user call ${attempt + 1}/5...`)
-                            
-                            // Test cookie again before each attempt
-                            const testRes = await fetch('/api/test-cookie', {
-                              credentials: 'include',
-                            })
-                            const testData = await testRes.json()
-                            console.log(`Cookie test before attempt ${attempt + 1}:`, testData.userXpub ? 'FOUND' : 'NOT FOUND', testData.userXpub)
-                            
-                            const userRes = await fetch('/api/user', {
-                              method: 'GET',
-                              credentials: 'include', // Important: must include credentials to send cookies
-                              cache: 'no-store',
-                              headers: {
-                                'Accept': 'application/json',
-                              },
-                            })
-                            
-                            console.log(`User API attempt ${attempt + 1} status:`, userRes.status)
-                            
-                            if (userRes.ok) {
-                              const userData = await userRes.json()
-                              console.log('Login successful using server xpub, user:', userData)
-                              handleLoginSuccess()
-                              return
-                            } else {
-                              const errorText = await userRes.text().catch(() => 'Unknown error')
-                              console.log(`User API attempt ${attempt + 1} failed:`, errorText)
-                              if (attempt < 4) {
-                                await new Promise(resolve => setTimeout(resolve, 1000))
-                              }
-                            }
-                          }
-                          console.error('Failed to verify session after 5 attempts')
-                          console.error('Cookie test shows:', testCookieData.userXpub ? 'Cookie IS being sent' : 'Cookie is NOT being sent')
-                        } else {
-                          const errorText = await sessionRes.text().catch(() => 'Unknown error')
-                          console.error('Failed to set session:', errorText)
-                        }
-                      }
-                    }
-                  } else {
-                    const errorText = await xpubRes.text().catch(() => 'Unknown error')
-                    console.log('Could not retrieve xpub from server:', errorText)
-                    console.log('This might mean the callback hasn\'t completed yet or the k1 challenge expired')
                     
-                    // Last resort: Try to derive xpub from the key if we have it
-                    if (keyFromResult) {
-                      console.log('Attempting to derive xpub from key found in WebLN result...')
-                      try {
-                        // Call a server endpoint to derive xpub from key
-                        const deriveRes = await fetch('/api/auth/derive-xpub', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ key: keyFromResult }),
-                        })
-                        
-                        if (deriveRes.ok) {
-                          const { xpub: derivedXpub } = await deriveRes.json()
-                          console.log('Derived xpub from key:', derivedXpub.substring(0, 20) + '...')
-                          xpubToUse = derivedXpub
-                          
-                          // Set session with derived xpub
-                          if (xpubToUse) {
-                            console.log('Calling /api/auth/set-session with derived xpub...')
-                            const sessionRes = await fetch('/api/auth/set-session', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'include',
-                              body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                            })
-                            
-                            if (sessionRes.ok) {
-                              console.log('Session set successfully with derived xpub')
-                              // Wait and check for user
-                              await new Promise(resolve => setTimeout(resolve, 500))
-                              
-                              const userRes = await fetch('/api/user', {
-                                credentials: 'include',
-                              })
-                              
-                              if (userRes.ok) {
-                                const userData = await userRes.json()
-                                console.log('Login successful with derived xpub, user:', userData)
-                                handleLoginSuccess()
-                                return
-                              } else {
-                                console.error('Failed to get user after setting session:', await userRes.text())
-                              }
-                            } else {
-                              console.error('Failed to set session with derived xpub:', await sessionRes.text())
-                            }
-                          }
-                        } else {
-                          console.error('Failed to derive xpub from key:', await deriveRes.text())
-                        }
-                      } catch (deriveError) {
-                        console.error('Error deriving xpub from key:', deriveError)
+                    // Check if we got the xpub (callback was called by Alby)
+                    if (retrieveData.xpub) {
+                      retrievedXpub = retrieveData.xpub
+                      if (retrievedXpub) {
+                        console.log('✓ Got xpub from callback:', retrievedXpub.substring(0, 20) + '...')
                       }
-                    } else {
-                      console.log('No key found in WebLN result, cannot derive xpub')
-                      console.log('WebLN result keys:', result && typeof result === 'object' ? Object.keys(result) : 'N/A')
-                      console.log('Full WebLN result:', result)
-                      
-                      // Try to extract key from result.sig or result if it's a string
-                      if (result && typeof result === 'object') {
-                        // Some wallets return the key in different places
-                        const possibleKey = (result as any).key || (result as any).pubkey || (result as any).publicKey
-                        if (possibleKey) {
-                          console.log('Found key in alternative location:', possibleKey.substring(0, 20) + '...')
-                          keyFromResult = possibleKey
-                          // Retry derivation with this key
-                          try {
-                            const deriveRes = await fetch('/api/auth/derive-xpub', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'include',
-                              body: JSON.stringify({ key: keyFromResult }),
-                            })
-                            if (deriveRes.ok) {
-                              const { xpub: derivedXpub } = await deriveRes.json()
-                              xpubToUse = derivedXpub
-                              // Set session and redirect
-                              const sessionRes = await fetch('/api/auth/set-session', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({ xpub: xpubToUse, k1: challenge }),
-                              })
-                              if (sessionRes.ok) {
-                                await new Promise(resolve => setTimeout(resolve, 500))
-                                const userRes = await fetch('/api/user', { credentials: 'include' })
-                                if (userRes.ok) {
-                                  handleLoginSuccess()
-                                  return
-                                }
-                              }
-                            }
-                          } catch (e) {
-                            console.error('Error with alternative key extraction:', e)
-                          }
-                        }
+                      break
+                    }
+                    
+                    // If we get the initial format, callback hasn't been called yet
+                    if (retrieveData.tag === 'login' && retrieveData.k1) {
+                      if (attempt < 9) {
+                        console.log(`Attempt ${attempt + 1}/10: Waiting for Alby callback...`)
+                        continue
                       }
                     }
                   }
                 } catch (fetchError) {
-                  console.error('Error fetching xpub from server:', fetchError)
+                  console.error(`Error on attempt ${attempt + 1}:`, fetchError)
+                  if (attempt < 9) continue
                 }
               }
               
-              // Fallback: Wait longer and check if cookie was set by callback
-              console.log('Waiting for callback to complete and cookie to be set...')
-              await new Promise(resolve => setTimeout(resolve, 2000))
+              if (!retrievedXpub) {
+                throw new Error('Failed to retrieve xpub after WebLN authentication. Please try again.')
+              }
               
-              // Try multiple times to check for session
-              let userRes = await fetch('/api/user', {
+              // Set the session cookie
+              console.log('Setting session cookie...')
+              const sessionRes = await fetch('/api/auth/set-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ xpub: retrievedXpub, k1: challenge }),
+              })
+              
+              if (!sessionRes.ok) {
+                const errorData = await sessionRes.json().catch(() => ({}))
+                console.error('Failed to set session:', errorData)
+                throw new Error('Failed to set session: ' + (errorData.error || 'Unknown error'))
+              }
+              
+              // Wait a moment for cookie to propagate
+              await new Promise(resolve => setTimeout(resolve, 300))
+              
+              // Verify session was set
+              const userRes = await fetch('/api/user', {
                 credentials: 'include',
                 cache: 'no-store',
               })
               
-              let retries = 3
-              while (!userRes.ok && retries > 0) {
-                console.log(`Session check failed (${userRes.status}), retrying... (${retries} left)`)
-                await new Promise(resolve => setTimeout(resolve, 500))
-                userRes = await fetch('/api/user', {
-                  credentials: 'include',
-                  cache: 'no-store',
-                })
-                retries--
-              }
-              
               if (userRes.ok) {
                 const userData = await userRes.json()
-                console.log('Session found after WebLN callback, user:', userData)
+                console.log('✓ Login successful!', userData)
                 handleLoginSuccess()
                 return
               } else {
-                const errorText = await userRes.text().catch(() => 'Unknown error')
-                console.error('Session not found after WebLN callback')
-                console.error('Error response:', errorText)
-                console.error('Response status:', userRes.status)
-                console.error('All cookies:', document.cookie)
-                throw new Error('Session not found after WebLN authentication')
+                throw new Error('Session verification failed')
               }
+              
             } catch (lnurlError) {
               console.error('WebLN lnurl error:', lnurlError)
-              throw lnurlError // Re-throw to show QR code
+              // Always fall back to QR code, even in wizard context
+              console.log('WebLN authentication failed, falling back to QR code')
+              // Continue to QR code fallback below
             }
           } else {
             console.log('WebLN lnurl method not available')
           }
         } catch (weblnError) {
-          // WebLN failed, show QR code
+          // WebLN failed - always fall back to QR code
           console.error('WebLN error:', weblnError)
           console.log('Falling back to QR code')
         }
       } else {
+        // WebLN not available - always redirect to QR code page
+        // The disableRedirect flag only prevents dashboard redirects, not QR code authentication
         console.log('WebLN not available, redirecting to QR code page')
         // Redirect to enhanced QR code page instead of showing inline QR code
-        window.location.href = `/embed/qr?k1=${encodeURIComponent(challenge)}`
+        // If in wizard context, set returnUrl to home page so we can return to wizard after auth
+        const returnUrl = disableRedirect 
+          ? encodeURIComponent(`${window.location.origin}/?wizard=true`)
+          : encodeURIComponent(window.location.href)
+        window.location.href = `/embed/qr?k1=${encodeURIComponent(challenge)}&returnUrl=${returnUrl}${disableRedirect ? '&wizard=true' : ''}`
         return // Exit early since we're redirecting
       }
 
-      // If we reach here, WebLN was attempted but failed
-      // Redirect to enhanced QR code page for better mobile experience
+      // If we reach here, WebLN was attempted but failed - always fall back to QR code
       console.log('WebLN failed, redirecting to QR code page')
-      window.location.href = `/embed/qr?k1=${encodeURIComponent(challenge)}`
+      // If in wizard context, set returnUrl to home page so we can return to wizard after auth
+      const returnUrl = disableRedirect 
+        ? encodeURIComponent(`${window.location.origin}/?wizard=true`)
+        : encodeURIComponent(window.location.href)
+      window.location.href = `/embed/qr?k1=${encodeURIComponent(challenge)}&returnUrl=${returnUrl}${disableRedirect ? '&wizard=true' : ''}`
       return
     } catch (error) {
       console.error('Login error:', error)
@@ -700,7 +288,7 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
                 width={128}
                 height={56}
                 className="h-full max-h-full w-full object-contain"
-                style={{ maxHeight: '100%', transform: 'scale(2.5)', transformOrigin: 'center' }}
+                style={{ maxHeight: '100%', transform: 'scale(1.8225)', transformOrigin: 'center' }}
                 priority
               />
             )
@@ -722,7 +310,7 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
           />
           
           {/* Modal - positioned lower */}
-          <div className="relative w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-orange-500/20 overflow-hidden" style={{ marginTop: '10rem' }}>
+          <div className="relative w-full max-w-md bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 rounded-2xl shadow-2xl border border-orange-500/20 overflow-hidden" style={{ marginTop: '10rem' }}>
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 border-b border-orange-400/30">
               <div className="flex items-center justify-between">

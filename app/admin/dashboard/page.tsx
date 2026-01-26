@@ -52,6 +52,7 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'contacts' | 'wallets'>('overview')
+  const [logoSrc, setLogoSrc] = useState('/images/keyrex-logov2.png')
   
   // Data state
   const [stats, setStats] = useState<SystemStats | null>(null)
@@ -83,6 +84,11 @@ export default function AdminDashboard() {
     enabled: true,
     priority: 0,
   })
+
+  // Set cache-busting parameter for logo only on client side
+  useEffect(() => {
+    setLogoSrc(`/images/keyrex-logov2.png?t=${Date.now()}`)
+  }, [])
 
   useEffect(() => {
     // Verify admin session
@@ -382,13 +388,18 @@ export default function AdminDashboard() {
               {/* Logo */}
               <div className="flex-shrink-0 h-full flex items-center">
                 <img 
-                  src="/images/keyrex-logov2.png" 
+                  src={logoSrc} 
                   alt="Key-Rex" 
                   className="transform hover:scale-110 transition-transform object-contain"
                   style={{ 
                     display: 'block',
                     width: 'auto',
-                    height: '4.624rem' // Same as main landing page (85% of 5.44rem)
+                    height: '4.53rem' // Reduced to 85% of 5.33rem
+                  }}
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    console.error('Logo image failed to load:', logoSrc)
+                    e.currentTarget.src = '/images/keyrex-logov2.png'
                   }}
                 />
               </div>
@@ -438,26 +449,26 @@ export default function AdminDashboard() {
                 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-white/60 text-sm mb-1">Total Users</div>
                     <div className="text-3xl font-bold text-white">{stats.totalUsers}</div>
                   </Card>
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-white/60 text-sm mb-1">Total Domains</div>
                     <div className="text-3xl font-bold text-white">{stats.totalDomains}</div>
                   </Card>
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-white/60 text-sm mb-1">Total Logins</div>
                     <div className="text-3xl font-bold text-white">{stats.totalLogins.toLocaleString()}</div>
                   </Card>
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-white/60 text-sm mb-1">Active Users (30d)</div>
                     <div className="text-3xl font-bold text-white">{stats.activeUsers}</div>
                   </Card>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-white/60 text-sm mb-1">Contact Submissions</div>
                     <div className="text-3xl font-bold text-white mb-2">{stats.totalContactSubmissions}</div>
                     {stats.unreadContacts > 0 && (
@@ -466,7 +477,7 @@ export default function AdminDashboard() {
                       </div>
                     )}
                   </Card>
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <div className="text-white/60 text-sm mb-1">Featured Wallets</div>
                     <div className="text-3xl font-bold text-white">{wallets.filter(w => w.enabled).length}</div>
                   </Card>
@@ -491,17 +502,17 @@ export default function AdminDashboard() {
                 </div>
                 
                 {/* Search */}
-                <Card className="p-4">
+                <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                   <input
                     type="text"
                     placeholder="Search by xpub or Site ID..."
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
-                    className="w-full bg-dark-900/50 border border-dark-700 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-dark-900/50 border border-dark-700 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-orange-500"
                   />
                 </Card>
                 
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -532,7 +543,7 @@ export default function AdminDashboard() {
                             <td className="py-3 px-4">
                               <span className={`px-2 py-1 rounded text-xs ${
                                 user.integrationEnabled 
-                                  ? 'bg-green-500/20 text-green-400' 
+                                  ? 'bg-orange-500/20 text-orange-400' 
                                   : 'bg-red-500/20 text-red-400'
                               }`}>
                                 {user.integrationEnabled ? 'Active' : 'Disabled'}
@@ -544,7 +555,7 @@ export default function AdminDashboard() {
                                   e.stopPropagation()
                                   handleUserClick(user)
                                 }}
-                                className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-sm transition-colors"
+                                className="px-3 py-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded text-sm transition-colors"
                               >
                                 View Details
                               </button>
@@ -583,7 +594,7 @@ export default function AdminDashboard() {
                 ) : analytics ? (
                   <>
                     {/* Daily Logins Chart */}
-                    <Card className="p-6">
+                    <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                       <h3 className="text-lg font-semibold text-white mb-4">Daily Logins (Last 30 Days)</h3>
                       <AnalyticsChart
                         data={analytics.dailyData.map((d: any) => ({
@@ -597,7 +608,7 @@ export default function AdminDashboard() {
                     
                     {/* Wallet Breakdown */}
                     {analytics.walletBreakdown && analytics.walletBreakdown.length > 0 && (
-                      <Card className="p-6">
+                      <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                         <h3 className="text-lg font-semibold text-white mb-4">Wallet Usage</h3>
                         <div className="space-y-2">
                           {analytics.walletBreakdown.slice(0, 10).map((wallet: any) => (
@@ -616,7 +627,7 @@ export default function AdminDashboard() {
                     {/* Browser Breakdown */}
                     {analytics.browserBreakdown && analytics.browserBreakdown.length > 0 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card className="p-6">
+                        <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                           <h3 className="text-lg font-semibold text-white mb-4">Browser Usage</h3>
                           <div className="space-y-2">
                             {analytics.browserBreakdown.slice(0, 5).map((browser: any) => (
@@ -628,7 +639,7 @@ export default function AdminDashboard() {
                           </div>
                         </Card>
                         
-                        <Card className="p-6">
+                        <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                           <h3 className="text-lg font-semibold text-white mb-4">Device Types</h3>
                           <div className="space-y-2">
                             {analytics.deviceTypeBreakdown.slice(0, 5).map((device: any) => (
@@ -643,7 +654,7 @@ export default function AdminDashboard() {
                     )}
                   </>
                 ) : (
-                  <Card className="p-6">
+                  <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                     <p className="text-white/60">No analytics data available yet.</p>
                   </Card>
                 )}
@@ -687,7 +698,7 @@ export default function AdminDashboard() {
                 )}
                 
                 {/* Filter */}
-                <Card className="p-4">
+                <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                   <div className="flex items-center gap-4">
                     <span className="text-white/80 text-sm">Filter:</span>
                     {(['all', 'unread', 'read', 'replied', 'archived'] as const).map((status) => (
@@ -708,7 +719,7 @@ export default function AdminDashboard() {
                 
                 <div className="space-y-4">
                   {contacts.length === 0 ? (
-                    <Card className="p-6">
+                    <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                       <div className="text-center text-white/60">
                         <p className="mb-2">No contact submissions yet</p>
                         <p className="text-xs text-white/500">Submissions will appear here once someone submits the contact form.</p>
@@ -729,8 +740,8 @@ export default function AdminDashboard() {
                             )}
                             <span className={`px-2 py-1 text-xs rounded ${
                               contact.status === 'unread' ? 'bg-orange-500/20 text-orange-400' :
-                              contact.status === 'read' ? 'bg-blue-500/20 text-blue-400' :
-                              contact.status === 'replied' ? 'bg-green-500/20 text-green-400' :
+                              contact.status === 'read' ? 'bg-orange-500/20 text-orange-400' :
+                              contact.status === 'replied' ? 'bg-orange-500/20 text-orange-400' :
                               'bg-dark-700 text-white/60'
                             }`}>
                               {contact.status}
@@ -749,7 +760,7 @@ export default function AdminDashboard() {
                         {contact.status !== 'read' && (
                           <button
                             onClick={() => handleUpdateContactStatus(contact.id, 'read')}
-                            className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-sm transition-colors"
+                            className="px-3 py-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded text-sm transition-colors"
                           >
                             Mark as Read
                           </button>
@@ -757,7 +768,7 @@ export default function AdminDashboard() {
                         {contact.status !== 'replied' && (
                           <button
                             onClick={() => handleUpdateContactStatus(contact.id, 'replied')}
-                            className="px-3 py-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-sm transition-colors"
+                            className="px-3 py-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded text-sm transition-colors"
                           >
                             Mark as Replied
                           </button>
@@ -796,7 +807,7 @@ export default function AdminDashboard() {
                 </div>
                 
                 {/* Manage Wallets */}
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <h3 className="text-lg font-semibold text-white mb-4">Manage Wallets</h3>
                   <div className="space-y-4">
                     {wallets.map((wallet) => (
@@ -809,7 +820,7 @@ export default function AdminDashboard() {
                             <h3 className="text-white font-semibold">{wallet.name}</h3>
                             <div className="flex items-center gap-2 mt-1">
                               <span className={`px-2 py-1 rounded text-xs ${
-                                wallet.enabled ? 'bg-green-500/20 text-green-400' : 'bg-dark-700 text-white/60'
+                                wallet.enabled ? 'bg-orange-500/20 text-orange-400' : 'bg-dark-700 text-white/60'
                               }`}>
                                 {wallet.enabled ? 'Enabled' : 'Disabled'}
                               </span>
@@ -830,7 +841,7 @@ export default function AdminDashboard() {
                               })
                               setShowWalletModal(true)
                             }}
-                            className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-sm transition-colors"
+                            className="px-3 py-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded text-sm transition-colors"
                           >
                             Edit
                           </button>
@@ -850,7 +861,7 @@ export default function AdminDashboard() {
                 </Card>
                 
                 {/* Live Preview */}
-                <Card className="p-6">
+                <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                   <h3 className="text-lg font-semibold text-white mb-4">Live Preview</h3>
                   <p className="text-white/60 text-sm mb-4">
                     This is how the authentication button and featured wallets appear on client websites. Changes to wallets will automatically update here.
@@ -883,26 +894,26 @@ export default function AdminDashboard() {
                     {userDetail ? (
                       <>
                         <div className="grid grid-cols-2 gap-4">
-                          <Card className="p-4">
+                          <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                             <div className="text-white/60 text-sm mb-1">xpub</div>
                             <div className="text-white font-mono text-sm break-all">{userDetail.user.xpub}</div>
                           </Card>
-                          <Card className="p-4">
+                          <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                             <div className="text-white/60 text-sm mb-1">Site ID</div>
                             <div className="text-white font-mono text-sm">{userDetail.user.siteId}</div>
                           </Card>
-                          <Card className="p-4">
+                          <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                             <div className="text-white/60 text-sm mb-1">Total Logins</div>
                             <div className="text-white text-2xl font-bold">{userDetail.stats.allTime.toLocaleString()}</div>
                           </Card>
-                          <Card className="p-4">
+                          <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                             <div className="text-white/60 text-sm mb-1">Unique Users</div>
                             <div className="text-white text-2xl font-bold">{userDetail.stats.uniqueUsers}</div>
                           </Card>
                         </div>
                         
                         {userDetail.dailyData && userDetail.dailyData.length > 0 && (
-                          <Card className="p-6">
+                          <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                             <h3 className="text-lg font-semibold text-white mb-4">Login Activity (Last 30 Days)</h3>
                             <AnalyticsChart
                               data={userDetail.dailyData.map((d: any) => ({
@@ -916,7 +927,7 @@ export default function AdminDashboard() {
                         )}
                         
                         {userDetail.user.allowedDomains && userDetail.user.allowedDomains.length > 0 && (
-                          <Card className="p-6">
+                          <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                             <h3 className="text-lg font-semibold text-white mb-4">Domains</h3>
                             <div className="space-y-2">
                               {userDetail.user.allowedDomains.map((domain: string) => (
@@ -927,7 +938,7 @@ export default function AdminDashboard() {
                         )}
                         
                         {userDetail.activityLogs && userDetail.activityLogs.length > 0 && (
-                          <Card className="p-6">
+                          <Card className="p-6 bg-dark-200/90 border-2 border-orange-500/30">
                             <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
                             <div className="space-y-2 max-h-64 overflow-y-auto">
                               {userDetail.activityLogs.map((log: any) => (

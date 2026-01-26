@@ -134,3 +134,4 @@
 
 **Conclusion:** Rate limits now protect against abuse while ensuring legitimate users have an excellent experience. The slight increase in potential attack cost (~$1.04/month vs $0.17/month) is an acceptable trade-off to ensure authentication works reliably.
 
+

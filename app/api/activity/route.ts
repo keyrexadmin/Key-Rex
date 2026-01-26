@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getActivityLogs, getActivityLogsByType, getActivityLogsByDateRange } from '@/lib/storage'
 import { getUserByXpub } from '@/lib/storage'
+import { verifyCookieData } from '@/lib/cookie-signing'
 import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
@@ -13,11 +14,31 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    if (!xpub) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  if (!xpub) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+  
+  // SECURITY: Check if user has completed wizard (freeDisclaimerAccepted)
+  const backupCookie = request.cookies.get('user_subscription_backup')?.value
+  if (backupCookie) {
+    const backupData = verifyCookieData(backupCookie)
+    if (backupData && !backupData.freeDisclaimerAccepted) {
+      return NextResponse.json({ 
+        error: 'Wizard not completed. Please complete the onboarding wizard first.',
+        wizardRequired: true 
+      }, { status: 403 })
     }
-    
-    const user = getUserByXpub(xpub)
+  }
+  
+  const user = getUserByXpub(xpub)
+  
+  // SECURITY: If user exists in storage, check wizard completion
+  if (user && !user.freeDisclaimerAccepted) {
+    return NextResponse.json({ 
+      error: 'Wizard not completed. Please complete the onboarding wizard first.',
+      wizardRequired: true 
+    }, { status: 403 })
+  }
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
