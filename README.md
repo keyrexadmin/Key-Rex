@@ -1,32 +1,23 @@
-# Key-Rex - Bitcoin Lightning Login
+# Key-Rex Monorepo
 
-Open source, minimal data collection, Bitcoin-only authentication system.
+This repository now hosts multiple Key-Rex services. The existing Next.js web interface has moved into the webapp workspace so new backend or infrastructure projects can live alongside it.
 
-## Quick Start
+## Project Layout
+
+- webapp/ – Next.js frontend (see [webapp/README.md](webapp/README.md) for full details)
+
+## Quick Start (Webapp)
 
 ```bash
+cd webapp
 npm install
 npm run dev
 ```
 
-## Admin Portal Setup
-
-To enable admin access, set the `ADMIN_XPUB` environment variable in your `.env.local` file:
+## Deploy the Webapp to Vercel
 
 ```bash
-ADMIN_XPUB=xpub_your_admin_wallet_xpub_here
-```
-
-The admin xpub should be the xpub derived from your Lightning wallet's authentication key. You can find this by:
-1. Logging in to the regular dashboard with your admin wallet
-2. Checking your xpub in the dashboard (Settings tab)
-3. Copying that xpub value to `ADMIN_XPUB`
-
-Once set, you can access the admin portal at `/admin/login` or via the "Admin" link in the footer.
-
-## Deploy to Vercel
-
-```bash
+cd webapp
 vercel deploy
 ```
 
