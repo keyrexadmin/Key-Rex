@@ -265,6 +265,32 @@
         background: rgba(0, 0, 0, 0.2);
         border-radius: 12px;
         border: 1px solid var(--border);
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #keyrex-container {
+        width: 100%;
+      }
+
+      #keyrex-container:empty::before {
+        content: 'Loading Key-Rex authentication...';
+        display: block;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 1;
+        }
       }
 
       /* Stats Section */
@@ -468,7 +494,7 @@
     <footer>
       <p>
         This is a demo site for testing Key-Rex authentication · Not a real service ·
-        <a href="#" onclick="window.location.href = KEYREX_BASE_URL; return false;">Back to Key-Rex</a>
+        <a href="https://keyrex-preview.vercel.app">Back to Key-Rex</a>
       </p>
     </footer>
 
@@ -476,7 +502,7 @@
     <!-- ⚙️ CONFIGURATION: Update these values for your deployment -->
     <script>
       // Set your Key-Rex instance URL here
-      const KEYREX_BASE_URL = 'http://localhost:3000'; // Change to your deployment URL, e.g., 'https://your-keyrex-instance.vercel.app'
+      const KEYREX_BASE_URL = 'https://keyrex-preview.vercel.app'; // Your deployed Key-Rex instance
       const KEYREX_SITE_ID = 'a252dfa1030706a49efab31af2fc29d6'; // Your site ID from Key-Rex dashboard
     </script>
     
@@ -486,6 +512,18 @@
         const script = document.createElement('script');
         script.src = `${KEYREX_BASE_URL}/embed?siteId=${KEYREX_SITE_ID}&v=2`;
         script.async = true;
+        script.onerror = function() {
+          console.error('Key-Rex: Failed to load embed script from', KEYREX_BASE_URL);
+          const container = document.getElementById('keyrex-container');
+          if (container) {
+            container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 2rem;">' +
+              '<div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>' +
+              '<div style="font-weight: 600; margin-bottom: 0.5rem;">Key-Rex Not Available</div>' +
+              '<div style="font-size: 0.85rem; color: var(--text-muted);">Could not load from <code style="background: rgba(0,0,0,0.3); padding: 0.2rem 0.5rem; border-radius: 4px;">' + KEYREX_BASE_URL + '</code></div>' +
+              '<div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">Update KEYREX_BASE_URL in the page configuration.</div>' +
+              '</div>';
+          }
+        };
         document.head.appendChild(script);
       })();
     </script>
@@ -512,6 +550,8 @@
           } else {
             console.log('Key-Rex: Card found with', container.children.length, 'children');
           }
+        } else {
+          console.warn('Key-Rex: window.KeyRex not found yet');
         }
       }
       
@@ -520,6 +560,20 @@
       setTimeout(checkAndInit, 1000);
       setTimeout(checkAndInit, 2000);
       setTimeout(checkAndInit, 3000);
+      
+      // Show error if Key-Rex doesn't load after 5 seconds
+      setTimeout(function() {
+        const container = document.getElementById('keyrex-container');
+        if (!window.KeyRex && container && container.children.length === 0) {
+          console.error('Key-Rex: Failed to load after 5 seconds. Is the Key-Rex server running?');
+          container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 2rem;">' +
+            '<div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>' +
+            '<div style="font-weight: 600; margin-bottom: 0.5rem;">Key-Rex Not Available</div>' +
+            '<div style="font-size: 0.85rem; color: var(--text-muted);">Make sure Key-Rex is running at <code style="background: rgba(0,0,0,0.3); padding: 0.2rem 0.5rem; border-radius: 4px;">' + (typeof KEYREX_BASE_URL !== 'undefined' ? KEYREX_BASE_URL : 'http://localhost:3000') + '</code></div>' +
+            '<div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">Update KEYREX_BASE_URL in the configuration section.</div>' +
+            '</div>';
+        }
+      }, 5000);
       
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkAndInit);

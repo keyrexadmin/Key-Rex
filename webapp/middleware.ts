@@ -2,16 +2,33 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 /**
- * Middleware to protect dashboard routes
+ * Middleware to protect dashboard routes and enable CORS for embed
  * 
- * This middleware provides an additional layer of security by:
- * 1. Checking for authentication cookie before allowing dashboard access
- * 2. Checking if user has completed wizard (freeDisclaimerAccepted)
- * 3. Redirecting unauthenticated users or users who haven't completed wizard to home page
+ * This middleware provides:
+ * 1. Dashboard protection with authentication checking
+ * 2. Wizard completion verification
+ * 3. CORS headers for embed and auth API routes (for cross-origin embedding)
  */
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl
+
+    // Add CORS headers for embed and auth API routes
+    if (pathname.startsWith('/embed') || pathname.startsWith('/api/embed') || 
+        pathname.startsWith('/api/auth') || pathname.startsWith('/api/verify')) {
+      const response = NextResponse.next()
+      response.headers.set('Access-Control-Allow-Origin', '*')
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      response.headers.set('Access-Control-Allow-Credentials', 'true')
+      
+      // Handle OPTIONS preflight requests
+      if (request.method === 'OPTIONS') {
+        return new NextResponse(null, { status: 200, headers: response.headers })
+      }
+      
+      return response
+    }
 
     // Protect dashboard route only
     // Early return if not a dashboard route to avoid any imports
@@ -85,6 +102,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/embed/:path*',
+    '/api/embed/:path*',
+    '/api/auth/:path*',
+    '/api/verify/:path*',
   ],
 }
 

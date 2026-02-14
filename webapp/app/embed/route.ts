@@ -1013,6 +1013,9 @@ export async function GET(request: NextRequest) {
     headers: {
       'Content-Type': 'application/javascript',
       'Cache-Control': 'public, max-age=300', // 5 minutes cache for the script itself
+      'Access-Control-Allow-Origin': '*', // Allow embedding from any domain
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
     },
   })
 }

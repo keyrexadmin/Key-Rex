@@ -1,5 +1,5 @@
 {
-  "name": "fake-client-site-standalone",
+  "name": "neuralapi",
   "version": "1.0.0",
   "description": "Standalone example client site for testing Key-Rex authentication - can be deployed independently",
   "private": true,
