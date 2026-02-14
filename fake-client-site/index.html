@@ -2,19 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Fake Client Site – Key-Rex Test</title>
+    <title>NeuralAPI - Premium AI APIs for Developers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
-        --bg: #f5f5f7;
-        --card-bg: #ffffff;
-        --text-main: #1f2933;
-        --text-sub: #4b5563;
-        --accent: #f97316;
+        --primary: #6366f1;
+        --primary-dark: #
+
+46e5;
+        --secondary: #8b5cf6;
+        --accent: #f59e0b;
+        --success: #10b981;
+        --bg-main: #0f172a;
+        --bg-card: #1e293b;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #334155;
       }
 
       * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
       body {
@@ -22,240 +31,451 @@
         min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
-        background: radial-gradient(circle at top left, #e5e7eb, #f9fafb);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: var(--text-main);
-        display: flex;
-        flex-direction: column;
+        line-height: 1.6;
       }
 
+      /* Header */
       header {
-        padding: 1rem 1.5rem;
-        background: #111827;
-        color: white;
+        padding: 1.25rem 2rem;
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
 
-      header .logo {
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
         font-weight: 700;
-        letter-spacing: 0.05em;
-      }
-
-      header nav a {
-        margin-left: 1.25rem;
-        font-size: 0.9rem;
-        color: #e5e7eb;
+        font-size: 1.35rem;
+        letter-spacing: -0.02em;
+        color: white;
         text-decoration: none;
       }
 
-      header nav a:hover {
-        color: #ffffff;
-      }
-
-      main {
-        flex: 1;
-        padding: 2.5rem 1.5rem 3rem;
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 8px;
         display: flex;
+        align-items: center;
         justify-content: center;
+        font-weight: bold;
+        font-size: 1.1rem;
       }
 
-      .layout {
-        max-width: 1100px;
-        width: 100%;
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+      }
+
+      nav a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      nav a:hover {
+        color: var(--text-main);
+      }
+
+      .cta-button {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 0.65rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      }
+
+      /* Hero Section */
+      .hero {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 5rem 2rem 4rem;
         display: grid;
-        grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr);
-        gap: 2.5rem;
-        align-items: flex-start;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 4rem;
+        align-items: center;
       }
 
-      @media (max-width: 900px) {
-        .layout {
-          grid-template-columns: minmax(0, 1fr);
+      @media (max-width: 968px) {
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 3rem;
+          padding: 3rem 2rem;
         }
       }
 
-      .content-card {
-        background: var(--card-bg);
-        border-radius: 1.25rem;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
-        padding: 1.75rem 1.75rem 2rem;
-        border: 1px solid rgba(15, 23, 42, 0.04);
+      .hero-content h1 {
+        font-size: clamp(2.5rem, 5vw, 3.5rem);
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, white, var(--text-muted));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
-      .content-card h1 {
-        font-size: clamp(1.9rem, 2.3vw, 2.2rem);
-        margin: 0 0 0.75rem;
-      }
-
-      .content-card p.lead {
-        margin: 0 0 1.5rem;
-        color: var(--text-sub);
-        font-size: 0.95rem;
+      .hero-content p.tagline {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        margin-bottom: 2.5rem;
         line-height: 1.6;
       }
 
-      .pill {
+      .badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
-        background: rgba(249, 115, 22, 0.07);
-        color: #9a3412;
+        gap: 0.5rem;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        color: var(--primary);
+        padding: 0.4rem 1rem;
         border-radius: 999px;
-        padding: 0.3rem 0.8rem;
-        font-size: 0.75rem;
-        margin-bottom: 0.75rem;
-        border: 1px solid rgba(249, 115, 22, 0.18);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
       }
 
-      .pill-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 999px;
-        background: #f97316;
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--primary);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
       }
 
-      .feature-list {
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      .features-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 0.85rem;
-        margin-top: 1.25rem;
+        gap: 1rem;
+        margin-top: 2.5rem;
       }
 
-      .feature-item {
+      .feature-row {
         display: flex;
         align-items: flex-start;
-        gap: 0.55rem;
-        font-size: 0.9rem;
-        color: var(--text-sub);
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s;
       }
 
-      .feature-item strong {
-        color: #111827;
+      .feature-row:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(99, 102, 241, 0.3);
+        transform: translateX(8px);
       }
 
-      .feature-bullet {
-        width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        background: rgba(16, 185, 129, 0.12);
+      .feature-icon {
+        width: 44px;
+        height: 44px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #059669;
-        font-size: 0.8rem;
+        font-size: 1.25rem;
         flex-shrink: 0;
       }
 
-      .side-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
+      .feature-text h3 {
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+        color: white;
       }
 
-      .side-panel h2 {
+      .feature-text p {
+        font-size: 0.9rem;
+        color: var(--text-muted);
         margin: 0;
-        font-size: 0.95rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: #6b7280;
       }
 
-      .helper-text {
+      /* Auth Card */
+      .auth-panel {
+        background: var(--bg-card);
+        border-radius: 20px;
+        padding: 2.5rem;
+        border: 1px solid var(--border);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .auth-panel h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+        color: white;
+      }
+
+      .auth-panel p {
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+
+      .auth-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: var(--success);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
         font-size: 0.85rem;
-        color: #6b7280;
-        line-height: 1.5;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
       }
 
       .keyrex-wrapper {
-        margin-top: 0.75rem;
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
       }
 
-      footer {
-        padding: 1rem 1.5rem 1.5rem;
-        font-size: 0.8rem;
-        color: #6b7280;
+      /* Stats Section */
+      .stats-section {
+        max-width: 1400px;
+        margin: 4rem auto;
+        padding: 0 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+      }
+
+      .stat-card {
         text-align: center;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+      }
+
+      .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      /* Demo Notice */
+      .demo-notice {
+        max-width: 800px;
+        margin: 3rem auto;
+        padding: 1.5rem 2rem;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 12px;
+        text-align: center;
+        color: var(--accent);
+      }
+
+      .demo-notice strong {
+        display: block;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Footer */
+      footer {
+        padding: 2rem;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        border-top: 1px solid var(--border);
+        margin-top: 4rem;
+      }
+
+      footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Animations */
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
       }
     </style>
   </head>
   <body>
     <header>
-      <div class="logo">ACME LEARNING</div>
-      <nav aria-label="Fake client navigation">
-        <a href="#">Courses</a>
-        <a href="#">Pricing</a>
-        <a href="#">Sign in</a>
-      </nav>
+      <div class="header-content">
+        <a href="index.html" class="logo">
+          <div class="logo-icon">N</div>
+          <span>NeuralAPI</span>
+        </a>
+        <nav>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="https://docs.example.com" target="_blank">Docs</a>
+          <a href="#auth" class="cta-button">Get Started</a>
+        </nav>
+      </div>
     </header>
 
     <main>
-      <div class="layout">
-        <section class="content-card">
-          <div class="pill">
-            <span class="pill-dot"></span>
-            Example client website
+      <section class="hero">
+        <div class="hero-content">
+          <div class="badge">
+            <span class="badge-dot"></span>
+            Demo Example Site
           </div>
-          <h1>Members‑only dashboard</h1>
-          <p class="lead">
-            This is a <strong>fake customer site</strong> used only to test the Key-Rex
-            sign‑in experience from an end‑user’s perspective. Nothing here is real
-            content or production data.
+          <h1>Premium AI APIs for Modern Developers</h1>
+          <p class="tagline">
+            Access cutting-edge language models, image generation, and AI tools through
+            a simple, developer-friendly API. Instant authentication with Lightning.
           </p>
-          <div class="feature-list">
-            <div class="feature-item">
-              <div class="feature-bullet">1</div>
-              <div>
-                <strong>Click the Key-Rex button on the right</strong> to start the
-                Lightning wallet sign‑in.
+
+          <div class="features-grid" id="features">
+            <div class="feature-row">
+              <div class="feature-icon">⚡</div>
+              <div class="feature-text">
+                <h3>Lightning Fast Auth</h3>
+                <p>No passwords, no emails. Authenticate instantly with your Lightning wallet.</p>
               </div>
             </div>
-            <div class="feature-item">
-              <div class="feature-bullet">2</div>
-              <div>
-                Walk through the <strong>full LNURL‑auth flow</strong> as if you were a
-                visitor logging in to this site.
+            <div class="feature-row">
+              <div class="feature-icon">🔒</div>
+              <div class="feature-text">
+                <h3>Privacy First</h3>
+                <p>Zero personal data collection. Your wallet is your identity.</p>
               </div>
             </div>
-            <div class="feature-item">
-              <div class="feature-bullet">3</div>
-              <div>
-                After authentication, you can wire this into whatever
-                <strong>“dashboard”</strong> experience you’d like to simulate.
+            <div class="feature-row">
+              <div class="feature-icon">🚀</div>
+              <div class="feature-text">
+                <h3>Instant Access</h3>
+                <p>Start making API calls within seconds of authentication.</p>
+              </div>
+            </div>
+            <div class="feature-row">
+              <div class="feature-icon">💎</div>
+              <div class="feature-text">
+                <h3>Bitcoin Native</h3>
+                <p>Pay-per-use billing through Lightning Network. No credit cards needed.</p>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <aside class="side-panel">
-          <div>
-            <h2>Sign in with Key-Rex</h2>
-            <p class="helper-text">
-              The card below is the real Key-Rex embed, exactly as it would appear on a
-              customer’s website. Use this page to test all wallet and device scenarios.
-            </p>
+        <div class="auth-panel" id="auth">
+          <h2>Start Building Today</h2>
+          <p>
+            Authenticate with your Lightning wallet to access your API dashboard,
+            manage keys, and start making API calls immediately.
+          </p>
+          <div class="auth-badge">
+            ✓ Powered by Key-Rex Authentication
           </div>
 
           <div class="keyrex-wrapper">
-            <!-- Key-Rex embed target -->
             <div id="keyrex-container"></div>
           </div>
-        </aside>
+        </div>
+      </section>
+
+      <section class="stats-section">
+        <div class="stat-card">
+          <span class="stat-number">99.9%</span>
+          <span class="stat-label">Uptime SLA</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">&lt;50ms</span>
+          <span class="stat-label">Avg Response Time</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">10K+</span>
+          <span class="stat-label">Active Developers</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">24/7</span>
+          <span class="stat-label">Support Available</span>
+        </div>
+      </section>
+
+      <div class="demo-notice">
+        <strong>🎭 Demo Site Notice</strong>
+        This is an example website showcasing Key-Rex authentication. All content is for demonstration purposes only.
+        Click the authentication button above to test the Lightning wallet login flow.
       </div>
     </main>
 
     <footer>
-      This page exists only for local testing. It is not part of the public Key-Rex
-      product or documentation.
+      <p>
+        This is a demo site for testing Key-Rex authentication · Not a real service ·
+        <a href="http://localhost:3000">Back to Key-Rex</a>
+      </p>
     </footer>
 
     <!-- Key-Rex Integration Code -->
-    <!-- Note: Fake client site runs on port 3001, Key-Rex server on port 3000 -->
-    <!-- This creates your user record so the siteId exists in storage -->
     <script src="http://localhost:3000/embed?siteId=a252dfa1030706a49efab31af2fc29d6&v=2"></script>
-    <!-- Key-Rex auto-initializes when the script loads, but we also have a manual fallback -->
     <script>
-      // Aggressive container check - check multiple times
+      // Check and initialize Key-Rex
       function checkAndInit() {
         const container = document.getElementById('keyrex-container');
         console.log('Key-Rex: Container check - Found:', !!container, 'Children:', container ? container.children.length : 0, 'KeyRex exists:', typeof window.KeyRex !== 'undefined');
@@ -279,14 +499,12 @@
         }
       }
       
-      // Check immediately, then at intervals
+      // Check at intervals
       checkAndInit();
       setTimeout(checkAndInit, 1000);
       setTimeout(checkAndInit, 2000);
       setTimeout(checkAndInit, 3000);
-      setTimeout(checkAndInit, 5000);
       
-      // Also check when DOM is fully ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkAndInit);
       }
@@ -296,13 +514,12 @@
         if (window.KeyRex) {
           window.KeyRex.onSuccess = function(xpub) {
             console.log('Key-Rex: Authentication successful! xpub:', xpub);
-            // Show success notification
+            
             const notification = document.createElement('div');
             notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
             notification.innerHTML = '<span style="font-size: 18px;">✓</span> <span>Authentication successful! Redirecting to dashboard...</span>';
             document.body.appendChild(notification);
             
-            // Redirect to dashboard after a brief delay
             setTimeout(function() {
               window.location.href = 'dashboard.html?xpub=' + encodeURIComponent(xpub);
             }, 1500);
@@ -310,13 +527,12 @@
           
           window.KeyRex.onError = function(error) {
             console.error('Key-Rex: Authentication error:', error);
-            // Show error notification
+            
             const notification = document.createElement('div');
             notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
             notification.innerHTML = '<span style="font-size: 18px;">✗</span> <span>Authentication failed: ' + (error.message || error) + '</span>';
             document.body.appendChild(notification);
             
-            // Auto-remove after 5 seconds
             setTimeout(function() {
               notification.style.animation = 'slideOut 0.3s ease-out';
               setTimeout(function() {
@@ -329,7 +545,6 @@
           
           console.log('Key-Rex: Success and error callbacks set up');
         } else {
-          // Retry if Key-Rex not ready yet
           setTimeout(setupKeyRexCallbacks, 500);
         }
       }
@@ -342,34 +557,7 @@
         document.head.appendChild(style);
       }
       
-      // Set up callbacks when Key-Rex is ready
       setupKeyRexCallbacks();
-      
-      // Note: The embed script now automatically checks for xpub in URL params and calls onSuccess
-      // So we don't need to manually check here - the onSuccess callback below will handle the redirect
-    </script>
-    
-    <!-- Fallback: Static script tag in case dynamic loading fails -->
-    <script>
-      // Final fallback - if Key-Rex still doesn't exist after 6 seconds, try loading with static tag
-      setTimeout(function() {
-        if (typeof window.KeyRex === 'undefined') {
-          console.warn('Key-Rex: Dynamic loading failed, trying static script tag fallback...');
-          const fallbackScript = document.createElement('script');
-          fallbackScript.src = 'http://localhost:3000/embed?siteId=a252dfa1030706a49efab31af2fc29d6&v=2';
-          fallbackScript.async = true;
-          fallbackScript.onload = function() {
-            console.log('Key-Rex: Static fallback script loaded');
-            setTimeout(function() {
-              if (window.KeyRex && window.KeyRex.init) {
-                console.log('Key-Rex: Calling init() from static fallback');
-                window.KeyRex.init();
-              }
-            }, 500);
-          };
-          document.head.appendChild(fallbackScript);
-        }
-      }, 6000);
     </script>
   </body>
 </html>

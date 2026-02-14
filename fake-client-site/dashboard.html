@@ -2,20 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Dashboard – Fake Client Site</title>
+    <title>API Dashboard - NeuralAPI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
-        --bg: #f5f5f7;
-        --card-bg: #ffffff;
-        --text-main: #1f2933;
-        --text-sub: #4b5563;
-        --accent: #f97316;
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #8b5cf6;
+        --accent: #f59e0b;
         --success: #10b981;
+        --danger: #ef4444;
+        --bg-main: #0f172a;
+        --bg-card: #1e293b;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #334155;
       }
 
       * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
       body {
@@ -23,244 +30,621 @@
         min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
-        background: radial-gradient(circle at top left, #e5e7eb, #f9fafb);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: var(--text-main);
-        display: flex;
-        flex-direction: column;
+        line-height: 1.6;
       }
 
+      /* Header */
       header {
-        padding: 1rem 1.5rem;
-        background: #111827;
-        color: white;
+        padding: 1.25rem 2rem;
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
 
-      header .logo {
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
         font-weight: 700;
-        letter-spacing: 0.05em;
+        font-size: 1.35rem;
+        letter-spacing: -0.02em;
+        color: white;
+        text-decoration: none;
       }
 
-      header nav {
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+
+      .user-info {
         display: flex;
         align-items: center;
         gap: 1rem;
       }
 
-      header nav a {
-        font-size: 0.9rem;
-        color: #e5e7eb;
-        text-decoration: none;
-      }
-
-      header nav a:hover {
-        color: #ffffff;
-      }
-
       .auth-badge {
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 0.5rem;
         background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
         color: var(--success);
-        padding: 0.4rem 0.8rem;
-        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
         font-size: 0.85rem;
-        border: 1px solid rgba(16, 185, 129, 0.2);
+        font-weight: 600;
       }
 
       .auth-badge::before {
         content: "✓";
         font-weight: bold;
+        font-size: 1rem;
       }
 
-      main {
-        flex: 1;
-        padding: 2.5rem 1.5rem 3rem;
-        display: flex;
-        justify-content: center;
+      /* Main Container */
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 3rem 2rem;
       }
 
-      .dashboard-container {
-        max-width: 900px;
-        width: 100%;
+      /* Welcome Section */
+      .welcome-section {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: 20px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
       }
 
-      .welcome-card {
-        background: var(--card-bg);
-        border-radius: 1.25rem;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
-        padding: 2.5rem;
-        border: 1px solid rgba(15, 23, 42, 0.04);
+      .welcome-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+      }
+
+      .welcome-section h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+      }
+
+      .welcome-section p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        position: relative;
+      }
+
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 2rem;
+        position: relative;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+      }
+
+      /* Grid Layout */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
         margin-bottom: 2rem;
       }
 
-      .welcome-card h1 {
-        font-size: 2rem;
-        margin: 0 0 0.5rem;
-        color: #111827;
+      .card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
-      .welcome-card .subtitle {
-        color: var(--text-sub);
-        font-size: 1rem;
-        margin: 0 0 1.5rem;
+      .card h2 {
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
       }
 
-      .success-message {
+      .card-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+      }
+
+      /* API Key Section */
+      .api-key-display {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        word-break: break-all;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .api-key-display:hover {
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      .button {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(16, 185, 129, 0.1);
-        color: #059669;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        margin-bottom: 1.5rem;
-        border: 1px solid rgba(16, 185, 129, 0.2);
       }
 
-      .content-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-top: 2rem;
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
       }
 
-      .info-card {
-        background: var(--card-bg);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      .button-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        box-shadow: none;
       }
 
-      .info-card h3 {
-        margin: 0 0 0.5rem;
-        font-size: 1rem;
-        color: #111827;
+      .button-outline:hover {
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: none;
       }
 
-      .info-card p {
-        margin: 0;
-        font-size: 0.85rem;
-        color: var(--text-sub);
-        line-height: 1.5;
+      /* Usage Table */
+      .usage-table {
+        width: 100%;
+        border-collapse: collapse;
       }
 
-      .xpub-display {
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
+      .usage-table th,
+      .usage-table td {
         padding: 0.75rem;
-        font-family: 'Monaco', 'Menlo', monospace;
-        font-size: 0.75rem;
-        color: #4b5563;
-        word-break: break-all;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .usage-table th {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .usage-table td {
+        color: var(--text-main);
+      }
+
+      .usage-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .usage-table tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      /* Progress Bar */
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        overflow: hidden;
         margin-top: 0.5rem;
       }
 
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border-radius: 999px;
+        transition: width 0.3s ease;
+      }
+
+      /* Quick Actions */
+      .quick-actions {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .action-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        transition: all 0.2s;
+      }
+
+      .action-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--primary);
+        cursor: pointer;
+      }
+
+      .action-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .action-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+      }
+
+      .action-text h3 {
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .action-text p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .action-arrow {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+      }
+
+      /* Footer */
       footer {
-        padding: 1rem 1.5rem 1.5rem;
-        font-size: 0.8rem;
-        color: #6b7280;
+        padding: 2rem;
         text-align: center;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        border-top: 1px solid var(--border);
+        margin-top: 4rem;
+      }
+
+      footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .welcome-section {
+          padding: 2rem;
+        }
+
+        .welcome-section h1 {
+          font-size: 2rem;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .container {
+          padding: 2rem 1rem;
+        }
       }
     </style>
   </head>
   <body>
     <header>
-      <div class="logo">ACME LEARNING</div>
-      <nav>
-        <a href="index.html">Home</a>
-        <div class="auth-badge">Authenticated</div>
-      </nav>
+      <div class="header-content">
+        <a href="index.html" class="logo">
+          <div class="logo-icon">N</div>
+          <span>NeuralAPI</span>
+        </a>
+        <div class="user-info">
+          <div class="auth-badge">Authenticated</div>
+        </div>
+      </div>
     </header>
 
-    <main>
-      <div class="dashboard-container">
-        <div class="welcome-card">
-          <div class="success-message">
-            <span>✓</span>
-            <span>You've successfully authenticated with BitPass!</span>
+    <main class="container">
+      <section class="welcome-section">
+        <h1>Welcome to your Dashboard</h1>
+        <p>You're authenticated and ready to start making API calls. Monitor usage, manage API keys, and access documentation.</p>
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-value">2.4K</span>
+            <span class="stat-label">API Calls Today</span>
           </div>
-          <h1>Welcome to your Dashboard</h1>
-          <p class="subtitle">
-            This is a protected area that you can only access after authenticating with your Lightning wallet.
-          </p>
+          <div class="stat-item">
+            <span class="stat-value">45ms</span>
+            <span class="stat-label">Avg Response</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">99.9%</span>
+            <span class="stat-label">Success Rate</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">$12.43</span>
+            <span class="stat-label">This Month</span>
+          </div>
+        </div>
+      </section>
 
-          <div class="content-grid">
-            <div class="info-card">
-              <h3>Authentication Status</h3>
-              <p>You are logged in using Lightning Network authentication (LNURL-auth).</p>
+      <div class="dashboard-grid">
+        <div class="card">
+          <h2>
+            <span class="card-icon">🔑</span>
+            Your API Key
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Use this key to authenticate your API requests. Keep it secret and secure.
+          </p>
+          <div class="api-key-display" id="api-key-display">
+            sk_live_7f8d9e1a2b3c4d5e6f7g8h9i0j1k2l3m4n5
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="button" onclick="copyApiKey()">
+              📋 Copy Key
+            </button>
+            <button class="button button-outline" onclick="regenerateKey()">
+              🔄 Regenerate
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span class="card-icon">📊</span>
+            Usage This Month
+          </h2>
+          <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">24,567 / 50,000 calls</span>
+              <span style="color: var(--text-main); font-weight: 600;">49%</span>
             </div>
-            <div class="info-card">
-              <h3>Your Identity</h3>
-              <p>Your xpub (extended public key) is stored in a cookie and can be used to identify you across sessions.</p>
-              <div id="xpub-display" class="xpub-display">Loading...</div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 49%"></div>
             </div>
-            <div class="info-card">
-              <h3>Next Steps</h3>
-              <p>In a real application, this dashboard would show your account information, courses, settings, etc.</p>
+          </div>
+          <table class="usage-table">
+            <thead>
+              <tr>
+                <th>Endpoint</th>
+                <th>Calls</th>
+                <th>Avg Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>/v1/chat</td>
+                <td>18,234</td>
+                <td>42ms</td>
+              </tr>
+              <tr>
+                <td>/v1/image</td>
+                <td>4,512</td>
+                <td>1.2s</td>
+              </tr>
+              <tr>
+                <td>/v1/embeddings</td>
+                <td>1,821</td>
+                <td>28ms</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span class="card-icon">⚙️</span>
+            Quick Actions
+          </h2>
+          <div class="quick-actions">
+            <div class="action-item" onclick="window.open('https://docs.example.com', '_blank')">
+              <div class="action-info">
+                <div class="action-icon">📚</div>
+                <div class="action-text">
+                  <h3>Read Documentation</h3>
+                  <p>API reference and guides</p>
+                </div>
+              </div>
+              <span class="action-arrow">→</span>
             </div>
+            <div class="action-item" onclick="alert('This would open usage analytics')">
+              <div class="action-info">
+                <div class="action-icon">📈</div>
+                <div class="action-text">
+                  <h3>View Analytics</h3>
+                  <p>Detailed usage insights</p>
+                </div>
+              </div>
+              <span class="action-arrow">→</span>
+            </div>
+            <div class="action-item" onclick="alert('This would open billing section')">
+              <div class="action-info">
+                <div class="action-icon">💳</div>
+                <div class="action-text">
+                  <h3>Billing Settings</h3>
+                  <p>Manage your plan</p>
+                </div>
+              </div>
+              <span class="action-arrow">→</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span class="card-icon">🔐</span>
+            Your Identity
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            You're authenticated using Lightning Network (LNURL-auth). Your wallet identity is your account.
+          </p>
+          <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem;">
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Extended Public Key (xpub)</div>
+            <div id="xpub-display" style="font-family: 'Monaco', 'Menlo', monospace; font-size: 0.75rem; color: var(--text-main); word-break: break-all;">
+              Loading...
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+            <span style="font-size: 1.5rem;">✓</span>
+            <div style="font-size: 0.85rem; color: var(--success);">
+              <strong>No password required</strong><br/>
+              Your Lightning wallet is your identity
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); border-color: rgba(99, 102, 241, 0.3);">
+        <h2 style="color: white;">
+          <span class="card-icon">⚡</span>
+          Why Key-Rex Authentication?
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          <div>
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚀</div>
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Instant Setup</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">No registration forms, no email verification. Just click and authenticate.</p>
+          </div>
+          <div>
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔒</div>
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Maximum Privacy</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Zero personal data required. Your wallet is your identity.</p>
+          </div>
+          <div>
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💎</div>
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Bitcoin Native</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Seamless integration with Lightning payments and Bitcoin ecosystem.</p>
           </div>
         </div>
       </div>
     </main>
 
     <footer>
-      This is a demo dashboard. In production, you would implement proper session management and protected routes.
+      <p>
+        This is a demo dashboard showing what Key-Rex authentication enables · Not a real service ·
+        <a href="index.html">Back to Home</a> ·
+        <a href="http://localhost:3000">Back to Key-Rex</a>
+      </p>
     </footer>
 
     <script>
-      // Check for stored xpub (from authentication)
+      // Load xpub from URL or storage
       function getStoredXpub() {
-        // Check cookies for xpub
+        const urlParams = new URLSearchParams(window.location.search);
+        const xpub = urlParams.get('xpub');
+        if (xpub) return xpub;
+
         const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
           const [name, value] = cookie.trim().split('=');
-          if (name.startsWith('bitpass_xpub_') || name === 'user_xpub') {
+          if (name.startsWith('bitpass_xpub_') || name === 'user_xpub' || name.startsWith('keyrex_xpub_')) {
             return decodeURIComponent(value);
           }
         }
-        
-        // Also check URL params (in case redirected from QR page)
-        const urlParams = new URLSearchParams(window.location.search);
-        const xpub = urlParams.get('xpub');
-        if (xpub) {
-          return xpub;
-        }
-        
         return null;
       }
 
-      // Display xpub if available
       const xpub = getStoredXpub();
       const xpubDisplay = document.getElementById('xpub-display');
       if (xpub) {
-        xpubDisplay.textContent = xpub.substring(0, 50) + '...';
-        xpubDisplay.title = xpub; // Full xpub on hover
+        xpubDisplay.textContent = xpub.substring(0, 60) + '...';
+        xpubDisplay.title = xpub;
       } else {
-        xpubDisplay.textContent = 'Not found (this is normal in demo mode)';
-        xpubDisplay.style.color = '#9ca3af';
+        xpubDisplay.textContent = 'demo_xpub_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t (demo mode)';
+        xpubDisplay.style.color = '#94a3b8';
       }
 
-      // If no authentication found, redirect back to home
-      if (!xpub && !window.location.search.includes('xpub')) {
-        // Give it a moment in case cookie is being set
-        setTimeout(function() {
-          const stillNoXpub = !getStoredXpub();
-          if (stillNoXpub) {
-            console.log('No authentication found, redirecting to home...');
-            window.location.href = 'index.html';
-          }
-        }, 1000);
+      // Copy API key function
+      function copyApiKey() {
+        const apiKey = document.getElementById('api-key-display').textContent;
+        navigator.clipboard.writeText(apiKey).then(() => {
+          const btn = event.target.closest('button');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '✓ Copied!';
+          btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+          }, 2000);
+        });
+      }
+
+      // Regenerate key function
+      function regenerateKey() {
+        if (confirm('Are you sure you want to regenerate your API key? Your old key will stop working.')) {
+          const newKey = 'sk_live_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          document.getElementById('api-key-display').textContent = newKey;
+          alert('New API key generated! Make sure to update your applications.');
+        }
       }
     </script>
   </body>
 </html>
-
-
-

@@ -1,20 +1,26 @@
-# Key-Rex Fake Client Site (Standalone)
+# NeuralAPI - Fake Client Site (Standalone)
 
-A standalone example client website for testing Key-Rex authentication - can be deployed independently to Vercel.
+A realistic, professional demo site showcasing Key-Rex authentication - deployable to its own domain for remote testing.
 
-## Purpose
+## Overview
 
-This is a deployable example site that demonstrates how to integrate Key-Rex authentication into a client website. Unlike the local version, this can be deployed to its own domain for remote testing.
+**NeuralAPI** is a fictional premium AI API service platform that demonstrates Key-Rex's value for modern web businesses. This standalone version can be deployed independently for remote demonstrations and testing.
 
 ## Setup
 
-1. **Update Configuration**
-   - Open `index.html`
-   - Find the configuration section at the bottom
-   - Update `KEYREX_BASE_URL` with your Key-Rex instance URL (e.g., `https://your-keyrex-instance.vercel.app`)
-   - Update `KEYREX_SITE_ID` with your actual siteId from the Key-Rex dashboard
+### 1. Update Configuration
 
-2. **Deploy to Vercel**
+Open `index.html` and update the configuration at the bottom:
+
+```javascript
+// Set your Key-Rex instance URL here
+const KEYREX_BASE_URL = 'https://your-keyrex-instance.vercel.app';
+const KEYREX_SITE_ID = 'your_site_id_from_keyrex_dashboard';
+```
+
+Also update the same `KEYREX_BASE_URL` in `dashboard.html`.
+
+### 2. Deploy to Vercel
    
    From the monorepo root:
    ```bash
