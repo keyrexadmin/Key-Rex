@@ -1,0 +1,20 @@
+{
+  "name": "key-rex-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo root for Key-Rex services.",
+  "workspaces": [
+    "webapp",
+    "fake-client-site",
+    "fake-client-site-standalone"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace webapp",
+    "dev:client": "npm run dev --workspace fake-client-site",
+    "build": "npm run build --workspace webapp",
+    "lint": "npm run lint --workspace webapp",
+    "test": "npm run test --workspace webapp",
+    "install:webapp": "npm install --workspace webapp",
+    "deploy:client-standalone": "npm run deploy --workspace fake-client-site-standalone"
+  }
+}

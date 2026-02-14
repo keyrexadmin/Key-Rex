@@ -1,0 +1,9 @@
+{
+  "name": "fake-client-site-standalone",
+  "version": "1.0.0",
+  "description": "Standalone example client site for testing Key-Rex authentication - can be deployed independently",
+  "private": true,
+  "scripts": {
+    "deploy": "vercel --prod"
+  }
+}

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard – Fake Client Site</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #f5f5f7;
+        --card-bg: #ffffff;
+        --text-main: #1f2933;
+        --text-sub: #4b5563;
+        --accent: #f97316;
+        --success: #10b981;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(circle at top left, #e5e7eb, #f9fafb);
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 1rem 1.5rem;
+        background: #111827;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      header .logo {
+        font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+
+      header nav {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      header nav a {
+        font-size: 0.9rem;
+        color: #e5e7eb;
+        text-decoration: none;
+      }
+
+      header nav a:hover {
+        color: #ffffff;
+      }
+
+      .auth-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .auth-badge::before {
+        content: "✓";
+        font-weight: bold;
+      }
+
+      main {
+        flex: 1;
+        padding: 2.5rem 1.5rem 3rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .dashboard-container {
+        max-width: 900px;
+        width: 100%;
+      }
+
+      .welcome-card {
+        background: var(--card-bg);
+        border-radius: 1.25rem;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+        padding: 2.5rem;
+        border: 1px solid rgba(15, 23, 42, 0.04);
+        margin-bottom: 2rem;
+      }
+
+      .welcome-card h1 {
+        font-size: 2rem;
+        margin: 0 0 0.5rem;
+        color: #111827;
+      }
+
+      .welcome-card .subtitle {
+        color: var(--text-sub);
+        font-size: 1rem;
+        margin: 0 0 1.5rem;
+      }
+
+      .success-message {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .info-card {
+        background: var(--card-bg);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .info-card h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        color: #111827;
+      }
+
+      .info-card p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-sub);
+        line-height: 1.5;
+      }
+
+      .xpub-display {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.75rem;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.75rem;
+        color: #4b5563;
+        word-break: break-all;
+        margin-top: 0.5rem;
+      }
+
+      footer {
+        padding: 1rem 1.5rem 1.5rem;
+        font-size: 0.8rem;
+        color: #6b7280;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">ACME LEARNING</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <div class="auth-badge">Authenticated</div>
+      </nav>
+    </header>
+
+    <main>
+      <div class="dashboard-container">
+        <div class="welcome-card">
+          <div class="success-message">
+            <span>✓</span>
+            <span>You've successfully authenticated with BitPass!</span>
+          </div>
+          <h1>Welcome to your Dashboard</h1>
+          <p class="subtitle">
+            This is a protected area that you can only access after authenticating with your Lightning wallet.
+          </p>
+
+          <div class="content-grid">
+            <div class="info-card">
+              <h3>Authentication Status</h3>
+              <p>You are logged in using Lightning Network authentication (LNURL-auth).</p>
+            </div>
+            <div class="info-card">
+              <h3>Your Identity</h3>
+              <p>Your xpub (extended public key) is stored in a cookie and can be used to identify you across sessions.</p>
+              <div id="xpub-display" class="xpub-display">Loading...</div>
+            </div>
+            <div class="info-card">
+              <h3>Next Steps</h3>
+              <p>In a real application, this dashboard would show your account information, courses, settings, etc.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      This is a demo dashboard. In production, you would implement proper session management and protected routes.
+    </footer>
+
+    <script>
+      // Check for stored xpub (from authentication)
+      function getStoredXpub() {
+        // Check cookies for xpub
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name.startsWith('bitpass_xpub_') || name === 'user_xpub') {
+            return decodeURIComponent(value);
+          }
+        }
+        
+        // Also check URL params (in case redirected from QR page)
+        const urlParams = new URLSearchParams(window.location.search);
+        const xpub = urlParams.get('xpub');
+        if (xpub) {
+          return xpub;
+        }
+        
+        return null;
+      }
+
+      // Display xpub if available
+      const xpub = getStoredXpub();
+      const xpubDisplay = document.getElementById('xpub-display');
+      if (xpub) {
+        xpubDisplay.textContent = xpub.substring(0, 50) + '...';
+        xpubDisplay.title = xpub; // Full xpub on hover
+      } else {
+        xpubDisplay.textContent = 'Not found (this is normal in demo mode)';
+        xpubDisplay.style.color = '#9ca3af';
+      }
+
+      // If no authentication found, redirect back to home
+      if (!xpub && !window.location.search.includes('xpub')) {
+        // Give it a moment in case cookie is being set
+        setTimeout(function() {
+          const stillNoXpub = !getStoredXpub();
+          if (stillNoXpub) {
+            console.log('No authentication found, redirecting to home...');
+            window.location.href = 'index.html';
+          }
+        }, 1000);
+      }
+    </script>
+  </body>
+</html>
+
+
+
