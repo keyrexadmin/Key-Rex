@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 3001;
-const ROOT_DIR = path.join(__dirname, '..', 'fake-client-site');
+const ROOT_DIR = path.join(__dirname, '../..', 'fake-client-site');
 
 const MIME_TYPES = {
   '.html': 'text/html',

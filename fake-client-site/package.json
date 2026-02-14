@@ -1,0 +1,10 @@
+{
+  "name": "fake-client-site",
+  "version": "1.0.0",
+  "description": "Example client site for testing Key-Rex authentication locally",
+  "private": true,
+  "scripts": {
+    "dev": "node ../webapp/scripts/serve-fake-client.js",
+    "start": "node ../webapp/scripts/serve-fake-client.js"
+  }
+}

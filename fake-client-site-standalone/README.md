@@ -1,0 +1,72 @@
+# Key-Rex Fake Client Site (Standalone)
+
+A standalone example client website for testing Key-Rex authentication - can be deployed independently to Vercel.
+
+## Purpose
+
+This is a deployable example site that demonstrates how to integrate Key-Rex authentication into a client website. Unlike the local version, this can be deployed to its own domain for remote testing.
+
+## Setup
+
+1. **Update Configuration**
+   - Open `index.html`
+   - Find the configuration section at the bottom
+   - Update `KEYREX_BASE_URL` with your Key-Rex instance URL (e.g., `https://your-keyrex-instance.vercel.app`)
+   - Update `KEYREX_SITE_ID` with your actual siteId from the Key-Rex dashboard
+
+2. **Deploy to Vercel**
+   
+   From the monorepo root:
+   ```bash
+   npm run deploy:client-standalone
+   ```
+   
+   Or from this directory:
+   ```bash
+   # Install Vercel CLI if needed
+   npm i -g vercel
+   
+   # Deploy (make it private)
+   vercel --prod
+   ```
+   
+   Or use the Vercel dashboard:
+   - Import this folder as a new project
+   - Set it to **Private** (not public)
+   - Deploy
+
+3. **Access Your Test Site**
+   - Vercel will give you a URL like `https://fake-client-site-xxxxx.vercel.app`
+   - This is your test site URL
+
+## Features
+
+- ✅ Standalone HTML file (no build process needed)
+- ✅ Real Key-Rex embed integration
+- ✅ Success/error notifications
+- ✅ Works on any domain (cross-origin testing)
+- ✅ Easy to delete when done
+- ✅ Independent Vercel deployment
+
+## Testing
+
+1. Visit your deployed URL
+2. Click the Key-Rex login button
+3. Test authentication with various wallets
+4. Verify success notifications appear
+
+## vs. Local Version
+
+- **This version**: For remote testing, deployed to Vercel
+- **[Local version](../fake-client-site/)**: For local development, runs on localhost:3001
+
+## Notes
+
+- This is a **test site only** - not for production use
+- Keep it **private** on Vercel to avoid confusion
+- Easy to delete when testing is complete
+- Can be deployed independently from the main Key-Rex webapp
+
+
+
+
