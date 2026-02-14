@@ -124,54 +124,40 @@ function QRContent() {
   // Refresh QR code function
   const refreshQRCode = useCallback(async () => {
     if (isRefreshing) return
-    
+
     setIsRefreshing(true)
     setLoading(true)
     setTimeRemaining(300) // Reset timer
-    
+
     try {
       // Get new challenge from server
       const lnurlRes = await fetch('/api/auth/lnurl')
       if (!lnurlRes.ok) {
         throw new Error('Failed to get new challenge')
       }
-      
+
       const { k1: newK1, lnurl: lnurlBech32 } = await lnurlRes.json()
-      
-      // Update k1 in URL using router to trigger searchParams update
-      // Only update if URL doesn't already have the correct k1 and we haven't already updated
-      if (typeof window !== 'undefined' && !urlUpdateRef.current) {
-        const currentUrl = new URL(window.location.href)
-        const currentK1 = currentUrl.searchParams.get('k1')
-        // Only update if the URL k1 doesn't match the new k1
-        if (currentK1 !== newK1) {
-          urlUpdateRef.current = true // Mark that we're updating
-          currentUrl.searchParams.set('k1', newK1)
-          router.replace(currentUrl.toString(), { scroll: false })
-          // Reset the flag after a delay to allow URL to update
-          setTimeout(() => {
-            urlUpdateRef.current = false
-          }, 1000)
-        }
-      }
-      
+
+      // DON'T update URL - just update state internally
+      // Updating the URL causes re-renders and infinite loops
+
       // Generate new QR code
       const domain = window.location.origin
       let callbackUrl: string
       if (isAdmin) {
         callbackUrl = `${domain}/api/admin/auth/login?k1=${newK1}`
       } else {
-        callbackUrl = siteId 
+        callbackUrl = siteId
           ? `${domain}/api/auth/callback?k1=${newK1}&siteId=${siteId}`
           : `${domain}/api/auth/callback?k1=${newK1}`
       }
-      
+
       const plainLnurl = callbackUrl
       const lightningProtocol = `lightning:${callbackUrl}`
-      
+
       setLnurl(plainLnurl)
       setLightningLnurl(lightningProtocol)
-      
+
       // Use the bech32-encoded LNURL we already fetched for the QR code
       // QR codes should contain bech32 LNURL (lnurl...), not lightning: protocol URL
       // This is what Zeus and other wallets expect
@@ -203,7 +189,7 @@ function QRContent() {
       setIsRefreshing(false)
       toast.showError('Failed to refresh QR code. Please try again.')
     }
-  }, [isRefreshing, isAdmin, siteId, isMobile, router, toast])
+  }, [isRefreshing, isAdmin, siteId, isMobile, toast])
 
   // Expiration timer countdown with auto-refresh
   useEffect(() => {
@@ -233,7 +219,7 @@ function QRContent() {
     }
   }, [qrCode, loading, authStatus, isRefreshing, refreshQRCode])
 
-  // Network status monitoring
+  // Network status monitoring - reduced frequency to avoid rate limiting
   useEffect(() => {
     if (!qrCode || loading || authStatus !== 'waiting' || isRefreshing) {
       setNetworkStatus(null)
@@ -273,8 +259,8 @@ function QRContent() {
       }
     }
 
-    // Check network every 5 seconds
-    networkCheckRef.current = setInterval(checkNetwork, 5000)
+    // Check network every 10 seconds (reduced from 5) to avoid rate limiting
+    networkCheckRef.current = setInterval(checkNetwork, 10000)
     checkNetwork() // Initial check
 
     return () => {
@@ -347,144 +333,121 @@ function QRContent() {
   // Generate QR code and LNURL
   // Use a ref to prevent multiple simultaneous fetches
   const qrFetchRef = useRef(false)
+  const initialK1Ref = useRef<string | null>(null)
+
   useEffect(() => {
-    if (k1 && !qrFetchRef.current) {
-      qrFetchRef.current = true
-      setLoading(true)
-      const domain = window.location.origin
-      
-      console.log('[QR Page] Starting QR code generation for k1:', k1)
-      
-      // Fetch bech32-encoded LNURL from server using the existing k1
-      // We need to encode the callback URL with the current k1 into bech32 format
-      // For QR codes, we need the bech32-encoded LNURL, not the lightning: protocol URL
-      fetch('/api/auth/lnurl', {
-        credentials: 'include', // Include cookies for same-origin requests
+    // Only run once on mount if k1 is provided, or if k1 changes
+    if (!k1 || qrFetchRef.current) return
+
+    // If we've already processed this k1, skip
+    if (initialK1Ref.current === k1) return
+
+    qrFetchRef.current = true
+    initialK1Ref.current = k1
+    setLoading(true)
+    const domain = window.location.origin
+
+    console.log('[QR Page] Starting QR code generation for k1:', k1)
+
+    // If k1 is provided in URL, use it directly without fetching a new one
+    // This prevents rate limiting and unnecessary API calls
+
+    // Encode the callback URL into bech32 LNURL format
+    let callbackUrl: string
+    if (isAdmin) {
+      callbackUrl = `${domain}/api/admin/auth/login?k1=${k1}`
+    } else {
+      callbackUrl = siteId
+        ? `${domain}/api/auth/callback?k1=${k1}&siteId=${siteId}`
+        : `${domain}/api/auth/callback?k1=${k1}`
+    }
+
+    const plainLnurl = callbackUrl
+    const lightningProtocol = `lightning:${callbackUrl}`
+
+    setLnurl(plainLnurl)
+    setLightningLnurl(lightningProtocol)
+
+    // Fetch the bech32-encoded LNURL from server
+    fetch('/api/auth/lnurl', {
+      credentials: 'include',
+    })
+      .then(async res => {
+        console.log('[QR Page] LNURL fetch response status:', res.status)
+        if (!res.ok) {
+          const errorText = await res.text()
+          let errorMessage = 'Failed to get LNURL from server'
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMessage = errorData.error || errorMessage
+          } catch {
+            errorMessage = errorText || errorMessage
+          }
+          console.error('[QR Page] LNURL fetch failed:', res.status, errorMessage)
+
+          // If rate limited, show user-friendly message
+          if (res.status === 429) {
+            console.log('[QR Page] Rate limited')
+            toast.showError('Too many requests. Please wait a moment and try again.')
+            setLoading(false)
+            qrFetchRef.current = false
+            return null
+          }
+
+          throw new Error(`${errorMessage} (Status: ${res.status})`)
+        }
+        const data = await res.json()
+        console.log('[QR Page] LNURL fetch successful')
+        return data
       })
-        .then(async res => {
-          console.log('[QR Page] LNURL fetch response status:', res.status)
-          if (!res.ok) {
-            const errorText = await res.text()
-            let errorMessage = 'Failed to get LNURL from server'
-            try {
-              const errorData = JSON.parse(errorText)
-              errorMessage = errorData.error || errorMessage
-            } catch {
-              errorMessage = errorText || errorMessage
-            }
-            console.error('[QR Page] LNURL fetch failed:', res.status, errorMessage)
-            
-            // If rate limited, show user-friendly message and auto-retry after delay
-            if (res.status === 429) {
-              console.log('[QR Page] Rate limited, will retry in 3 seconds...')
-              toast.showError('Too many requests. Retrying automatically...')
-              
-              // Auto-retry after 3 seconds (give rate limit time to reset)
-              setTimeout(() => {
-                console.log('[QR Page] Retrying after rate limit delay...')
-                qrFetchRef.current = false // Reset ref to allow retry
-                setLoading(true) // Show loading state
-                // Simply reload the page to retry - this is cleaner than complex retry logic
-                // The rate limit should be reset by then
-                window.location.reload()
-              }, 3000)
-              
-              setLoading(false)
-              return null
-            }
-            
-            throw new Error(`${errorMessage} (Status: ${res.status})`)
-          }
-          const data = await res.json()
-          console.log('[QR Page] LNURL fetch successful, received data:', { k1: data.k1, hasLnurl: !!data.lnurl })
-          return data
-        })
-        .then(data => {
-          if (!data) {
-            console.log('[QR Page] No data returned (rate limited), aborting')
-            return // Rate limited, already handled
-          }
-          
-          const newK1 = data.k1
-          const lnurlBech32 = data.lnurl // This is the bech32-encoded LNURL (starts with lnurl...)
-          
-          console.log('[QR Page] Processing LNURL data, newK1:', newK1, 'lnurlBech32 length:', lnurlBech32?.length)
-          
-          if (!lnurlBech32) {
-            console.error('[QR Page] No lnurlBech32 in response data')
-            throw new Error('No LNURL received from server')
-          }
-          
-          // Update k1 in URL to match the server-generated one (if different)
-          // Only update if URL doesn't already have the correct k1 and we haven't already updated
-          if (typeof window !== 'undefined' && newK1 !== k1 && !urlUpdateRef.current) {
-            const currentUrl = new URL(window.location.href)
-            const currentK1 = currentUrl.searchParams.get('k1')
-            // Only update if the URL k1 doesn't match the new k1
-            if (currentK1 !== newK1) {
-              urlUpdateRef.current = true // Mark that we're updating
-              currentUrl.searchParams.set('k1', newK1)
-              router.replace(currentUrl.toString(), { scroll: false })
-              // Reset the flag after a delay to allow URL to update
-              setTimeout(() => {
-                urlUpdateRef.current = false
-              }, 1000)
-            }
-          }
-          
-          // Determine callback URL based on admin mode or regular user mode
-          let callbackUrl: string
-          if (isAdmin) {
-            callbackUrl = `${domain}/api/admin/auth/login?k1=${newK1}`
-          } else {
-            callbackUrl = siteId 
-              ? `${domain}/api/auth/callback?k1=${newK1}&siteId=${siteId}`
-              : `${domain}/api/auth/callback?k1=${newK1}`
-          }
-          
-          const plainLnurl = callbackUrl
-          const lightningProtocol = `lightning:${callbackUrl}`
-          
-          setLnurl(plainLnurl)
-          setLightningLnurl(lightningProtocol)
-          
-          console.log('[QR Page] Generating QR code with bech32 LNURL, length:', lnurlBech32.length)
-          
-          // Generate QR code with bech32-encoded LNURL (Zeus and other wallets expect this format)
-          // QR codes should contain bech32 LNURL (lnurl...), not lightning: protocol URL
-          const qrSize = isMobile ? 280 : 320
-          return QRCode.toDataURL(lnurlBech32, {
-            width: qrSize,
-            margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
-          })
-        })
-        .then((dataUrl) => {
-          if (dataUrl) {
-            console.log('[QR Page] QR code generated successfully, dataUrl length:', dataUrl.length)
-            setQrCode(dataUrl)
-            setLoading(false)
-            setAuthStatus('waiting')
-            setAuthMessage(isAdmin ? 'Waiting for authentication...' : '')
-            qrFetchRef.current = false
-          } else {
-            console.error('[QR Page] QR code generation returned no dataUrl')
-            toast.showError('Failed to generate QR code. Please try again.')
-            setLoading(false)
-            qrFetchRef.current = false
+      .then(data => {
+        if (!data) {
+          console.log('[QR Page] No data returned (rate limited), aborting')
+          return
+        }
+
+        const lnurlBech32 = data.lnurl
+
+        if (!lnurlBech32) {
+          console.error('[QR Page] No lnurlBech32 in response data')
+          throw new Error('No LNURL received from server')
+        }
+
+        console.log('[QR Page] Generating QR code with bech32 LNURL, length:', lnurlBech32.length)
+
+        // Generate QR code with bech32-encoded LNURL
+        const qrSize = isMobile ? 280 : 320
+        return QRCode.toDataURL(lnurlBech32, {
+          width: qrSize,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
           }
         })
-        .catch((err) => {
-          console.error('[QR Page] QR code generation error:', err)
+      })
+      .then((dataUrl) => {
+        if (dataUrl) {
+          console.log('[QR Page] QR code generated successfully')
+          setQrCode(dataUrl)
+          setLoading(false)
+          setAuthStatus('waiting')
+          setAuthMessage(isAdmin ? 'Waiting for authentication...' : '')
+          qrFetchRef.current = false
+        } else {
+          console.error('[QR Page] QR code generation returned no dataUrl')
           toast.showError('Failed to generate QR code. Please try again.')
           setLoading(false)
           qrFetchRef.current = false
-        })
-    }
-  }, [siteId, k1, isMobile, isAdmin, toast, router])
+        }
+      })
+      .catch((err) => {
+        console.error('[QR Page] QR code generation error:', err)
+        toast.showError('Failed to generate QR code. Please try again.')
+        setLoading(false)
+        qrFetchRef.current = false
+      })
+  }, [k1, siteId, isMobile, isAdmin, toast])
 
   // Poll for admin authentication status
   useEffect(() => {
@@ -493,8 +456,8 @@ function QRContent() {
     // Start polling after QR code is generated
     const startPolling = () => {
       let pollCount = 0
-      const maxPolls = 60 // Poll for up to 60 seconds (60 * 1 second intervals)
-      
+      const maxPolls = 40 // Poll for up to 80 seconds (40 * 2 second intervals)
+
       pollingIntervalRef.current = setInterval(async () => {
         pollCount++
         
@@ -537,9 +500,9 @@ function QRContent() {
           console.error('Error polling admin auth status:', error)
           // Don't stop polling on network errors, just log them
         }
-      }, 1000) // Poll every 1 second
+      }, 2000) // Poll every 2 seconds (reduced frequency to avoid rate limiting)
     }
-    
+
     // Start polling after a short delay to allow QR code to be scanned
     const delay = setTimeout(() => {
       startPolling()
@@ -562,8 +525,8 @@ function QRContent() {
     // Start polling after QR code is generated
     const startPolling = () => {
       let pollCount = 0
-      const maxPolls = 60 // Poll for up to 60 seconds
-      
+      const maxPolls = 40 // Poll for up to 80 seconds (40 * 2 second intervals)
+
       pollingIntervalRef.current = setInterval(async () => {
         pollCount++
         
@@ -773,7 +736,7 @@ function QRContent() {
           console.error('Error polling for xpub:', error)
           // Don't stop polling on network errors, just log them
         }
-      }, 1000) // Poll every 1 second
+      }, 2000) // Poll every 2 seconds (reduced frequency to avoid rate limiting)
     }
     
     // Start polling after a short delay to allow QR code to be scanned
