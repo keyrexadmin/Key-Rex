@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   console.log('Cleaned k1 for lookup:', cleanedK1.substring(0, 20) + '...')
 
   // Try in-memory storage first
-  let xpub = getAuthSession(cleanedK1)
+  let xpub = await getAuthSession(cleanedK1)
 
   // If not found in memory, try cookie storage (for persistence across workers)
   if (!xpub) {

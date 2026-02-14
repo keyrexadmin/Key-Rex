@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     
     // Try both in-memory storage and cookies
     const { getAuthSession } = await import('@/lib/storage')
-    let storedXpub = getAuthSession(cleanK1ForRetrieval)
+    let storedXpub = await getAuthSession(cleanK1ForRetrieval)
     
     // If not in memory, check cookies
     if (!storedXpub) {
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       
       // SECURITY: Validate origin for embedded logins
       if (siteId) {
-        const user = getUserBySiteId(siteId)
+        const user = await getUserBySiteId(siteId)
         if (user) {
           const origin = request.headers.get('origin')
           
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
             
             // Test domains are always allowed
             if (requestDomain && !isTestDomain(requestDomain)) {
-              const verifiedDomains = getVerifiedDomains(user.xpub)
+              const verifiedDomains = await getVerifiedDomains(user.xpub)
               
               // If user has no verified domains, block authentication from production domains
               if (verifiedDomains.length === 0) {
@@ -252,7 +252,7 @@ export async function GET(request: NextRequest) {
   }
   
   // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-  markAuthSessionAsUsed(k1)
+  await markAuthSessionAsUsed(k1)
   
   // Derive xpub from pubkey
   const xpub = deriveXpub(key)
@@ -272,7 +272,7 @@ export async function GET(request: NextRequest) {
   
   // Store in both in-memory (for immediate access) and in a cookie (for persistence)
   const { storeAuthSession } = await import('@/lib/storage')
-  storeAuthSession(cleanK1, xpub)
+  await storeAuthSession(cleanK1, xpub)
   
   if (process.env.NODE_ENV === 'development') {
     console.log('Stored auth session: k1 -> xpub mapping saved')
@@ -287,7 +287,7 @@ export async function GET(request: NextRequest) {
   
   // Verify it was stored
   const { getAuthSession } = await import('@/lib/storage')
-  const verify = getAuthSession(cleanK1)
+  const verify = await getAuthSession(cleanK1)
   
   if (process.env.NODE_ENV === 'development' && verify) {
     console.log('Verification: Session stored and xpub matches')
@@ -296,9 +296,9 @@ export async function GET(request: NextRequest) {
   // If siteId is provided, this is an embedded login - validate origin
   if (siteId) {
     const { recordLogin } = await import('@/lib/storage')
-    
+
     // Check if siteId belongs to a valid user
-    const user = getUserBySiteId(siteId)
+    const user = await getUserBySiteId(siteId)
     if (!user) {
       return NextResponse.json({ error: 'Invalid siteId' }, { status: 404 })
     }
@@ -318,8 +318,8 @@ export async function GET(request: NextRequest) {
       
       // Test domains are always allowed
       if (requestDomain && !isTestDomain(requestDomain)) {
-        const verifiedDomains = getVerifiedDomains(user.xpub)
-        
+        const verifiedDomains = await getVerifiedDomains(user.xpub)
+
         // If user has no verified domains, block authentication from production domains
         if (verifiedDomains.length === 0) {
           return NextResponse.json({ 
@@ -336,9 +336,9 @@ export async function GET(request: NextRequest) {
     }
     
     // All users are free users - no subscription check needed
-    
+
     // Record login
-    recordLogin(siteId, key)
+    await recordLogin(siteId, key)
     
     const response = NextResponse.json({ success: true, xpub })
     
@@ -353,20 +353,20 @@ export async function GET(request: NextRequest) {
   
   // Otherwise, this is a dashboard login
   // Get or create user
-  let user = getUserByXpub(xpub)
+  let user = await getUserByXpub(xpub)
   if (!user) {
     if (process.env.NODE_ENV === 'development') {
       console.log('Creating new user for xpub:', xpub.substring(0, 16) + '...')
     }
     const newSiteId = generateSiteId()
-    user = createUser(xpub, newSiteId)
+    user = await createUser(xpub, newSiteId)
     if (process.env.NODE_ENV === 'development') {
       console.log('User created with siteId:', newSiteId)
     }
   }
   
   // Double-check user exists
-  const verifyUser = getUserByXpub(xpub)
+  const verifyUser = await getUserByXpub(xpub)
   if (!verifyUser) {
     if (process.env.NODE_ENV === 'development') {
       console.error('CRITICAL: User was not created or cannot be retrieved!')
@@ -435,7 +435,7 @@ export async function GET(request: NextRequest) {
     console.log('Set persistence cookie for k1 retrieval:', k1CookieName)
     console.log('=== Dashboard login successful ===')
     console.log('Returning JSON with xpub:', xpub.substring(0, 16) + '...')
-    console.log('User in storage:', getUserByXpub(xpub) ? 'YES' : 'NO')
+    console.log('User in storage:', (await getUserByXpub(xpub)) ? 'YES' : 'NO')
   }
   
   if (process.env.NODE_ENV === 'development') {

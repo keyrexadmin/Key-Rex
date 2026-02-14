@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Get user
-    let user = getUserByXpub(xpub)
+    let user = await getUserByXpub(xpub)
     if (!user) {
       console.warn('User not found in storage - this may be due to storage reset')
       // Check if user has a valid xpub cookie - if so, they've authenticated
@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
         if (backup) {
           console.log('✓ Found and verified subscription backup (signature valid), creating user with backup data')
           const siteId = generateSiteId()
-          user = createUser(xpub, siteId)
+          user = await createUser(xpub, siteId)
           // Restore subscription data from backup
-          user = updateUser(xpub, {
+          user = await updateUser(xpub, {
             subscribed: backup.subscribed || false,
             subscriptionTier: 'free',
             allowedDomains: backup.allowedDomains || [],
@@ -75,37 +75,37 @@ export async function POST(request: NextRequest) {
       if (!user) {
         console.log('Creating new user for authenticated xpub')
         const siteId = generateSiteId()
-        user = createUser(xpub, siteId)
+        user = await createUser(xpub, siteId)
       }
     }
-    
+
     // Normalize domain
     const normalizedDomain = normalizeDomain(domain.trim())
-    
+
     // Use addDomain to add the domain (handles verification properly)
     // Then update subscription status
-    const domainAdded = addDomain(xpub, normalizedDomain)
+    const domainAdded = await addDomain(xpub, normalizedDomain)
     if (!domainAdded) {
       return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
     }
-    
+
     // Handle domain verification
     // Test domains are auto-verified
     if (isTestDomain(normalizedDomain)) {
       const token = generateVerificationToken()
-      addDomainVerification(xpub, normalizedDomain, token)
-      updateDomainVerification(xpub, normalizedDomain, {
+      await addDomainVerification(xpub, normalizedDomain, token)
+      await updateDomainVerification(xpub, normalizedDomain, {
         status: 'verified',
         verifiedAt: Date.now()
       })
     } else {
       // Real domains: create pending verification
       const token = generateVerificationToken()
-      addDomainVerification(xpub, normalizedDomain, token)
+      await addDomainVerification(xpub, normalizedDomain, token)
     }
-    
+
     // Update subscription status
-    const updatedUser = updateUser(xpub, {
+    const updatedUser = await updateUser(xpub, {
       subscribed: true,
       subscriptionTier: 'free',
     })

@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const users = getAllUsers()
-    const contactSubmissions = getAllContactSubmissions()
+    const users = await getAllUsers()
+    const contactSubmissions = await getAllContactSubmissions()
     
     // Calculate aggregate stats from all users
     let totalDomains = 0
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     for (const user of users) {
       totalDomains += (user.allowedDomains || []).length
       
-      const usage = getUsageStats(user.siteId)
+      const usage = await getUsageStats(user.siteId)
       if (usage) {
         totalLogins += usage.allTime
         // Check if user has logged in recently (within last 30 days)

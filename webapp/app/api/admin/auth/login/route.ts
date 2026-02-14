@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
   }
   
   // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-  markAuthSessionAsUsed(k1)
+  await markAuthSessionAsUsed(k1)
   
   // Derive xpub from pubkey
   const xpub = deriveXpub(key)

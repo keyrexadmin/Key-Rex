@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if siteId belongs to a valid user
-    const user = getUserBySiteId(siteId)
+    const user = await getUserBySiteId(siteId)
     if (!user) {
       return NextResponse.json({ error: 'Invalid siteId' }, { status: 404 })
     }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       
       // Test domains are always allowed (auto-verified)
       if (!isTestDomain(requestDomain)) {
-        const verifiedDomains = getVerifiedDomains(user.xpub)
+        const verifiedDomains = await getVerifiedDomains(user.xpub)
         
         // If user has no verified domains, block authentication from production domains
         if (verifiedDomains.length === 0) {
@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
     }
     
     // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-    markAuthSessionAsUsed(k1)
-    
+    await markAuthSessionAsUsed(k1)
+
     // Detect wallet, browser, and device from User-Agent and signature format
     const userAgent = request.headers.get('user-agent')
     let signatureLength: number | undefined
@@ -115,9 +115,9 @@ export async function POST(request: NextRequest) {
     const detectedWallet = detectWallet(userAgent, signatureLength)
     const detectedBrowser = detectBrowser(userAgent)
     const detectedDeviceType = detectDeviceType(userAgent)
-    
+
     // Record login with domain, wallet, browser, and device information
-    recordLogin(siteId, key, requestDomain || undefined, detectedWallet, detectedBrowser, detectedDeviceType)
+    await recordLogin(siteId, key, requestDomain || undefined, detectedWallet, detectedBrowser, detectedDeviceType)
     
     // Derive xpub
     const xpub = deriveXpub(key)

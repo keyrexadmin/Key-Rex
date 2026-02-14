@@ -48,13 +48,13 @@ export async function GET(request: NextRequest) {
   const wizardCheck = checkWizardCompletion(request)
   if (wizardCheck) return wizardCheck
   
-  let user = getUserByXpub(xpub)
-  
+  let user = await getUserByXpub(xpub)
+
   // SECURITY: If user exists in storage, check wizard completion
   if (user && !user.freeDisclaimerAccepted) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Wizard not completed. Please complete the onboarding wizard first.',
-      wizardRequired: true 
+      wizardRequired: true
     }, { status: 403 })
   }
   if (!user) {
@@ -68,10 +68,10 @@ export async function GET(request: NextRequest) {
       if (backup) {
         console.log('✓ Found and verified subscription backup (signature valid), creating user with backup data')
         const siteId = generateSiteId()
-        user = createUser(xpub, siteId)
+        user = await createUser(xpub, siteId)
         // Restore subscription data from backup
         const { updateUser } = await import('@/lib/storage')
-        user = updateUser(xpub, {
+        user = await updateUser(xpub, {
           subscribed: backup.subscribed || false,
           subscriptionTier: 'free',
           allowedDomains: backup.allowedDomains || [],
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
   // Reassign xpub from cookie (already declared for rate limiting above)
   xpub = xpubFromCookie
   
-  let user = getUserByXpub(xpub)
+  let user = await getUserByXpub(xpub)
   if (!user) {
     console.warn('User not found in storage - this may be due to storage reset')
     // Check if user has a valid xpub cookie - if so, they've authenticated
@@ -152,10 +152,10 @@ export async function POST(request: NextRequest) {
       if (backup) {
         console.log('✓ Found and verified subscription backup (signature valid), creating user with backup data')
         const siteId = generateSiteId()
-        user = createUser(xpub, siteId)
+        user = await createUser(xpub, siteId)
         // Restore subscription data from backup
         const { updateUser } = await import('@/lib/storage')
-        user = updateUser(xpub, {
+        user = await updateUser(xpub, {
           subscribed: backup.subscribed || false,
           subscriptionTier: 'free',
           allowedDomains: backup.allowedDomains || [],
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
   const existingDomains = user.allowedDomains || []
   if (existingDomains.includes(normalized)) {
     // Domain already exists - check verification status
-    const verification = getDomainVerification(xpub, normalized)
+    const verification = await getDomainVerification(xpub, normalized)
     if (verification?.status === 'verified') {
       return NextResponse.json({ 
         error: 'Domain already added and verified' 
@@ -230,18 +230,18 @@ export async function POST(request: NextRequest) {
   // Skip verification for test domains (auto-verify)
   if (isTestDomain(normalized)) {
     // Test domains don't need verification - add directly
-    const updated = addDomain(xpub, normalized)
+    const updated = await addDomain(xpub, normalized)
     if (!updated) {
       console.error('addDomain returned undefined')
       return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
     }
-    
+
     // Auto-verify test domains
     const token = generateVerificationToken() // Still generate token for consistency
-    addDomainVerification(xpub, normalized, token)
+    await addDomainVerification(xpub, normalized, token)
     // Mark as verified immediately
     const { updateDomainVerification } = await import('@/lib/storage')
-    updateDomainVerification(xpub, normalized, {
+    await updateDomainVerification(xpub, normalized, {
       status: 'verified',
       verifiedAt: Date.now()
     })
@@ -281,14 +281,14 @@ export async function POST(request: NextRequest) {
   const token = generateVerificationToken()
   
   // Add domain first (will be in allowedDomains but not verified)
-  const updated = addDomain(xpub, normalized)
+  const updated = await addDomain(xpub, normalized)
   if (!updated) {
     console.error('addDomain returned undefined')
     return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
   }
-  
+
   // Create pending verification
-  const verification = addDomainVerification(xpub, normalized, token)
+  const verification = await addDomainVerification(xpub, normalized, token)
   if (!verification) {
     console.error('addDomainVerification returned undefined')
     return NextResponse.json({ error: 'Failed to create verification' }, { status: 500 })
@@ -353,7 +353,7 @@ export async function DELETE(request: NextRequest) {
   // Reassign xpub from cookie (already declared for rate limiting above)
   xpub = xpubFromCookie
   
-  let user = getUserByXpub(xpub)
+  let user = await getUserByXpub(xpub)
   if (!user) {
     console.warn('User not found in storage - this may be due to storage reset')
     // Check if user has a valid xpub cookie - if so, they've authenticated
@@ -365,10 +365,10 @@ export async function DELETE(request: NextRequest) {
       if (backup) {
         console.log('✓ Found and verified subscription backup (signature valid), creating user with backup data')
         const siteId = generateSiteId()
-        user = createUser(xpub, siteId)
+        user = await createUser(xpub, siteId)
         // Restore subscription data from backup
         const { updateUser } = await import('@/lib/storage')
-        user = updateUser(xpub, {
+        user = await updateUser(xpub, {
           subscribed: backup.subscribed || false,
           subscriptionTier: 'free',
           allowedDomains: backup.allowedDomains || [],
@@ -399,7 +399,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Cannot remove the last domain' }, { status: 400 })
   }
   
-  const updated = removeDomain(xpub, domain)
+  const updated = await removeDomain(xpub, domain)
   if (!updated) {
     return NextResponse.json({ error: 'Failed to remove domain' }, { status: 500 })
   }
@@ -466,7 +466,7 @@ export async function PUT(request: NextRequest) {
   // Reassign xpub from cookie (already declared for rate limiting above)
   xpub = xpubFromCookie
   
-  let user = getUserByXpub(xpub)
+  let user = await getUserByXpub(xpub)
   if (!user) {
     console.warn('User not found in storage - this may be due to storage reset')
     // Check if user has a valid xpub cookie - if so, they've authenticated
@@ -478,10 +478,10 @@ export async function PUT(request: NextRequest) {
       if (backup) {
         console.log('✓ Found and verified subscription backup (signature valid), creating user with backup data')
         const siteId = generateSiteId()
-        user = createUser(xpub, siteId)
+        user = await createUser(xpub, siteId)
         // Restore subscription data from backup
         const { updateUser } = await import('@/lib/storage')
-        user = updateUser(xpub, {
+        user = await updateUser(xpub, {
           subscribed: backup.subscribed || false,
           subscriptionTier: 'free',
           allowedDomains: backup.allowedDomains || [],
@@ -545,18 +545,18 @@ export async function PUT(request: NextRequest) {
     updatedDomains = [normalized]
   }
   
-  const updated = updateUser(xpub, {
+  const updated = await updateUser(xpub, {
     allowedDomains: updatedDomains
   })
-  
+
   if (!updated) {
     console.error('updateUser returned undefined')
     return NextResponse.json({ error: 'Failed to update domain' }, { status: 500 })
   }
-  
+
   // Log activity for domain update
   if (oldDomain && normalizeDomain(oldDomain) !== normalized) {
-    logActivity(xpub, 'domain_updated', `Domain updated from "${oldDomain}" to "${normalized}"`, {
+    await logActivity(xpub, 'domain_updated', `Domain updated from "${oldDomain}" to "${normalized}"`, {
       oldDomain: oldDomain,
       newDomain: normalized
     })

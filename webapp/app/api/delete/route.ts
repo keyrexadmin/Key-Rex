@@ -25,13 +25,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
-  const user = getUserByXpub(xpub)
+  const user = await getUserByXpub(xpub)
   console.log('User found:', user ? 'YES' : 'NO')
-  
+
   // Delete user if they exist, but always delete the cookie
   let deleted = false
   if (user) {
-    deleted = deleteUser(xpub)
+    deleted = await deleteUser(xpub)
     console.log('User deleted from storage:', deleted ? 'YES' : 'NO')
   } else {
     console.log('User not found in storage (may have been reset), but proceeding with cookie deletion')

@@ -60,8 +60,8 @@ export async function GET(request: NextRequest) {
     }
   }
   
-  let user = getUserByXpub(xpub)
-  
+  let user = await getUserByXpub(xpub)
+
   // NOTE: We don't block here for wizard completion - let the user data be returned
   // The wizard needs to check user status to proceed through the flow
   // Dashboard access is protected by middleware, not by blocking /api/user
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     const { createUser } = await import('@/lib/storage')
     const { generateSiteId } = await import('@/lib/utils')
     const siteId = generateSiteId()
-    user = createUser(xpub, siteId)
+    user = await createUser(xpub, siteId)
     console.log('Minimal user created with siteId:', siteId)
     console.log('User created fresh - freeDisclaimerAccepted:', user.freeDisclaimerAccepted, '(should be false)')
     console.log('User created fresh - no data restored from backup (prevents deleted account data from reappearing)')
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
       
       // IMMEDIATELY fix storage to match backup cookie
       const { updateUser } = await import('@/lib/storage')
-      const storageFixed = updateUser(xpub, {
+      const storageFixed = await updateUser(xpub, {
         allowedDomains: [...subscriptionBackup.allowedDomains] // Force storage to match backup cookie
       })
       if (storageFixed) {
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
         console.warn('Backup cookie domains (source of truth):', subscriptionBackup.allowedDomains)
         console.warn('CRITICAL: Using backup cookie domains ONLY - deleted domains will NOT be restored')
         // Force use backup cookie domains
-        const updatedUser = updateUser(xpub, {
+        const updatedUser = await updateUser(xpub, {
           subscribed: subscriptionBackup.subscribed !== undefined ? subscriptionBackup.subscribed : user.subscribed,
           subscriptionTier: 'free', // All users are free tier now
           // CRITICAL: Force use backup cookie domains - they're the source of truth
@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
         }
       } else {
         // Normal update - backup cookie and storage are in sync or backup has more/equal domains
-        const updatedUser = updateUser(xpub, {
+        const updatedUser = await updateUser(xpub, {
           subscribed: subscriptionBackup.subscribed !== undefined ? subscriptionBackup.subscribed : user.subscribed,
           subscriptionTier: 'free', // All users are free tier now
           // CRITICAL: Always use backup cookie domains if they exist (they're the source of truth)
@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
     console.log('Migrating user data - preserving existing domains')
     console.log('Current domains before migration:', user.allowedDomains)
     const { updateUser } = await import('@/lib/storage')
-    const migratedUser = updateUser(xpub, {
+    const migratedUser = await updateUser(xpub, {
       subscriptionTier: 'free', // All users are free tier now
       // CRITICAL: Preserve existing domains - only set to [] if truly undefined
       allowedDomains: user.allowedDomains !== undefined ? user.allowedDomains : [],

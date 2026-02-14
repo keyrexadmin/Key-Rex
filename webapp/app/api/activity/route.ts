@@ -30,33 +30,33 @@ export async function GET(request: NextRequest) {
     }
   }
   
-  const user = getUserByXpub(xpub)
-  
+  const user = await getUserByXpub(xpub)
+
   // SECURITY: If user exists in storage, check wizard completion
   if (user && !user.freeDisclaimerAccepted) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Wizard not completed. Please complete the onboarding wizard first.',
-      wizardRequired: true 
+      wizardRequired: true
     }, { status: 403 })
   }
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
-    
+
     const searchParams = request.nextUrl.searchParams
     const type = searchParams.get('type') as any
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
     const startDate = searchParams.get('startDate') ? parseInt(searchParams.get('startDate')!) : undefined
     const endDate = searchParams.get('endDate') ? parseInt(searchParams.get('endDate')!) : undefined
-    
+
     let logs
-    
+
     if (startDate && endDate) {
-      logs = getActivityLogsByDateRange(xpub, startDate, endDate)
+      logs = await getActivityLogsByDateRange(xpub, startDate, endDate)
     } else if (type) {
-      logs = getActivityLogsByType(xpub, type, limit)
+      logs = await getActivityLogsByType(xpub, type, limit)
     } else {
-      logs = getActivityLogs(xpub, limit)
+      logs = await getActivityLogs(xpub, limit)
     }
     
     return NextResponse.json({ logs })

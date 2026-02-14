@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if siteId belongs to a valid user
-  const user = getUserBySiteId(siteId)
-  
+  const user = await getUserBySiteId(siteId)
+
   // Debug logging
   console.log('=== Embed script requested ===')
   console.log('SiteId:', siteId)
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   } else {
     // Log all users to help debug
     const { getAllUsers } = await import('@/lib/storage')
-    const allUsers = getAllUsers()
+    const allUsers = await getAllUsers()
     console.log('Total users in storage:', allUsers.length)
     console.log('All siteIds in storage:', allUsers.map(u => u.siteId))
   }

@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Get user to check allowed domains
-    const user = getUserBySiteId(siteId)
+    const user = await getUserBySiteId(siteId)
     if (!user) {
-      return NextResponse.json({ 
-        error: 'Invalid siteId' 
+      return NextResponse.json({
+        error: 'Invalid siteId'
       }, { status: 404 })
     }
     
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         validatedUrl = returnUrlObj.toString()
       } else {
         // For production domains, check verified domains only
-        const verifiedDomains = getVerifiedDomains(user.xpub)
+        const verifiedDomains = await getVerifiedDomains(user.xpub)
         
         // If user has no verified domains, block redirects to production domains
         if (verifiedDomains.length === 0) {

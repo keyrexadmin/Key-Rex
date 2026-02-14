@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
   }
   
   // Also check user in storage
-  let user = getUserByXpub(xpub)
+  let user = await getUserByXpub(xpub)
   if (user && !user.freeDisclaimerAccepted) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Wizard not completed. Please complete the onboarding wizard first.',
-      wizardRequired: true 
+      wizardRequired: true
     }, { status: 403 })
   }
   
@@ -60,10 +60,10 @@ export async function GET(request: NextRequest) {
         try {
           console.log('Found subscription backup, creating user with backup data')
           const siteId = generateSiteId()
-          user = createUser(xpub, siteId)
+          user = await createUser(xpub, siteId)
           // Restore subscription data from backup
           const { updateUser } = await import('@/lib/storage')
-          user = updateUser(xpub, {
+          user = await updateUser(xpub, {
             subscribed: backup.subscribed || false,
             subscriptionTier: backup.subscriptionTier || 'free',
             allowedDomains: backup.allowedDomains || [],
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
   }
   
   console.log('User found, siteId:', user.siteId)
-  const stats = getUsageStats(user.siteId)
+  const stats = await getUsageStats(user.siteId)
   console.log('Usage stats:', {
     currentMonth: stats.currentMonth,
     yearToDate: stats.yearToDate,

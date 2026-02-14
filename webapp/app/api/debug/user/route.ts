@@ -16,17 +16,17 @@ export async function GET(request: NextRequest) {
     }
     
     // Get all users
-    const allUsers = getAllUsers()
+    const allUsers = await getAllUsers()
     result.totalUsers = allUsers.length
     result.allSiteIds = allUsers.map(u => ({
       siteId: u.siteId,
       xpub: u.xpub.substring(0, 20) + '...',
       createdAt: new Date(u.createdAt).toISOString(),
     }))
-    
+
     // Check by xpub if provided
     if (xpub) {
-      const user = getUserByXpub(xpub)
+      const user = await getUserByXpub(xpub)
       if (user) {
         result.userByXpub = {
           siteId: user.siteId,
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     
     // Check by siteId if provided
     if (siteId) {
-      const user = getUserBySiteId(siteId)
+      const user = await getUserBySiteId(siteId)
       if (user) {
         result.userBySiteId = {
           siteId: user.siteId,

@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const users = getAllUsers()
-    
+    const users = await getAllUsers()
+
     // Aggregate daily logins across all users
     const dailyLoginsMap = new Map<string, number>()
     const dailyUniqueUsersMap = new Map<string, Set<string>>()
@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
     const domainLoginsMap = new Map<string, number>()
     const browserLoginsMap = new Map<string, number>()
     const deviceTypeLoginsMap = new Map<string, number>()
-    
+
     // Aggregate stats from all users
     for (const user of users) {
-      const usage = getUsageStats(user.siteId)
+      const usage = await getUsageStats(user.siteId)
       
       // Aggregate daily logins
       for (const [date, count] of usage.dailyLogins.entries()) {

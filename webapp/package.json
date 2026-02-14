@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "dev:client": "node scripts/serve-fake-client.js",
-    "build": "next build",
+    "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "test:phase1": "node test-phase1.js",
     "test:phase2": "node test-phase2.js",
     "test:phase2-final": "node test-phase2-final.js",
@@ -20,6 +21,7 @@
   "dependencies": {
     "@noble/hashes": "^2.0.1",
     "@noble/secp256k1": "^3.0.0",
+    "@prisma/client": "^5.22.0",
     "@vercel/kv": "^1.0.0",
     "asn1js": "^3.0.6",
     "bech32": "^2.0.0",
@@ -40,6 +42,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.1.1",
     "postcss": "^8.4.35",
+    "prisma": "^5.22.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3"
   }

@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const allSubmissions = getAllContactSubmissions()
-    const unreadSubmissions = getUnreadContactSubmissions()
+    const allSubmissions = await getAllContactSubmissions()
+    const unreadSubmissions = await getUnreadContactSubmissions()
     
     console.log('Admin contacts API: Returning', {
       total: allSubmissions.length,
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id or status' }, { status: 400 })
     }
     
-    const updated = updateContactSubmissionStatus(id, status)
+    const updated = await updateContactSubmissionStatus(id, status)
     if (!updated) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
     }
@@ -111,7 +111,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
     
-    const deleted = deleteContactSubmission(id)
+    const deleted = await deleteContactSubmission(id)
     if (!deleted) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
     }

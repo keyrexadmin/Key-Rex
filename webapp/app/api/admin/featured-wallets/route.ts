@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
-  const wallets = getAllFeaturedWallets()
+  const wallets = await getAllFeaturedWallets()
   return NextResponse.json({ wallets })
 }
 
@@ -68,13 +68,14 @@ export async function POST(request: NextRequest) {
     }
 
     // If priority not provided, add to end
-    const maxPriority = getAllFeaturedWallets().reduce(
+    const allWallets = await getAllFeaturedWallets()
+    const maxPriority = allWallets.reduce(
       (max, w) => Math.max(max, w.priority),
       -1
     )
     const walletPriority = priority !== undefined ? priority : maxPriority + 1
 
-    const wallet = addFeaturedWallet({
+    const wallet = await addFeaturedWallet({
       name,
       logoUrl,
       downloadUrl,
@@ -119,7 +120,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing wallet id' }, { status: 400 })
     }
 
-    const wallet = updateFeaturedWallet(id, updates)
+    const wallet = await updateFeaturedWallet(id, updates)
     if (!wallet) {
       return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
     }
@@ -155,7 +156,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing wallet id' }, { status: 400 })
     }
 
-    const deleted = deleteFeaturedWallet(id)
+    const deleted = await deleteFeaturedWallet(id)
     if (!deleted) {
       return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
     }
@@ -194,14 +195,14 @@ export async function PATCH(request: NextRequest) {
     const { action, walletIds } = body
 
     if (action === 'reorder' && Array.isArray(walletIds)) {
-      const success = reorderFeaturedWallets(walletIds)
+      const success = await reorderFeaturedWallets(walletIds)
       if (!success) {
         return NextResponse.json(
           { error: 'Failed to reorder wallets' },
           { status: 500 }
         )
       }
-      return NextResponse.json({ success: true, wallets: getAllFeaturedWallets() })
+      return NextResponse.json({ success: true, wallets: await getAllFeaturedWallets() })
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })

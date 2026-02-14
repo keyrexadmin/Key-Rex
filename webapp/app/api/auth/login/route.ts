@@ -31,16 +31,16 @@ export async function POST(request: NextRequest) {
     }
     
     // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-    markAuthSessionAsUsed(k1)
-    
+    await markAuthSessionAsUsed(k1)
+
     // Derive xpub from pubkey
     const xpub = deriveXpub(key)
-    
+
     // Get or create user
-    let user = getUserByXpub(xpub)
+    let user = await getUserByXpub(xpub)
     if (!user) {
       const siteId = generateSiteId()
-      user = createUser(xpub, siteId)
+      user = await createUser(xpub, siteId)
     }
     
     // Set session cookie

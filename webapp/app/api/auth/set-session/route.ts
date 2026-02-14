@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     
     // SECURITY: Verify that this xpub was obtained through proper cryptographic authentication
     // by checking if it exists in the authSessions mapping (created after signature verification)
-    let verifiedXpub = getAuthSession(cleanK1)
+    let verifiedXpub = await getAuthSession(cleanK1)
     
     // If not found in memory, check cookies (for persistence across serverless instances)
     if (!verifiedXpub) {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     
     // SECURITY: Mark k1 as used to prevent reuse (Fix #6)
     const { markAuthSessionAsUsed } = await import('@/lib/storage')
-    markAuthSessionAsUsed(cleanK1)
+    await markAuthSessionAsUsed(cleanK1)
     
     // SECURITY: Invalidate old session cookie before setting new one (Fix #5: Session Fixation)
     // Delete old session cookie if it exists
@@ -104,11 +104,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Get or create user
-    let user = getUserByXpub(xpub)
+    let user = await getUserByXpub(xpub)
     if (!user) {
       console.log('User not found in set-session, creating new user')
       const siteId = generateSiteId()
-      user = createUser(xpub, siteId)
+      user = await createUser(xpub, siteId)
       console.log('New user created with siteId:', siteId)
     } else {
       console.log('Existing user found:', user.siteId)
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       if (process.env.NODE_ENV === 'development') {
         console.log('Cookie set successfully, xpub:', xpub.substring(0, 20) + '...')
-        console.log('User exists in storage:', getUserByXpub(xpub) ? 'YES' : 'NO')
+        console.log('User exists in storage:', await getUserByXpub(xpub) ? 'YES' : 'NO')
       }
     }
     

@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let user = getUserByXpub(xpub)
-    
+    let user = await getUserByXpub(xpub)
+
     // SECURITY: If user exists in storage, check wizard completion
     if (user && !user.freeDisclaimerAccepted) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Wizard not completed. Please complete the onboarding wizard first.',
-        wizardRequired: true 
+        wizardRequired: true
       }, { status: 403 })
     }
     if (!user) {
@@ -51,9 +51,9 @@ export async function POST(request: NextRequest) {
           console.log('✓ Found and verified subscription backup (signature valid), creating user with backup data')
           // Use siteId from backup if available, otherwise generate new one
           const siteId = (backup as any).siteId || generateSiteId()
-          user = createUser(xpub, siteId)
+          user = await createUser(xpub, siteId)
           // Restore subscription data from backup
-          user = updateUser(xpub, {
+          user = await updateUser(xpub, {
             subscribed: backup.subscribed || false,
             subscriptionTier: 'free',
             allowedDomains: backup.allowedDomains || [],
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       if (!user) {
         console.log('No backup cookie found or invalid - creating minimal user')
         const siteId = generateSiteId()
-        user = createUser(xpub, siteId)
+        user = await createUser(xpub, siteId)
         console.log('Minimal user created with siteId:', siteId)
       }
       
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user's integration enabled status
-    const updatedUser = updateUser(xpub, { integrationEnabled: enabled })
+    const updatedUser = await updateUser(xpub, { integrationEnabled: enabled })
 
     if (!updatedUser) {
       return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })

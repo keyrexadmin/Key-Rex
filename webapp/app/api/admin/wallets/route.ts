@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const wallets = getAllFeaturedWallets()
+    const wallets = await getAllFeaturedWallets()
     return NextResponse.json({ wallets })
   } catch (error) {
     console.error('Error fetching wallets:', error)
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
     
-    const wallet = addFeaturedWallet({
+    const wallet = await addFeaturedWallet({
       name,
       logoUrl,
       downloadUrl,
@@ -108,7 +108,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
     
-    const updated = updateFeaturedWallet(id, updates)
+    const updated = await updateFeaturedWallet(id, updates)
     if (!updated) {
       return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
     }
@@ -145,7 +145,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
     
-    const deleted = deleteFeaturedWallet(id)
+    const deleted = await deleteFeaturedWallet(id)
     if (!deleted) {
       return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
     }

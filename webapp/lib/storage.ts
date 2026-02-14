@@ -1,411 +1,354 @@
-// Simple in-memory storage for demo
-// In production, use Vercel KV or a proper database
-// This works for Vercel deployment without additional setup
+/**
+ * Key-Rex Storage Layer - PostgreSQL with Prisma
+ *
+ * Migrated from in-memory Maps to persistent PostgreSQL storage
+ * All functions are now async and return Promises
+ */
 
 import { User, UsageStats, FeaturedWallet, ActivityLog, ActivityType, ContactSubmission, DomainVerification } from '@/types'
 import { isTestDomain } from './utils'
+import {
+  prisma,
+  serializeUsageStats,
+  deserializeUsageStats,
+  maybeCleanupAuthSessions
+} from './db'
 
-interface StorageData {
-  users: Map<string, User>
-  usage: Map<string, UsageStats>
-  featuredWallets: FeaturedWallet[] // Global admin-controlled featured wallets
-  activityLogs: Map<string, ActivityLog[]> // xpub -> ActivityLog[]
-  contactSubmissions: Map<string, ContactSubmission> // id -> ContactSubmission
-}
+// ============================================================================
+// Auth Session Functions
+// ============================================================================
 
-let storage: StorageData = {
-  users: new Map(),
-  usage: new Map(),
-  featuredWallets: [], // Start with empty array (launch state)
-  activityLogs: new Map(),
-  contactSubmissions: new Map(),
-}
-
-// Debug: Track storage instance to verify it's the same object
-const STORAGE_INSTANCE_ID = Math.random().toString(36).substring(2, 9)
-console.log('Storage module loaded, instance ID:', STORAGE_INSTANCE_ID)
-
-// Temporary storage for k1 -> xpub mapping (for authentication flow)
-// Cleared after 5 minutes or after use
-interface AuthSession {
-  xpub: string
-  timestamp: number
-  used: boolean // Track if k1 has been used to prevent reuse
-}
-const authSessions = new Map<string, AuthSession>()
-
-export function storeAuthSession(k1: string, xpub: string): void {
+export async function storeAuthSession(k1: string, xpub: string): Promise<void> {
   // Clean k1 of any extra query params
   const cleanK1 = k1.split('&')[0].split('?')[0]
   console.log('storeAuthSession: Storing k1 -> xpub mapping')
   console.log('k1 (cleaned):', cleanK1.substring(0, 20) + '...')
   console.log('xpub:', xpub.substring(0, 20) + '...')
-  console.log('Total sessions stored:', authSessions.size)
-  authSessions.set(cleanK1, { xpub, timestamp: Date.now(), used: false })
-  console.log('Session stored. Total sessions now:', authSessions.size)
-  // Verify it was stored
-  const verify = authSessions.get(cleanK1)
-  console.log('Verification: Session stored?', !!verify)
-  
-  // Clean up old sessions (older than 5 minutes)
-  setTimeout(() => {
-    const now = Date.now()
-    for (const [key, value] of authSessions.entries()) {
-      if (now - value.timestamp > 5 * 60 * 1000) {
-        authSessions.delete(key)
-      }
-    }
-  }, 5 * 60 * 1000)
+
+  const now = Date.now()
+  const expiresAt = now + (5 * 60 * 1000) // 5 minutes
+
+  try {
+    await prisma.authSession.create({
+      data: {
+        k1: cleanK1,
+        xpub,
+        used: false,
+        timestamp: BigInt(now),
+        expiresAt: BigInt(expiresAt),
+      },
+    })
+    console.log('Session stored in database')
+
+    // Periodically cleanup expired sessions (10% chance)
+    await maybeCleanupAuthSessions()
+  } catch (error) {
+    console.error('Error storing auth session:', error)
+    throw error
+  }
 }
 
-export function getAuthSession(k1: string): string | undefined {
+export async function getAuthSession(k1: string): Promise<string | undefined> {
   // Clean k1 of any extra query params
   const cleanK1 = k1.split('&')[0].split('?')[0]
   console.log('getAuthSession: Looking up k1')
   console.log('Original k1:', k1.substring(0, 20) + '...')
   console.log('k1 (cleaned):', cleanK1.substring(0, 20) + '...')
   console.log('Full cleaned k1:', cleanK1)
-  console.log('Total sessions available:', authSessions.size)
-  console.log('Available k1 keys (first 20 chars):', Array.from(authSessions.keys()).map(k => k.substring(0, 20) + '...'))
-  console.log('Available k1 keys (full):', Array.from(authSessions.keys()))
-  
-  // Try exact match first
-  let session = authSessions.get(cleanK1)
-  if (!session) {
-    console.log('Session not found for cleaned k1 (exact match)')
-    // Try to find a partial match (in case of any encoding issues)
-    for (const [storedK1, storedSession] of authSessions.entries()) {
-      if (storedK1.startsWith(cleanK1.substring(0, 16)) || cleanK1.startsWith(storedK1.substring(0, 16))) {
-        console.log('Found partial match! storedK1:', storedK1.substring(0, 20) + '...', 'cleanK1:', cleanK1.substring(0, 20) + '...')
-        session = storedSession
-        break
-      }
-    }
-  }
-  
-  if (!session) {
-    console.log('Session not found after all attempts')
-    return undefined
-  }
-  
-  // SECURITY: Check if k1 has already been used (prevent reuse)
-  if (session.used) {
-    console.log('SECURITY: k1 has already been used - preventing reuse')
-    authSessions.delete(cleanK1)
-    return undefined
-  }
-  
-  // Check if expired (5 minutes)
-  if (Date.now() - session.timestamp > 5 * 60 * 1000) {
-    console.log('Session expired')
-    authSessions.delete(cleanK1)
-    return undefined
-  }
-  console.log('Session found! xpub:', session.xpub.substring(0, 20) + '...')
-  return session.xpub
-}
 
-/**
- * Mark a k1 challenge as used to prevent reuse
- * @param k1 - The k1 challenge to mark as used
- */
-export function markAuthSessionAsUsed(k1: string): void {
-  const cleanK1 = k1.split('&')[0].split('?')[0]
-  const session = authSessions.get(cleanK1)
-  if (session) {
-    session.used = true
-    console.log('SECURITY: Marked k1 as used to prevent reuse:', cleanK1.substring(0, 20) + '...')
-  }
-}
-
-export function getUserByXpub(xpub: string): User | undefined {
-  return storage.users.get(xpub)
-}
-
-export function getUserBySiteId(siteId: string): User | undefined {
-  // Find user by siteId (users are stored by xpub, so we need to search)
-  for (const user of storage.users.values()) {
-    if (user.siteId === siteId) {
-      return user
-    }
-  }
-  return undefined
-}
-
-export function getAllUsers(): User[] {
-  // Return all users as an array
-  return Array.from(storage.users.values())
-}
-
-export function createUser(xpub: string, siteId: string): User {
-  const user: User = {
-    xpub,
-    siteId,
-    subscribed: false,
-    subscriptionTier: 'free',
-    allowedDomains: [],
-    domainVerifications: new Map<string, DomainVerification>(),
-    freeDisclaimerAccepted: false,
-    freeDisclaimerAcceptedAt: undefined,
-    freeDisclaimerAcceptedIp: undefined,
-    freeDisclaimerAcceptedUserAgent: undefined,
-    integrationEnabled: true, // Default to enabled
-    createdAt: Date.now(),
-  }
-  storage.users.set(xpub, user)
-  return user
-}
-
-export function updateUser(xpub: string, updates: Partial<User>): User | undefined {
-  const user = storage.users.get(xpub)
-  if (!user) {
-    console.error('updateUser: User not found for xpub:', xpub.substring(0, 20) + '...')
-    return undefined
-  }
-  
-  console.log('updateUser: Updating user with:', JSON.stringify(updates, null, 2))
-  console.log('updateUser: Current user before update:', {
-    subscribed: user.subscribed,
-    tier: user.subscriptionTier,
-    domains: user.allowedDomains,
-    domainCount: user.allowedDomains?.length || 0,
-  })
-  
-  // CRITICAL: If allowedDomains is being updated, ensure it completely replaces the old array
-  // Don't merge arrays - explicitly replace
-  const updated = { ...user, ...updates }
-  
-  // CRITICAL: If allowedDomains was in updates, ensure it's a new array reference (not merged)
-  if ('allowedDomains' in updates && updates.allowedDomains !== undefined) {
-    updated.allowedDomains = Array.isArray(updates.allowedDomains) 
-      ? [...updates.allowedDomains] // Create new array to ensure replacement
-      : updates.allowedDomains
-    console.log('updateUser: CRITICAL - allowedDomains explicitly replaced:', updated.allowedDomains)
-    console.log('updateUser: Old domain count:', user.allowedDomains?.length || 0)
-    console.log('updateUser: New domain count:', updated.allowedDomains?.length || 0)
-  }
-  
-  // Log activity for integration status changes
-  if ('integrationEnabled' in updates) {
-    if (updates.integrationEnabled === false && user.integrationEnabled !== false) {
-      logActivity(xpub, 'integration_disabled', 'Integration disabled', {})
-    } else if (updates.integrationEnabled !== false && user.integrationEnabled === false) {
-      logActivity(xpub, 'integration_enabled', 'Integration enabled', {})
-    }
-  }
-  
-  storage.users.set(xpub, updated)
-  
-  // Verify the update was saved
-  const verify = storage.users.get(xpub)
-  if (!verify) {
-    console.error('updateUser: CRITICAL - User disappeared after update!')
-    return undefined
-  }
-  
-  console.log('updateUser: Update verified. subscribed:', verify.subscribed, 'tier:', verify.subscriptionTier, 'domains:', verify.allowedDomains)
-  console.log('updateUser: Full updated user:', JSON.stringify(verify, null, 2))
-  return verify
-}
-
-export function getUsageStats(siteId: string): UsageStats {
-  if (!storage.usage.has(siteId)) {
-    const now = new Date()
-    const monthKey = `${now.getFullYear()}-${now.getMonth()}`
-    storage.usage.set(siteId, {
-      currentMonth: 0,
-      yearToDate: 0,
-      allTime: 0,
-      uniquePubkeys: new Set(),
-      monthlyPubkeys: new Map([[monthKey, new Set()]]),
-      dailyLogins: new Map(),
-      dailyUniqueUsers: new Map(),
-      domainLogins: new Map(),
-      domainUniqueUsers: new Map(),
-      hourlyLogins: new Map(),
-      loginHistory: [],
-      walletLogins: new Map(),
-      walletUniqueUsers: new Map(),
-      firstTimeLogins: new Set(),
-      returningUserLogins: 0,
-      dayOfWeekLogins: new Map(),
-      dayOfWeekUniqueUsers: new Map(),
-      browserLogins: new Map(),
-      browserUniqueUsers: new Map(),
-      deviceTypeLogins: new Map(),
-      deviceTypeUniqueUsers: new Map(),
-      userFirstLoginDate: new Map(),
-      userLastLoginDate: new Map(),
-      userLoginCount: new Map(),
+  try {
+    const session = await prisma.authSession.findUnique({
+      where: { k1: cleanK1 },
     })
+
+    if (!session) {
+      console.log('Session not found')
+      return undefined
+    }
+
+    // SECURITY: Check if k1 has already been used (prevent reuse)
+    if (session.used) {
+      console.log('SECURITY: k1 has already been used - preventing reuse')
+      await prisma.authSession.delete({ where: { k1: cleanK1 } })
+      return undefined
+    }
+
+    // Check if expired (5 minutes)
+    const now = Date.now()
+    if (now > Number(session.expiresAt)) {
+      console.log('Session expired')
+      await prisma.authSession.delete({ where: { k1: cleanK1 } })
+      return undefined
+    }
+
+    console.log('Session found! xpub:', session.xpub.substring(0, 20) + '...')
+    return session.xpub
+  } catch (error) {
+    console.error('Error getting auth session:', error)
+    return undefined
   }
-  return storage.usage.get(siteId)!
 }
 
-export function recordLogin(siteId: string, pubkey: string, domain?: string, wallet?: string, browser?: string, deviceType?: string): void {
-  const stats = getUsageStats(siteId)
-  const now = new Date()
-  const monthKey = `${now.getFullYear()}-${now.getMonth()}`
-  
-  // Initialize month if needed
-  if (!stats.monthlyPubkeys.has(monthKey)) {
-    stats.monthlyPubkeys.set(monthKey, new Set())
+export async function markAuthSessionAsUsed(k1: string): Promise<void> {
+  const cleanK1 = k1.split('&')[0].split('?')[0]
+
+  try {
+    await prisma.authSession.update({
+      where: { k1: cleanK1 },
+      data: { used: true },
+    })
+    console.log('SECURITY: Marked k1 as used to prevent reuse:', cleanK1.substring(0, 20) + '...')
+  } catch (error) {
+    console.error('Error marking auth session as used:', error)
   }
-  
-  const monthSet = stats.monthlyPubkeys.get(monthKey)!
-  
-  // Daily tracking
-  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  if (!stats.dailyUniqueUsers.has(dateKey)) {
-    stats.dailyUniqueUsers.set(dateKey, new Set())
-  }
-  const dailySet = stats.dailyUniqueUsers.get(dateKey)!
-  
-  // Hourly tracking
-  const hourKey = `${dateKey}-${String(now.getHours()).padStart(2, '0')}`
-  stats.hourlyLogins.set(hourKey, (stats.hourlyLogins.get(hourKey) || 0) + 1)
-  
-  // Track daily login count (all logins, not just unique)
-  stats.dailyLogins.set(dateKey, (stats.dailyLogins.get(dateKey) || 0) + 1)
-  
-  // Track unique users per day
-  if (!dailySet.has(pubkey)) {
-    dailySet.add(pubkey)
-  }
-  
-  // Domain tracking
-  if (domain) {
-    const normalizedDomain = normalizeDomain(domain)
-    stats.domainLogins.set(normalizedDomain, (stats.domainLogins.get(normalizedDomain) || 0) + 1)
-    
-    if (!stats.domainUniqueUsers.has(normalizedDomain)) {
-      stats.domainUniqueUsers.set(normalizedDomain, new Set())
+}
+
+// ============================================================================
+// User Management Functions
+// ============================================================================
+
+export async function getUserByXpub(xpub: string): Promise<User | undefined> {
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
+      include: { domains: true },
+    })
+
+    if (!dbUser) return undefined
+
+    // Convert Domain[] to Map<string, DomainVerification>
+    const domainVerifications = new Map<string, DomainVerification>()
+    dbUser.domains.forEach(d => {
+      domainVerifications.set(d.domain, {
+        domain: d.domain,
+        status: d.verificationStatus as any,
+        verificationMethod: d.verificationMethod as any,
+        verificationToken: d.verificationToken,
+        verifiedAt: d.verifiedAt ? Number(d.verifiedAt) : undefined,
+        createdAt: Number(d.createdAt),
+      })
+    })
+
+    return {
+      xpub: dbUser.xpub,
+      siteId: dbUser.siteId,
+      subscribed: dbUser.subscribed,
+      subscriptionTier: dbUser.subscriptionTier as 'free',
+      allowedDomains: dbUser.domains.map(d => d.domain),
+      domainVerifications,
+      integrationEnabled: dbUser.integrationEnabled,
+      freeDisclaimerAccepted: dbUser.freeDisclaimerAccepted,
+      freeDisclaimerAcceptedAt: dbUser.freeDisclaimerAcceptedAt ? Number(dbUser.freeDisclaimerAcceptedAt) : undefined,
+      freeDisclaimerAcceptedIp: undefined, // Not stored in DB currently
+      freeDisclaimerAcceptedUserAgent: undefined, // Not stored in DB currently
+      createdAt: Number(dbUser.createdAt),
     }
-    stats.domainUniqueUsers.get(normalizedDomain)!.add(pubkey)
+  } catch (error) {
+    console.error('Error fetching user by xpub:', error)
+    return undefined
   }
-  
-  // Wallet tracking
-  if (wallet) {
-    stats.walletLogins.set(wallet, (stats.walletLogins.get(wallet) || 0) + 1)
-    
-    if (!stats.walletUniqueUsers.has(wallet)) {
-      stats.walletUniqueUsers.set(wallet, new Set())
+}
+
+export async function getUserBySiteId(siteId: string): Promise<User | undefined> {
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { siteId },
+      include: { domains: true },
+    })
+
+    if (!dbUser) return undefined
+
+    // Convert to User format (same as getUserByXpub)
+    const domainVerifications = new Map<string, DomainVerification>()
+    dbUser.domains.forEach(d => {
+      domainVerifications.set(d.domain, {
+        domain: d.domain,
+        status: d.verificationStatus as any,
+        verificationMethod: d.verificationMethod as any,
+        verificationToken: d.verificationToken,
+        verifiedAt: d.verifiedAt ? Number(d.verifiedAt) : undefined,
+        createdAt: Number(d.createdAt),
+      })
+    })
+
+    return {
+      xpub: dbUser.xpub,
+      siteId: dbUser.siteId,
+      subscribed: dbUser.subscribed,
+      subscriptionTier: dbUser.subscriptionTier as 'free',
+      allowedDomains: dbUser.domains.map(d => d.domain),
+      domainVerifications,
+      integrationEnabled: dbUser.integrationEnabled,
+      freeDisclaimerAccepted: dbUser.freeDisclaimerAccepted,
+      freeDisclaimerAcceptedAt: dbUser.freeDisclaimerAcceptedAt ? Number(dbUser.freeDisclaimerAcceptedAt) : undefined,
+      freeDisclaimerAcceptedIp: undefined,
+      freeDisclaimerAcceptedUserAgent: undefined,
+      createdAt: Number(dbUser.createdAt),
     }
-    stats.walletUniqueUsers.get(wallet)!.add(pubkey)
+  } catch (error) {
+    console.error('Error fetching user by siteId:', error)
+    return undefined
   }
-  
-  // New vs Returning Users tracking
-  const isFirstTime = !stats.userFirstLoginDate.has(pubkey)
-  if (isFirstTime) {
-    stats.firstTimeLogins.add(pubkey)
-    stats.userFirstLoginDate.set(pubkey, now.getTime())
-    stats.userLoginCount.set(pubkey, 1)
-  } else {
-    stats.returningUserLogins++
-    stats.userLoginCount.set(pubkey, (stats.userLoginCount.get(pubkey) || 0) + 1)
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    const dbUsers = await prisma.user.findMany({
+      include: { domains: true },
+    })
+
+    return dbUsers.map(dbUser => {
+      const domainVerifications = new Map<string, DomainVerification>()
+      dbUser.domains.forEach(d => {
+        domainVerifications.set(d.domain, {
+          domain: d.domain,
+          status: d.verificationStatus as any,
+          verificationMethod: d.verificationMethod as any,
+          verificationToken: d.verificationToken,
+          verifiedAt: d.verifiedAt ? Number(d.verifiedAt) : undefined,
+          createdAt: Number(d.createdAt),
+        })
+      })
+
+      return {
+        xpub: dbUser.xpub,
+        siteId: dbUser.siteId,
+        subscribed: dbUser.subscribed,
+        subscriptionTier: dbUser.subscriptionTier as 'free',
+        allowedDomains: dbUser.domains.map(d => d.domain),
+        domainVerifications,
+        integrationEnabled: dbUser.integrationEnabled,
+        freeDisclaimerAccepted: dbUser.freeDisclaimerAccepted,
+        freeDisclaimerAcceptedAt: dbUser.freeDisclaimerAcceptedAt ? Number(dbUser.freeDisclaimerAcceptedAt) : undefined,
+        freeDisclaimerAcceptedIp: undefined,
+        freeDisclaimerAcceptedUserAgent: undefined,
+        createdAt: Number(dbUser.createdAt),
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching all users:', error)
+    return []
   }
-  stats.userLastLoginDate.set(pubkey, now.getTime())
-  
-  // Day of Week tracking
-  const dayOfWeek = now.getDay() // 0 = Sunday, 6 = Saturday
-  stats.dayOfWeekLogins.set(dayOfWeek, (stats.dayOfWeekLogins.get(dayOfWeek) || 0) + 1)
-  if (!stats.dayOfWeekUniqueUsers.has(dayOfWeek)) {
-    stats.dayOfWeekUniqueUsers.set(dayOfWeek, new Set())
-  }
-  stats.dayOfWeekUniqueUsers.get(dayOfWeek)!.add(pubkey)
-  
-  // Browser tracking
-  if (browser) {
-    stats.browserLogins.set(browser, (stats.browserLogins.get(browser) || 0) + 1)
-    if (!stats.browserUniqueUsers.has(browser)) {
-      stats.browserUniqueUsers.set(browser, new Set())
+}
+
+export async function createUser(xpub: string, siteId: string): Promise<User> {
+  try {
+    const dbUser = await prisma.user.create({
+      data: {
+        xpub,
+        siteId,
+        subscribed: false,
+        subscriptionTier: 'free',
+        integrationEnabled: true,
+        freeDisclaimerAccepted: false,
+        createdAt: BigInt(Date.now()),
+      },
+    })
+
+    return {
+      xpub: dbUser.xpub,
+      siteId: dbUser.siteId,
+      subscribed: dbUser.subscribed,
+      subscriptionTier: dbUser.subscriptionTier as 'free',
+      allowedDomains: [],
+      domainVerifications: new Map(),
+      integrationEnabled: dbUser.integrationEnabled,
+      freeDisclaimerAccepted: dbUser.freeDisclaimerAccepted,
+      freeDisclaimerAcceptedAt: undefined,
+      freeDisclaimerAcceptedIp: undefined,
+      freeDisclaimerAcceptedUserAgent: undefined,
+      createdAt: Number(dbUser.createdAt),
     }
-    stats.browserUniqueUsers.get(browser)!.add(pubkey)
+  } catch (error) {
+    console.error('Error creating user:', error)
+    throw error
   }
-  
-  // Device Type tracking
-  if (deviceType) {
-    stats.deviceTypeLogins.set(deviceType, (stats.deviceTypeLogins.get(deviceType) || 0) + 1)
-    if (!stats.deviceTypeUniqueUsers.has(deviceType)) {
-      stats.deviceTypeUniqueUsers.set(deviceType, new Set())
+}
+
+export async function updateUser(xpub: string, updates: Partial<User>): Promise<User | undefined> {
+  console.log('updateUser: Updating user with:', JSON.stringify(updates, null, 2))
+
+  try {
+    const currentUser = await getUserByXpub(xpub)
+    if (!currentUser) {
+      console.error('updateUser: User not found for xpub:', xpub.substring(0, 20) + '...')
+      return undefined
     }
-    stats.deviceTypeUniqueUsers.get(deviceType)!.add(pubkey)
-  }
-  
-  // Only count if new pubkey for this month (for monthly stats)
-  if (!monthSet.has(pubkey)) {
-    monthSet.add(pubkey)
-    stats.currentMonth++
-    stats.allTime++
-    
-    // Update YTD
-    const currentYear = now.getFullYear()
-    let ytdCount = 0
-    for (const [key, pubkeys] of stats.monthlyPubkeys.entries()) {
-      if (key.startsWith(String(currentYear))) {
-        ytdCount += pubkeys.size
+
+    console.log('updateUser: Current user before update:', {
+      subscribed: currentUser.subscribed,
+      tier: currentUser.subscriptionTier,
+      domains: currentUser.allowedDomains,
+      domainCount: currentUser.allowedDomains?.length || 0,
+    })
+
+    // Log activity for integration status changes
+    if ('integrationEnabled' in updates) {
+      if (updates.integrationEnabled === false && currentUser.integrationEnabled !== false) {
+        await logActivity(xpub, 'integration_disabled', 'Integration disabled', {})
+      } else if (updates.integrationEnabled !== false && currentUser.integrationEnabled === false) {
+        await logActivity(xpub, 'integration_enabled', 'Integration enabled', {})
       }
     }
-    stats.yearToDate = ytdCount
-  }
-  
-  stats.uniquePubkeys.add(pubkey)
-  
-  // Update login history (keep last 90 days)
-  const historyEntry = {
-    date: dateKey,
-    count: stats.dailyLogins.get(dateKey) || 0,
-    uniqueUsers: dailySet.size,
-  }
-  
-  // Remove old entries (older than 90 days)
-  const cutoffDate = new Date(now)
-  cutoffDate.setDate(cutoffDate.getDate() - 90)
-  const cutoffKey = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}-${String(cutoffDate.getDate()).padStart(2, '0')}`
-  
-  stats.loginHistory = stats.loginHistory.filter(entry => entry.date >= cutoffKey)
-  
-  // Add or update today's entry
-  const existingIndex = stats.loginHistory.findIndex(entry => entry.date === dateKey)
-  if (existingIndex >= 0) {
-    stats.loginHistory[existingIndex] = historyEntry
-  } else {
-    stats.loginHistory.push(historyEntry)
-    // Sort by date (oldest first)
-    stats.loginHistory.sort((a, b) => a.date.localeCompare(b.date))
-  }
-}
 
-export function deleteUser(xpub: string): boolean {
-  const user = storage.users.get(xpub)
-  if (!user) return false
-  
-  // Delete user and their usage stats
-  storage.users.delete(xpub)
-  storage.usage.delete(user.siteId)
-  return true
-}
-
-export function resetMonthlyStats(): void {
-  const now = new Date()
-  const monthKey = `${now.getFullYear()}-${now.getMonth()}`
-  
-  for (const [siteId, stats] of storage.usage.entries()) {
-    if (!stats.monthlyPubkeys.has(monthKey)) {
-      stats.currentMonth = 0
-      stats.monthlyPubkeys.set(monthKey, new Set())
+    // Prepare update data (exclude fields that shouldn't be updated directly)
+    const updateData: any = {
+      updatedAt: BigInt(Date.now()),
     }
+
+    if ('subscribed' in updates) updateData.subscribed = updates.subscribed
+    if ('subscriptionTier' in updates) updateData.subscriptionTier = updates.subscriptionTier
+    if ('integrationEnabled' in updates) updateData.integrationEnabled = updates.integrationEnabled
+    if ('freeDisclaimerAccepted' in updates) updateData.freeDisclaimerAccepted = updates.freeDisclaimerAccepted
+    if ('freeDisclaimerAcceptedAt' in updates && updates.freeDisclaimerAcceptedAt) {
+      updateData.freeDisclaimerAcceptedAt = BigInt(updates.freeDisclaimerAcceptedAt)
+    }
+
+    // Update user in database
+    await prisma.user.update({
+      where: { xpub },
+      data: updateData,
+    })
+
+    // Get updated user
+    const updatedUser = await getUserByXpub(xpub)
+
+    if (!updatedUser) {
+      console.error('updateUser: CRITICAL - User disappeared after update!')
+      return undefined
+    }
+
+    console.log('updateUser: Update verified. subscribed:', updatedUser.subscribed, 'tier:', updatedUser.subscriptionTier, 'domains:', updatedUser.allowedDomains)
+    return updatedUser
+  } catch (error) {
+    console.error('Error updating user:', error)
+    return undefined
   }
 }
 
-// Domain validation helpers
+export async function deleteUser(xpub: string): Promise<boolean> {
+  try {
+    await prisma.user.delete({
+      where: { xpub },
+      // Cascade deletes domains, usage stats, and activity logs
+    })
+    return true
+  } catch (error) {
+    console.error('Error deleting user:', error)
+    return false
+  }
+}
+
+// ============================================================================
+// Domain Management Functions
+// ============================================================================
+
+// Keep utility functions as-is (not async)
 export function normalizeDomain(domain: string): string {
-  // Remove protocol, www, trailing slashes, and normalize
   let normalized = domain.toLowerCase().trim()
   normalized = normalized.replace(/^https?:\/\//, '')
   normalized = normalized.replace(/^www\./, '')
   normalized = normalized.replace(/\/$/, '')
-  // Remove port numbers for domain matching
   normalized = normalized.split(':')[0]
   return normalized
 }
@@ -414,337 +357,863 @@ export function isDomainAllowed(domain: string, allowedDomains: string[]): boole
   const normalized = normalizeDomain(domain)
   return allowedDomains.some(allowed => {
     const normalizedAllowed = normalizeDomain(allowed)
-    // Exact match or subdomain match
     return normalized === normalizedAllowed || normalized.endsWith('.' + normalizedAllowed)
   })
 }
 
-export function addDomain(xpub: string, domain: string): User | undefined {
-  const user = storage.users.get(xpub)
-  if (!user) return undefined
-  
+export async function addDomain(xpub: string, domain: string): Promise<User | undefined> {
   const normalized = normalizeDomain(domain)
-  if (!user.allowedDomains || !user.allowedDomains.includes(normalized)) {
-    if (!user.allowedDomains) {
-      user.allowedDomains = []
+
+  try {
+    // Get user to find userId
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
+    })
+
+    if (!dbUser) return undefined
+
+    // Check if domain already exists
+    const existingDomain = await prisma.domain.findFirst({
+      where: {
+        userId: dbUser.id,
+        domain: normalized,
+      },
+    })
+
+    if (!existingDomain) {
+      // Create new domain
+      await prisma.domain.create({
+        data: {
+          userId: dbUser.id,
+          domain: normalized,
+          verificationStatus: 'pending',
+          verificationMethod: 'dns_txt',
+          verificationToken: '', // Will be set by addDomainVerification
+          createdAt: BigInt(Date.now()),
+        },
+      })
+
+      // Log activity
+      await logActivity(xpub, 'domain_added', `Domain "${normalized}" added`, { domain: normalized })
     }
-    user.allowedDomains.push(normalized)
-    storage.users.set(xpub, user)
-    
-    // Log activity
-    logActivity(xpub, 'domain_added', `Domain "${normalized}" added`, { domain: normalized })
+
+    return await getUserByXpub(xpub)
+  } catch (error) {
+    console.error('Error adding domain:', error)
+    return undefined
   }
-  return user
 }
 
-export function removeDomain(xpub: string, domain: string): User | undefined {
-  const user = storage.users.get(xpub)
-  if (!user) return undefined
-  
-  if (!user.allowedDomains) {
-    user.allowedDomains = []
-  }
-  
+export async function removeDomain(xpub: string, domain: string): Promise<User | undefined> {
   const normalized = normalizeDomain(domain)
-  
-  // Also remove verification record if it exists
-  if (user.domainVerifications) {
-    user.domainVerifications.delete(normalized)
+
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
+    })
+
+    if (!dbUser) return undefined
+
+    // Delete domain (will cascade verification if exists)
+    const result = await prisma.domain.deleteMany({
+      where: {
+        userId: dbUser.id,
+        domain: normalized,
+      },
+    })
+
+    if (result.count > 0) {
+      await logActivity(xpub, 'domain_removed', `Domain "${normalized}" removed`, { domain: normalized })
+      console.log('removeDomain: Domain permanently deleted')
+      console.log('removeDomain: Deleted domain:', normalized)
+    }
+
+    return await getUserByXpub(xpub)
+  } catch (error) {
+    console.error('Error removing domain:', error)
+    return undefined
   }
-  
-  const beforeCount = user.allowedDomains.length
-  
-  // CRITICAL: Permanently delete the domain - filter it out completely
-  // The domain is removed from the array and cannot be found until re-added
-  user.allowedDomains = user.allowedDomains.filter(d => {
-    const normalizedExisting = normalizeDomain(d)
-    return normalizedExisting !== normalized
-  })
-  
-  const afterCount = user.allowedDomains.length
-  storage.users.set(xpub, user)
-  
-  // Log activity
-  if (beforeCount > afterCount) {
-    logActivity(xpub, 'domain_removed', `Domain "${normalized}" removed`, { domain: normalized })
-  }
-  
-  console.log('removeDomain: Domain permanently deleted')
-  console.log('removeDomain: Before count:', beforeCount, 'After count:', afterCount)
-  console.log('removeDomain: Deleted domain:', normalized)
-  console.log('removeDomain: Remaining domains:', user.allowedDomains)
-  console.log('removeDomain: Domain cannot be found until explicitly re-added by user')
-  
-  return user
 }
 
-// Domain Verification Functions
-export function addDomainVerification(xpub: string, domain: string, verificationToken: string): DomainVerification | undefined {
-  const user = storage.users.get(xpub)
-  if (!user) return undefined
-  
+export async function addDomainVerification(
+  xpub: string,
+  domain: string,
+  verificationToken: string
+): Promise<DomainVerification | undefined> {
   const normalized = normalizeDomain(domain)
-  
-  // Initialize domainVerifications map if it doesn't exist
-  if (!user.domainVerifications) {
-    user.domainVerifications = new Map<string, DomainVerification>()
+
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
+    })
+
+    if (!dbUser) return undefined
+
+    // Find or create domain
+    let dbDomain = await prisma.domain.findFirst({
+      where: {
+        userId: dbUser.id,
+        domain: normalized,
+      },
+    })
+
+    if (!dbDomain) {
+      dbDomain = await prisma.domain.create({
+        data: {
+          userId: dbUser.id,
+          domain: normalized,
+          verificationStatus: 'pending',
+          verificationMethod: 'dns_txt',
+          verificationToken,
+          createdAt: BigInt(Date.now()),
+        },
+      })
+    } else {
+      // Update existing domain with verification token
+      dbDomain = await prisma.domain.update({
+        where: { id: dbDomain.id },
+        data: {
+          verificationToken,
+          verificationStatus: 'pending',
+        },
+      })
+    }
+
+    return {
+      domain: dbDomain.domain,
+      status: dbDomain.verificationStatus as any,
+      verificationMethod: dbDomain.verificationMethod as any,
+      verificationToken: dbDomain.verificationToken,
+      createdAt: Number(dbDomain.createdAt),
+    }
+  } catch (error) {
+    console.error('Error adding domain verification:', error)
+    return undefined
   }
-  
-  const verification: DomainVerification = {
-    domain: normalized,
-    status: 'pending',
-    verificationMethod: 'dns_txt',
-    verificationToken,
-    createdAt: Date.now(),
-  }
-  
-  user.domainVerifications.set(normalized, verification)
-  storage.users.set(xpub, user)
-  
-  return verification
 }
 
-export function getDomainVerification(xpub: string, domain: string): DomainVerification | undefined {
-  const user = storage.users.get(xpub)
-  if (!user || !user.domainVerifications) return undefined
-  
+export async function getDomainVerification(xpub: string, domain: string): Promise<DomainVerification | undefined> {
   const normalized = normalizeDomain(domain)
-  return user.domainVerifications.get(normalized)
+
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
+    })
+
+    if (!dbUser) return undefined
+
+    const dbDomain = await prisma.domain.findFirst({
+      where: {
+        userId: dbUser.id,
+        domain: normalized,
+      },
+    })
+
+    if (!dbDomain) return undefined
+
+    return {
+      domain: dbDomain.domain,
+      status: dbDomain.verificationStatus as any,
+      verificationMethod: dbDomain.verificationMethod as any,
+      verificationToken: dbDomain.verificationToken,
+      verifiedAt: dbDomain.verifiedAt ? Number(dbDomain.verifiedAt) : undefined,
+      createdAt: Number(dbDomain.createdAt),
+    }
+  } catch (error) {
+    console.error('Error getting domain verification:', error)
+    return undefined
+  }
 }
 
-export function updateDomainVerification(
+export async function updateDomainVerification(
   xpub: string,
   domain: string,
   updates: Partial<DomainVerification>
-): DomainVerification | undefined {
-  const user = storage.users.get(xpub)
-  if (!user || !user.domainVerifications) return undefined
-  
+): Promise<DomainVerification | undefined> {
   const normalized = normalizeDomain(domain)
-  const existing = user.domainVerifications.get(normalized)
-  if (!existing) return undefined
-  
-  const updated: DomainVerification = {
-    ...existing,
-    ...updates,
-    domain: normalized, // Ensure domain doesn't change
-    verificationMethod: 'dns_txt', // Ensure method doesn't change
-    verificationToken: existing.verificationToken, // Token should never change
-    createdAt: existing.createdAt, // CreatedAt should never change
-  }
-  
-  user.domainVerifications.set(normalized, updated)
-  storage.users.set(xpub, user)
-  
-  return updated
-}
 
-export function getVerifiedDomains(xpub: string): string[] {
-  const user = storage.users.get(xpub)
-  if (!user) return []
-  
-  const allDomains = user.allowedDomains || []
-  return allDomains.filter(domain => {
-    // Test domains are always verified
-    if (isTestDomain(domain)) return true
-    
-    // Check verification status
-    const verification = user.domainVerifications?.get(domain)
-    return verification?.status === 'verified'
-  })
-}
-
-// Featured Wallets Management (Admin-only)
-export function getFeaturedWallets(): FeaturedWallet[] {
-  // Return enabled wallets sorted by priority
-  return storage.featuredWallets
-    .filter(wallet => wallet.enabled)
-    .sort((a, b) => a.priority - b.priority)
-}
-
-export function getAllFeaturedWallets(): FeaturedWallet[] {
-  // Return all wallets (including disabled) sorted by priority
-  return [...storage.featuredWallets].sort((a, b) => a.priority - b.priority)
-}
-
-export function addFeaturedWallet(wallet: Omit<FeaturedWallet, 'id' | 'createdAt' | 'updatedAt'>): FeaturedWallet {
-  const newWallet: FeaturedWallet = {
-    ...wallet,
-    id: `wallet_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  }
-  storage.featuredWallets.push(newWallet)
-  return newWallet
-}
-
-export function updateFeaturedWallet(id: string, updates: Partial<FeaturedWallet>): FeaturedWallet | undefined {
-  const index = storage.featuredWallets.findIndex(w => w.id === id)
-  if (index === -1) return undefined
-  
-  const updated: FeaturedWallet = {
-    ...storage.featuredWallets[index],
-    ...updates,
-    id, // Ensure ID doesn't change
-    updatedAt: Date.now(),
-  }
-  storage.featuredWallets[index] = updated
-  return updated
-}
-
-export function deleteFeaturedWallet(id: string): boolean {
-  const index = storage.featuredWallets.findIndex(w => w.id === id)
-  if (index === -1) return false
-  storage.featuredWallets.splice(index, 1)
-  return true
-}
-
-export function reorderFeaturedWallets(walletIds: string[]): boolean {
-  // Reorder wallets based on provided order
-  const walletMap = new Map(storage.featuredWallets.map(w => [w.id, w]))
-  const reordered: FeaturedWallet[] = []
-  
-  for (let i = 0; i < walletIds.length; i++) {
-    const wallet = walletMap.get(walletIds[i])
-    if (wallet) {
-      reordered.push({
-        ...wallet,
-        priority: i,
-        updatedAt: Date.now(),
-      })
-      walletMap.delete(walletIds[i])
-    }
-  }
-  
-  // Add any remaining wallets (shouldn't happen, but safety check)
-  for (const wallet of walletMap.values()) {
-    reordered.push({
-      ...wallet,
-      priority: reordered.length,
-      updatedAt: Date.now(),
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
     })
+
+    if (!dbUser) return undefined
+
+    const dbDomain = await prisma.domain.findFirst({
+      where: {
+        userId: dbUser.id,
+        domain: normalized,
+      },
+    })
+
+    if (!dbDomain) return undefined
+
+    const updateData: any = {
+      updatedAt: BigInt(Date.now()),
+    }
+
+    if ('status' in updates) updateData.verificationStatus = updates.status
+    if ('verifiedAt' in updates && updates.verifiedAt) {
+      updateData.verifiedAt = BigInt(updates.verifiedAt)
+    }
+
+    const updated = await prisma.domain.update({
+      where: { id: dbDomain.id },
+      data: updateData,
+    })
+
+    return {
+      domain: updated.domain,
+      status: updated.verificationStatus as any,
+      verificationMethod: updated.verificationMethod as any,
+      verificationToken: updated.verificationToken,
+      verifiedAt: updated.verifiedAt ? Number(updated.verifiedAt) : undefined,
+      createdAt: Number(updated.createdAt),
+    }
+  } catch (error) {
+    console.error('Error updating domain verification:', error)
+    return undefined
   }
-  
-  storage.featuredWallets = reordered
-  return true
 }
 
+export async function getVerifiedDomains(xpub: string): Promise<string[]> {
+  try {
+    const user = await getUserByXpub(xpub)
+    if (!user) return []
+
+    const allDomains = user.allowedDomains || []
+    return allDomains.filter(domain => {
+      // Test domains are always verified
+      if (isTestDomain(domain)) return true
+
+      // Check verification status
+      const verification = user.domainVerifications?.get(domain)
+      return verification?.status === 'verified'
+    })
+  } catch (error) {
+    console.error('Error getting verified domains:', error)
+    return []
+  }
+}
+
+// ============================================================================
+// Usage Stats Functions
+// ============================================================================
+
+export async function getUsageStats(siteId: string): Promise<UsageStats> {
+  try {
+    let dbStats = await prisma.usageStats.findUnique({
+      where: { siteId },
+    })
+
+    if (!dbStats) {
+      // Create default stats
+      const user = await prisma.user.findUnique({ where: { siteId } })
+      if (!user) {
+        throw new Error('User not found for siteId: ' + siteId)
+      }
+
+      const now = new Date()
+      const monthKey = `${now.getFullYear()}-${now.getMonth()}`
+
+      dbStats = await prisma.usageStats.create({
+        data: {
+          userId: user.id,
+          siteId,
+          currentMonth: 0,
+          yearToDate: 0,
+          allTime: 0,
+          returningUserLogins: 0,
+          uniquePubkeys: [],
+          monthlyPubkeys: { [monthKey]: [] },
+          dailyLogins: {},
+          dailyUniqueUsers: {},
+          domainLogins: {},
+          hourlyLogins: {},
+          loginHistory: [],
+          walletLogins: {},
+          geographicData: {},
+          deviceTypes: {},
+          referrers: {},
+          weeklyLogins: {},
+          monthlyLogins: {},
+          peakHours: {},
+          averageSessionLength: {},
+          bounceRate: {},
+          createdAt: BigInt(Date.now()),
+        },
+      })
+    }
+
+    return deserializeUsageStats(dbStats) as unknown as UsageStats
+  } catch (error) {
+    console.error('Error fetching usage stats:', error)
+    throw error
+  }
+}
+
+export async function recordLogin(
+  siteId: string,
+  pubkey: string,
+  domain?: string,
+  wallet?: string,
+  browser?: string,
+  deviceType?: string
+): Promise<void> {
+  try {
+    const stats = await getUsageStats(siteId)
+    const now = new Date()
+    const monthKey = `${now.getFullYear()}-${now.getMonth()}`
+
+    // Initialize month if needed
+    if (!stats.monthlyPubkeys.has(monthKey)) {
+      stats.monthlyPubkeys.set(monthKey, new Set())
+    }
+
+    const monthSet = stats.monthlyPubkeys.get(monthKey)!
+
+    // Daily tracking
+    const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    if (!stats.dailyUniqueUsers.has(dateKey)) {
+      stats.dailyUniqueUsers.set(dateKey, new Set())
+    }
+    const dailySet = stats.dailyUniqueUsers.get(dateKey)!
+
+    // Hourly tracking
+    const hourKey = `${dateKey}-${String(now.getHours()).padStart(2, '0')}`
+    stats.hourlyLogins.set(hourKey, (stats.hourlyLogins.get(hourKey) || 0) + 1)
+
+    // Track daily login count (all logins, not just unique)
+    stats.dailyLogins.set(dateKey, (stats.dailyLogins.get(dateKey) || 0) + 1)
+
+    // Track unique users per day
+    if (!dailySet.has(pubkey)) {
+      dailySet.add(pubkey)
+    }
+
+    // Domain tracking
+    if (domain) {
+      const normalizedDomain = normalizeDomain(domain)
+      stats.domainLogins.set(normalizedDomain, (stats.domainLogins.get(normalizedDomain) || 0) + 1)
+    }
+
+    // Wallet tracking
+    if (wallet) {
+      stats.walletLogins.set(wallet, (stats.walletLogins.get(wallet) || 0) + 1)
+    }
+
+    // New vs Returning Users tracking
+    const isFirstTime = !stats.uniquePubkeys.has(pubkey)
+    if (isFirstTime) {
+      stats.returningUserLogins++
+    }
+
+    // Only count if new pubkey for this month (for monthly stats)
+    if (!monthSet.has(pubkey)) {
+      monthSet.add(pubkey)
+      stats.currentMonth++
+      stats.allTime++
+
+      // Update YTD
+      const currentYear = now.getFullYear()
+      let ytdCount = 0
+      for (const [key, pubkeys] of stats.monthlyPubkeys.entries()) {
+        if (key.startsWith(String(currentYear))) {
+          ytdCount += pubkeys.size
+        }
+      }
+      stats.yearToDate = ytdCount
+    }
+
+    stats.uniquePubkeys.add(pubkey)
+
+    // Update login history (keep last 90 days)
+    const historyEntry = {
+      date: dateKey,
+      count: stats.dailyLogins.get(dateKey) || 0,
+      uniqueUsers: dailySet.size,
+    }
+
+    // Remove old entries (older than 90 days)
+    const cutoffDate = new Date(now)
+    cutoffDate.setDate(cutoffDate.getDate() - 90)
+    const cutoffKey = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}-${String(cutoffDate.getDate()).padStart(2, '0')}`
+
+    stats.loginHistory = stats.loginHistory.filter(entry => entry.date >= cutoffKey)
+
+    // Add or update today's entry
+    const existingIndex = stats.loginHistory.findIndex(entry => entry.date === dateKey)
+    if (existingIndex >= 0) {
+      stats.loginHistory[existingIndex] = historyEntry
+    } else {
+      stats.loginHistory.push(historyEntry)
+      stats.loginHistory.sort((a, b) => a.date.localeCompare(b.date))
+    }
+
+    // Serialize and save to database
+    const serialized = serializeUsageStats(stats)
+
+    await prisma.usageStats.update({
+      where: { siteId },
+      data: {
+        ...serialized,
+        updatedAt: BigInt(Date.now()),
+      } as any,
+    })
+  } catch (error) {
+    console.error('Error recording login:', error)
+  }
+}
+
+export async function resetMonthlyStats(): Promise<void> {
+  try {
+    const now = new Date()
+    const monthKey = `${now.getFullYear()}-${now.getMonth()}`
+
+    const allStats = await prisma.usageStats.findMany()
+
+    for (const dbStats of allStats) {
+      const stats = deserializeUsageStats(dbStats)
+
+      if (!stats.monthlyPubkeys.has(monthKey)) {
+        stats.currentMonth = 0
+        stats.monthlyPubkeys.set(monthKey, new Set())
+
+        const serialized = serializeUsageStats(stats)
+
+        await prisma.usageStats.update({
+          where: { id: dbStats.id },
+          data: {
+            ...serialized,
+            updatedAt: BigInt(Date.now()),
+          } as any,
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Error resetting monthly stats:', error)
+  }
+}
+
+// ============================================================================
 // Activity Log Functions
-export function logActivity(
+// ============================================================================
+
+export async function logActivity(
   xpub: string,
   type: ActivityType,
   description: string,
   metadata?: Record<string, any>
-): void {
-  if (!storage.activityLogs.has(xpub)) {
-    storage.activityLogs.set(xpub, [])
-  }
-  
-  const logs = storage.activityLogs.get(xpub)!
-  const activity: ActivityLog = {
-    id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-    xpub,
-    type,
-    description,
-    timestamp: Date.now(),
-    metadata,
-  }
-  
-  logs.push(activity)
-  
-  // Keep only last 1000 activities per user
-  if (logs.length > 1000) {
-    logs.shift()
+): Promise<void> {
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { xpub },
+    })
+
+    if (!dbUser) {
+      console.error('logActivity: User not found for xpub:', xpub)
+      return
+    }
+
+    await prisma.activityLog.create({
+      data: {
+        userId: dbUser.id,
+        xpub,
+        type,
+        description,
+        timestamp: BigInt(Date.now()),
+        metadata: metadata || {},
+      },
+    })
+  } catch (error) {
+    console.error('Error logging activity:', error)
   }
 }
 
-export function getActivityLogs(xpub: string, limit?: number): ActivityLog[] {
-  const logs = storage.activityLogs.get(xpub) || []
-  const sorted = logs.sort((a, b) => b.timestamp - a.timestamp) // Most recent first
-  return limit ? sorted.slice(0, limit) : sorted
+export async function getActivityLogs(xpub: string, limit?: number): Promise<ActivityLog[]> {
+  try {
+    const logs = await prisma.activityLog.findMany({
+      where: { xpub },
+      orderBy: { timestamp: 'desc' },
+      take: limit || undefined,
+    })
+
+    return logs.map(log => ({
+      id: log.id,
+      xpub: log.xpub,
+      type: log.type as ActivityType,
+      description: log.description,
+      timestamp: Number(log.timestamp),
+      metadata: log.metadata as Record<string, any> | undefined,
+    }))
+  } catch (error) {
+    console.error('Error getting activity logs:', error)
+    return []
+  }
 }
 
-export function getActivityLogsByType(xpub: string, type: ActivityType, limit?: number): ActivityLog[] {
-  const logs = getActivityLogs(xpub)
-  const filtered = logs.filter(log => log.type === type)
-  return limit ? filtered.slice(0, limit) : filtered
+export async function getActivityLogsByType(
+  xpub: string,
+  type: ActivityType,
+  limit?: number
+): Promise<ActivityLog[]> {
+  try {
+    const logs = await prisma.activityLog.findMany({
+      where: {
+        xpub,
+        type,
+      },
+      orderBy: { timestamp: 'desc' },
+      take: limit || undefined,
+    })
+
+    return logs.map(log => ({
+      id: log.id,
+      xpub: log.xpub,
+      type: log.type as ActivityType,
+      description: log.description,
+      timestamp: Number(log.timestamp),
+      metadata: log.metadata as Record<string, any> | undefined,
+    }))
+  } catch (error) {
+    console.error('Error getting activity logs by type:', error)
+    return []
+  }
 }
 
-export function getActivityLogsByDateRange(
+export async function getActivityLogsByDateRange(
   xpub: string,
   startDate: number,
   endDate: number
-): ActivityLog[] {
-  const logs = getActivityLogs(xpub)
-  return logs.filter(log => log.timestamp >= startDate && log.timestamp <= endDate)
-}
+): Promise<ActivityLog[]> {
+  try {
+    const logs = await prisma.activityLog.findMany({
+      where: {
+        xpub,
+        timestamp: {
+          gte: BigInt(startDate),
+          lte: BigInt(endDate),
+        },
+      },
+      orderBy: { timestamp: 'desc' },
+    })
 
-// Contact Submissions Storage Functions
-export function createContactSubmission(submission: Omit<ContactSubmission, 'id' | 'timestamp' | 'status'>): ContactSubmission {
-  const id = `contact_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-  const contactSubmission: ContactSubmission = {
-    id,
-    ...submission,
-    timestamp: Date.now(),
-    status: 'unread',
-  }
-  storage.contactSubmissions.set(id, contactSubmission)
-  console.log('Storage: Contact submission created and stored')
-  console.log('  Storage instance ID:', STORAGE_INSTANCE_ID)
-  console.log('  ID:', id)
-  console.log('  Email:', contactSubmission.email)
-  console.log('  Subject:', contactSubmission.subject)
-  console.log('  Total stored:', storage.contactSubmissions.size)
-  console.log('  All IDs in storage:', Array.from(storage.contactSubmissions.keys()))
-  console.log('  Storage object reference:', storage.contactSubmissions)
-  return contactSubmission
-}
-
-export function getContactSubmission(id: string): ContactSubmission | undefined {
-  return storage.contactSubmissions.get(id)
-}
-
-export function getAllContactSubmissions(): ContactSubmission[] {
-  const all = Array.from(storage.contactSubmissions.values()).sort((a, b) => b.timestamp - a.timestamp)
-  console.log('Storage: getAllContactSubmissions called')
-  console.log('  Storage instance ID:', STORAGE_INSTANCE_ID)
-  console.log('  Total in Map:', storage.contactSubmissions.size)
-  console.log('  Returned count:', all.length)
-  console.log('  IDs:', all.map(s => s.id))
-  console.log('  Storage object reference:', storage.contactSubmissions)
-  if (all.length > 0) {
-    console.log('  First submission:', { id: all[0].id, email: all[0].email, subject: all[0].subject })
-  } else {
-    console.log('  WARNING: Storage is empty - checking if this is a different instance')
-  }
-  return all
-}
-
-export function getUnreadContactSubmissions(): ContactSubmission[] {
-  return Array.from(storage.contactSubmissions.values())
-    .filter(sub => sub.status === 'unread')
-    .sort((a, b) => b.timestamp - a.timestamp)
-}
-
-export function updateContactSubmissionStatus(id: string, status: ContactSubmission['status']): ContactSubmission | undefined {
-  const submission = storage.contactSubmissions.get(id)
-  if (!submission) return undefined
-  
-  submission.status = status
-  storage.contactSubmissions.set(id, submission)
-  return submission
-}
-
-export function deleteContactSubmission(id: string): boolean {
-  return storage.contactSubmissions.delete(id)
-}
-
-// Reset stats on the 1st of each month
-if (typeof window === 'undefined') {
-  const now = new Date()
-  if (now.getDate() === 1) {
-    resetMonthlyStats()
+    return logs.map(log => ({
+      id: log.id,
+      xpub: log.xpub,
+      type: log.type as ActivityType,
+      description: log.description,
+      timestamp: Number(log.timestamp),
+      metadata: log.metadata as Record<string, any> | undefined,
+    }))
+  } catch (error) {
+    console.error('Error getting activity logs by date range:', error)
+    return []
   }
 }
 
+// ============================================================================
+// Featured Wallets Functions
+// ============================================================================
 
+export async function getFeaturedWallets(): Promise<FeaturedWallet[]> {
+  try {
+    const wallets = await prisma.featuredWallet.findMany({
+      where: { enabled: true },
+      orderBy: { priority: 'asc' },
+    })
+
+    return wallets.map(w => ({
+      id: w.id,
+      name: w.name,
+      logoUrl: w.logoUrl,
+      downloadUrl: w.downloadUrl,
+      enabled: w.enabled,
+      priority: w.priority,
+      createdAt: Number(w.createdAt),
+      updatedAt: Number(w.updatedAt),
+    }))
+  } catch (error) {
+    console.error('Error getting featured wallets:', error)
+    return []
+  }
+}
+
+export async function getAllFeaturedWallets(): Promise<FeaturedWallet[]> {
+  try {
+    const wallets = await prisma.featuredWallet.findMany({
+      orderBy: { priority: 'asc' },
+    })
+
+    return wallets.map(w => ({
+      id: w.id,
+      name: w.name,
+      logoUrl: w.logoUrl,
+      downloadUrl: w.downloadUrl,
+      enabled: w.enabled,
+      priority: w.priority,
+      createdAt: Number(w.createdAt),
+      updatedAt: Number(w.updatedAt),
+    }))
+  } catch (error) {
+    console.error('Error getting all featured wallets:', error)
+    return []
+  }
+}
+
+export async function addFeaturedWallet(
+  wallet: Omit<FeaturedWallet, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<FeaturedWallet> {
+  try {
+    const id = `wallet_${Date.now()}_${Math.random().toString(36).substring(7)}`
+    const now = Date.now()
+
+    const dbWallet = await prisma.featuredWallet.create({
+      data: {
+        id,
+        name: wallet.name,
+        logoUrl: wallet.logoUrl,
+        downloadUrl: wallet.downloadUrl,
+        enabled: wallet.enabled,
+        priority: wallet.priority,
+        createdAt: BigInt(now),
+        updatedAt: BigInt(now),
+      },
+    })
+
+    return {
+      id: dbWallet.id,
+      name: dbWallet.name,
+      logoUrl: dbWallet.logoUrl,
+      downloadUrl: dbWallet.downloadUrl,
+      enabled: dbWallet.enabled,
+      priority: dbWallet.priority,
+      createdAt: Number(dbWallet.createdAt),
+      updatedAt: Number(dbWallet.updatedAt),
+    }
+  } catch (error) {
+    console.error('Error adding featured wallet:', error)
+    throw error
+  }
+}
+
+export async function updateFeaturedWallet(
+  id: string,
+  updates: Partial<FeaturedWallet>
+): Promise<FeaturedWallet | undefined> {
+  try {
+    const updateData: any = {
+      updatedAt: BigInt(Date.now()),
+    }
+
+    if ('name' in updates) updateData.name = updates.name
+    if ('logoUrl' in updates) updateData.logoUrl = updates.logoUrl
+    if ('downloadUrl' in updates) updateData.downloadUrl = updates.downloadUrl
+    if ('enabled' in updates) updateData.enabled = updates.enabled
+    if ('priority' in updates) updateData.priority = updates.priority
+
+    const dbWallet = await prisma.featuredWallet.update({
+      where: { id },
+      data: updateData,
+    })
+
+    return {
+      id: dbWallet.id,
+      name: dbWallet.name,
+      logoUrl: dbWallet.logoUrl,
+      downloadUrl: dbWallet.downloadUrl,
+      enabled: dbWallet.enabled,
+      priority: dbWallet.priority,
+      createdAt: Number(dbWallet.createdAt),
+      updatedAt: Number(dbWallet.updatedAt),
+    }
+  } catch (error) {
+    console.error('Error updating featured wallet:', error)
+    return undefined
+  }
+}
+
+export async function deleteFeaturedWallet(id: string): Promise<boolean> {
+  try {
+    await prisma.featuredWallet.delete({
+      where: { id },
+    })
+    return true
+  } catch (error) {
+    console.error('Error deleting featured wallet:', error)
+    return false
+  }
+}
+
+export async function reorderFeaturedWallets(walletIds: string[]): Promise<boolean> {
+  try {
+    // Update priority for each wallet
+    for (let i = 0; i < walletIds.length; i++) {
+      await prisma.featuredWallet.update({
+        where: { id: walletIds[i] },
+        data: {
+          priority: i,
+          updatedAt: BigInt(Date.now()),
+        },
+      })
+    }
+    return true
+  } catch (error) {
+    console.error('Error reordering featured wallets:', error)
+    return false
+  }
+}
+
+// ============================================================================
+// Contact Submissions Functions
+// ============================================================================
+
+export async function createContactSubmission(
+  submission: Omit<ContactSubmission, 'id' | 'timestamp' | 'status'>
+): Promise<ContactSubmission> {
+  try {
+    const id = `contact_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+    const now = Date.now()
+
+    const dbSubmission = await prisma.contactSubmission.create({
+      data: {
+        id,
+        name: submission.name,
+        email: submission.email,
+        subject: submission.subject,
+        message: submission.message,
+        urgent: submission.urgent || false,
+        timestamp: BigInt(now),
+        status: 'unread',
+      },
+    })
+
+    console.log('Storage: Contact submission created in database')
+    console.log('  ID:', dbSubmission.id)
+    console.log('  Email:', dbSubmission.email)
+
+    return {
+      id: dbSubmission.id,
+      name: dbSubmission.name || undefined,
+      email: dbSubmission.email,
+      subject: dbSubmission.subject,
+      message: dbSubmission.message,
+      urgent: dbSubmission.urgent,
+      timestamp: Number(dbSubmission.timestamp),
+      status: dbSubmission.status as any,
+    }
+  } catch (error) {
+    console.error('Error creating contact submission:', error)
+    throw error
+  }
+}
+
+export async function getContactSubmission(id: string): Promise<ContactSubmission | undefined> {
+  try {
+    const dbSubmission = await prisma.contactSubmission.findUnique({
+      where: { id },
+    })
+
+    if (!dbSubmission) return undefined
+
+    return {
+      id: dbSubmission.id,
+      name: dbSubmission.name || undefined,
+      email: dbSubmission.email,
+      subject: dbSubmission.subject,
+      message: dbSubmission.message,
+      urgent: dbSubmission.urgent,
+      timestamp: Number(dbSubmission.timestamp),
+      status: dbSubmission.status as any,
+    }
+  } catch (error) {
+    console.error('Error getting contact submission:', error)
+    return undefined
+  }
+}
+
+export async function getAllContactSubmissions(): Promise<ContactSubmission[]> {
+  try {
+    const submissions = await prisma.contactSubmission.findMany({
+      orderBy: { timestamp: 'desc' },
+    })
+
+    console.log('Storage: getAllContactSubmissions from database')
+    console.log('  Total:', submissions.length)
+
+    return submissions.map(s => ({
+      id: s.id,
+      name: s.name || undefined,
+      email: s.email,
+      subject: s.subject,
+      message: s.message,
+      urgent: s.urgent,
+      timestamp: Number(s.timestamp),
+      status: s.status as any,
+    }))
+  } catch (error) {
+    console.error('Error getting all contact submissions:', error)
+    return []
+  }
+}
+
+export async function getUnreadContactSubmissions(): Promise<ContactSubmission[]> {
+  try {
+    const submissions = await prisma.contactSubmission.findMany({
+      where: { status: 'unread' },
+      orderBy: { timestamp: 'desc' },
+    })
+
+    return submissions.map(s => ({
+      id: s.id,
+      name: s.name || undefined,
+      email: s.email,
+      subject: s.subject,
+      message: s.message,
+      urgent: s.urgent,
+      timestamp: Number(s.timestamp),
+      status: s.status as any,
+    }))
+  } catch (error) {
+    console.error('Error getting unread contact submissions:', error)
+    return []
+  }
+}
+
+export async function updateContactSubmissionStatus(
+  id: string,
+  status: ContactSubmission['status']
+): Promise<ContactSubmission | undefined> {
+  try {
+    const dbSubmission = await prisma.contactSubmission.update({
+      where: { id },
+      data: { status },
+    })
+
+    return {
+      id: dbSubmission.id,
+      name: dbSubmission.name || undefined,
+      email: dbSubmission.email,
+      subject: dbSubmission.subject,
+      message: dbSubmission.message,
+      urgent: dbSubmission.urgent,
+      timestamp: Number(dbSubmission.timestamp),
+      status: dbSubmission.status as any,
+    }
+  } catch (error) {
+    console.error('Error updating contact submission status:', error)
+    return undefined
+  }
+}
+
+export async function deleteContactSubmission(id: string): Promise<boolean> {
+  try {
+    await prisma.contactSubmission.delete({
+      where: { id },
+    })
+    return true
+  } catch (error) {
+    console.error('Error deleting contact submission:', error)
+    return false
+  }
+}

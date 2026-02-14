@@ -26,12 +26,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Domain is required' }, { status: 400 })
   }
   
-  const user = getUserByXpub(xpub)
+  const user = await getUserByXpub(xpub)
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
-  
-  const verification = getDomainVerification(xpub, domain)
+
+  const verification = await getDomainVerification(xpub, domain)
   if (!verification) {
     return NextResponse.json({ 
       error: 'Domain not found or verification not initiated' 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   
   if (result.verified) {
     // Update verification status
-    updateDomainVerification(xpub, domain, {
+    await updateDomainVerification(xpub, domain, {
       status: 'verified',
       verifiedAt: Date.now(),
       lastCheckedAt: Date.now(),
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   }
   
   // Update with error
-  updateDomainVerification(xpub, domain, {
+  await updateDomainVerification(xpub, domain, {
     lastCheckedAt: Date.now(),
     errorMessage: result.error,
     status: 'failed'

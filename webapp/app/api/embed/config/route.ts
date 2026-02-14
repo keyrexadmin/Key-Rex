@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   // Get featured wallets (only enabled ones, sorted by priority)
   // These are global and available to all users
-  const featuredWallets = getFeaturedWallets()
+  const featuredWallets = await getFeaturedWallets()
 
   // If no siteId provided, return default config (for landing page preview)
   // Use same footer text as actual embed script so previews match
@@ -50,8 +50,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Get user by siteId (for dashboard preview)
-  const user = getUserBySiteId(siteId)
-  
+  const user = await getUserBySiteId(siteId)
+
   // Validate origin for embed config requests (check verified domains only)
   const origin = request.headers.get('origin')
   if (user && origin) {
@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
     } catch {
       requestDomain = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0]
     }
-    
+
     // Test domains are always allowed
     if (requestDomain && !isTestDomain(requestDomain)) {
-      const verifiedDomains = getVerifiedDomains(user.xpub)
+      const verifiedDomains = await getVerifiedDomains(user.xpub)
       
       // If user has no verified domains, block config requests from production domains
       if (verifiedDomains.length === 0) {
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
   console.log('=== Config API called ===')
   console.log('Requested siteId:', siteId)
   console.log('User found:', !!user)
-  const allUsers = getAllUsers()
+  const allUsers = await getAllUsers()
   console.log('Total users in storage:', allUsers.length)
   console.log('All siteIds in storage:', allUsers.map(u => u.siteId))
 

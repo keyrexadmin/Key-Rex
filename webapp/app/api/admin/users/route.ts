@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // Get all users from storage
-    const users = getAllUsers()
+    const users = await getAllUsers()
     
     // Format for response
     const usersList = users.map(user => ({

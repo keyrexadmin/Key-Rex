@@ -17,11 +17,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if user already exists
-    let user = getUserByXpub(xpub)
-    
+    let user = await getUserByXpub(xpub)
+
     if (user) {
       // Update existing user with the specified siteId
-      const updated = updateUser(xpub, { siteId })
+      const updated = await updateUser(xpub, { siteId })
       if (updated) {
         return NextResponse.json({ 
           success: true, 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create new user with the specified siteId
-      user = createUser(xpub, siteId)
+      user = await createUser(xpub, siteId)
       return NextResponse.json({ 
         success: true, 
         message: 'User created with specified siteId',

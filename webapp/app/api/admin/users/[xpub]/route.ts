@@ -28,17 +28,17 @@ export async function GET(
   try {
     const resolvedParams = await params
     const xpub = decodeURIComponent(resolvedParams.xpub)
-    const user = getUserByXpub(xpub)
-    
+    const user = await getUserByXpub(xpub)
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
-    
+
     // Get usage stats
-    const usage = getUsageStats(user.siteId)
-    
+    const usage = await getUsageStats(user.siteId)
+
     // Get activity logs
-    const activityLogs = getActivityLogs(xpub, 50) // Last 50 activities
+    const activityLogs = await getActivityLogs(xpub, 50) // Last 50 activities
     
     // Format daily data for last 30 days
     const today = new Date()

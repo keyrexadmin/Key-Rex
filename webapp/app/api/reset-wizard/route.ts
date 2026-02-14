@@ -9,13 +9,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
     
-    const user = getUserByXpub(xpub)
+    const user = await getUserByXpub(xpub)
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
-    
+
     // Reset wizard completion status
-    const updated = updateUser(xpub, {
+    const updated = await updateUser(xpub, {
       freeDisclaimerAccepted: false,
       freeDisclaimerAcceptedAt: undefined,
       freeDisclaimerAcceptedIp: undefined,

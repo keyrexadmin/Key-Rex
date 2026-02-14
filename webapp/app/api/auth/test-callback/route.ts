@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   const k1 = searchParams.get('k1')
   
   if (k1) {
-    const xpub = getAuthSession(k1)
-    return NextResponse.json({ 
+    const xpub = await getAuthSession(k1)
+    return NextResponse.json({
       k1: k1.substring(0, 20) + '...',
       xpub: xpub ? xpub.substring(0, 20) + '...' : 'NOT FOUND',
       found: !!xpub

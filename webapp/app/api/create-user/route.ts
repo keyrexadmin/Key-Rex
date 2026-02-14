@@ -14,19 +14,20 @@ export async function POST(request: NextRequest) {
     console.log('xpub:', xpub.substring(0, 20) + '...')
     
     // Check if user already exists
-    let user = getUserByXpub(xpub)
+    let user = await getUserByXpub(xpub)
     console.log('User exists?', !!user)
-    
+
     if (user) {
       console.log('User already exists with siteId:', user.siteId)
-      return NextResponse.json({ 
-        success: true, 
+      const allUsers = await getAllUsers()
+      return NextResponse.json({
+        success: true,
         message: 'User already exists',
         user: {
           xpub: user.xpub.substring(0, 20) + '...',
           siteId: user.siteId,
         },
-        allUsers: getAllUsers().map(u => ({
+        allUsers: allUsers.map(u => ({
           siteId: u.siteId,
           xpub: u.xpub.substring(0, 20) + '...',
         }))
@@ -36,26 +37,28 @@ export async function POST(request: NextRequest) {
     // Create new user
     const siteId = generateSiteId()
     console.log('Creating user with siteId:', siteId)
-    user = createUser(xpub, siteId)
-    
+    user = await createUser(xpub, siteId)
+
     // Verify it was created
-    const verify = getUserByXpub(xpub)
+    const verify = await getUserByXpub(xpub)
     console.log('User created?', !!verify)
-    console.log('Total users in storage:', getAllUsers().length)
-    console.log('All siteIds:', getAllUsers().map(u => u.siteId))
+    const allUsersAfterCreate = await getAllUsers()
+    console.log('Total users in storage:', allUsersAfterCreate.length)
+    console.log('All siteIds:', allUsersAfterCreate.map(u => u.siteId))
     
     if (!verify) {
       return NextResponse.json({ error: 'Failed to create user - user not found after creation' }, { status: 500 })
     }
     
-    return NextResponse.json({ 
-      success: true, 
+    const finalUsers = await getAllUsers()
+    return NextResponse.json({
+      success: true,
       message: 'User created',
       user: {
         xpub: user.xpub.substring(0, 20) + '...',
         siteId: user.siteId,
       },
-      allUsers: getAllUsers().map(u => ({
+      allUsers: finalUsers.map(u => ({
         siteId: u.siteId,
         xpub: u.xpub.substring(0, 20) + '...',
       }))

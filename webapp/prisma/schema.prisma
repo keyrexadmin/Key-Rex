@@ -1,0 +1,160 @@
+// Key-Rex PostgreSQL Schema
+// Migration from in-memory Maps to persistent storage
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users table - Key-Rex customers (website owners)
+model User {
+  id                       String   @id @default(cuid())
+  xpub                     String   @unique
+  siteId                   String   @unique
+  subscribed               Boolean  @default(true)
+  subscriptionTier         String   @default("free")
+  integrationEnabled       Boolean  @default(true)
+  freeDisclaimerAccepted   Boolean  @default(false)
+  freeDisclaimerAcceptedAt BigInt?
+  createdAt                BigInt
+  updatedAt                BigInt?
+
+  domains                  Domain[]
+  activityLogs             ActivityLog[]
+  usageStats               UsageStats?
+
+  @@index([xpub])
+  @@index([siteId])
+  @@map("users")
+}
+
+// Domains - normalized from User.domainVerifications Map
+model Domain {
+  id                   String   @id @default(cuid())
+  userId               String
+  domain               String
+  verificationStatus   String   @default("pending")
+  verificationMethod   String   @default("dns_txt")
+  verificationToken    String
+  verifiedAt           BigInt?
+  createdAt            BigInt
+  updatedAt            BigInt?
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, domain])
+  @@index([userId])
+  @@index([domain])
+  @@index([verificationStatus])
+  @@map("domains")
+}
+
+// UsageStats - analytics data with JSON fields for complex Maps/Sets
+model UsageStats {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  siteId                String   @unique
+
+  // Simple counters
+  currentMonth          Int      @default(0)
+  yearToDate            Int      @default(0)
+  allTime               Int      @default(0)
+  returningUserLogins   Int      @default(0)
+
+  // Complex nested data as JSON (Maps → objects, Sets → arrays)
+  uniquePubkeys         Json     @default("[]")
+  monthlyPubkeys        Json     @default("{}")
+  dailyLogins           Json     @default("{}")
+  dailyUniqueUsers      Json     @default("{}")
+  domainLogins          Json     @default("{}")
+  hourlyLogins          Json     @default("{}")
+  loginHistory          Json     @default("[]")
+  walletLogins          Json     @default("{}")
+  geographicData        Json     @default("{}")
+  deviceTypes           Json     @default("{}")
+  referrers             Json     @default("{}")
+  weeklyLogins          Json     @default("{}")
+  monthlyLogins         Json     @default("{}")
+  peakHours             Json     @default("{}")
+  averageSessionLength  Json     @default("{}")
+  bounceRate            Json     @default("{}")
+
+  createdAt             BigInt
+  updatedAt             BigInt?
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("usage_stats")
+}
+
+// ActivityLogs - normalized for queryability
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  xpub        String
+  type        String
+  description String   @db.Text
+  timestamp   BigInt
+  metadata    Json?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([xpub])
+  @@index([type])
+  @@index([timestamp])
+  @@map("activity_logs")
+}
+
+// AuthSessions - temporary k1→xpub mappings (5 min TTL)
+model AuthSession {
+  id        String   @id @default(cuid())
+  k1        String   @unique
+  xpub      String
+  used      Boolean  @default(false)
+  timestamp BigInt
+  expiresAt BigInt
+
+  @@index([k1])
+  @@index([expiresAt])
+  @@index([used])
+  @@map("auth_sessions")
+}
+
+// FeaturedWallets - global admin-controlled wallet list
+model FeaturedWallet {
+  id          String   @id
+  name        String
+  logoUrl     String
+  downloadUrl String
+  enabled     Boolean  @default(true)
+  priority    Int
+  createdAt   BigInt
+  updatedAt   BigInt
+
+  @@index([priority])
+  @@index([enabled])
+  @@map("featured_wallets")
+}
+
+// ContactSubmissions - contact form data
+model ContactSubmission {
+  id        String   @id
+  name      String?
+  email     String
+  subject   String
+  message   String   @db.Text
+  urgent    Boolean  @default(false)
+  timestamp BigInt
+  status    String   @default("unread")
+
+  @@index([status])
+  @@index([timestamp])
+  @@index([urgent])
+  @@map("contact_submissions")
+}

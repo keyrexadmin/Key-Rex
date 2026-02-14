@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || 'unknown'
 
     // Create contact submission
-    const submission = createContactSubmission({
+    const submission = await createContactSubmission({
       name: name ? name.trim().substring(0, 100) : undefined,
       email: email.trim().substring(0, 254),
       subject: subject.trim().substring(0, 200),

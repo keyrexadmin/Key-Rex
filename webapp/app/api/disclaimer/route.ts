@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   
-  let user = getUserByXpub(xpub)
+  let user = await getUserByXpub(xpub)
   if (!user) {
     console.error('User not found in storage, checking backup cookie...')
     // Check backup cookie - user might have been created but storage reset
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         const { createUser } = await import('@/lib/storage')
         const { generateSiteId } = await import('@/lib/utils')
         // Create user from backup data
-        user = createUser(xpub, generateSiteId())
+        user = await createUser(xpub, generateSiteId())
         // Restore subscription data from backup
         if (backupData.subscriptionTier) {
           user.subscriptionTier = backupData.subscriptionTier
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   const timestamp = Date.now()
   
   // Store acceptance with timestamp, IP, and User Agent
-  const updated = updateUser(xpub, {
+  const updated = await updateUser(xpub, {
     freeDisclaimerAccepted: true,
     freeDisclaimerAcceptedAt: timestamp,
     freeDisclaimerAcceptedIp: ip,
