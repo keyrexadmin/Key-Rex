@@ -86,12 +86,6 @@ export default function PreviewGate() {
             Unlock Preview
           </button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-white/40 text-sm">
-            Preview password: <code className="text-orange-400">keyrex2024</code>
-          </p>
-        </div>
       </div>
     </div>
   )
