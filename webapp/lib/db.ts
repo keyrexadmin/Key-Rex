@@ -10,6 +10,13 @@
 
 import { PrismaClient } from '@prisma/client'
 
+// WORKAROUND: Use DATABASE_URL_CUSTOM if available (Vercel doesn't allow overriding DATABASE_URL)
+// This allows us to use optimized connection parameters in production
+if (process.env.DATABASE_URL_CUSTOM) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL_CUSTOM
+  console.log('Using DATABASE_URL_CUSTOM for connection')
+}
+
 // Singleton pattern prevents connection exhaustion in Vercel serverless
 const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined }
 
