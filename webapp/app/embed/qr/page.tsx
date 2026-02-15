@@ -576,14 +576,40 @@ function QRContent() {
                 pollingIntervalRef.current = null
               }
 
-              // Wait for cookie to propagate, then redirect to returnUrl or dashboard
-              setTimeout(() => {
-                if (returnUrl) {
-                  console.log('Dashboard login: Redirecting to returnUrl:', decodeURIComponent(returnUrl))
-                  window.location.href = decodeURIComponent(returnUrl)
-                } else {
-                  console.log('Dashboard login: Redirecting to dashboard')
-                  router.push('/dashboard')
+              // Wait for cookie to propagate, then check wizard status and redirect
+              setTimeout(async () => {
+                try {
+                  // Check if user has completed the wizard
+                  const userRes = await fetch('/api/user', {
+                    credentials: 'include',
+                    cache: 'no-store',
+                  })
+
+                  if (userRes.ok) {
+                    const userData = await userRes.json()
+
+                    // Check if wizard is complete
+                    if (!userData.freeDisclaimerAccepted) {
+                      console.log('Dashboard login: User has not completed wizard - redirecting to home with wizard=true')
+                      window.location.href = '/?wizard=true'
+                      return
+                    }
+
+                    console.log('Dashboard login: User has completed wizard')
+                  }
+
+                  // Wizard is complete (or we couldn't verify) - redirect to returnUrl or dashboard
+                  if (returnUrl) {
+                    console.log('Dashboard login: Redirecting to returnUrl:', decodeURIComponent(returnUrl))
+                    window.location.href = decodeURIComponent(returnUrl)
+                  } else {
+                    console.log('Dashboard login: Redirecting to dashboard')
+                    router.push('/dashboard')
+                  }
+                } catch (error) {
+                  console.error('Error checking wizard status:', error)
+                  // On error, redirect to home with wizard
+                  window.location.href = '/?wizard=true'
                 }
               }, 1500)
               return
