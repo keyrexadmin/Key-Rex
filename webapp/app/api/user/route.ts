@@ -12,13 +12,15 @@ export async function GET(request: NextRequest) {
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }
-  
+
   if (!xpub) {
     if (process.env.NODE_ENV === 'development') {
       console.error('No xpub cookie found')
     }
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
+
+  try {
   
   // Check for subscription backup in cookie FIRST (before checking storage)
   // This ensures we always use the most recent subscription data, even if storage has stale data
@@ -348,7 +350,22 @@ export async function GET(request: NextRequest) {
     domainCount: (user.allowedDomains || []).length
   })
   console.log('CRITICAL: Deleted domains are NEVER restored to backup cookie')
-  
+
   return response
+  } catch (error) {
+    console.error('ERROR in /api/user route:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      xpub: xpub?.substring(0, 20) + '...',
+    })
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
+      { status: 500 }
+    )
+  }
 }
 
