@@ -518,6 +518,108 @@ function QRContent() {
     }
   }, [isAdmin, k1, loading, qrCode, router])
 
+  // Poll for dashboard login (no siteId, not admin)
+  useEffect(() => {
+    if (isAdmin || siteId || !k1 || loading || !qrCode || isRefreshing) return
+
+    // This is a dashboard login (no siteId) - poll for xpub and redirect to dashboard
+    const startPolling = () => {
+      let pollCount = 0
+      const maxPolls = 40 // Poll for up to 80 seconds
+
+      pollingIntervalRef.current = setInterval(async () => {
+        pollCount++
+
+        try {
+          // Poll the callback endpoint to retrieve stored xpub (no siteId parameter)
+          const callbackUrl = `/api/auth/callback?k1=${encodeURIComponent(k1)}&tag=login`
+          const retrieveRes = await fetch(callbackUrl, {
+            credentials: 'include',
+          })
+
+          if (retrieveRes.ok) {
+            const retrieveData = await retrieveRes.json()
+
+            // Check if we got the xpub
+            if (retrieveData.status === 'OK' && retrieveData.xpub) {
+              const xpub = retrieveData.xpub
+
+              console.log('Dashboard login successful, xpub:', xpub.substring(0, 20) + '...')
+
+              // Set session cookie
+              const sessionRes = await fetch('/api/auth/set-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ xpub, k1 }),
+              })
+
+              if (!sessionRes.ok) {
+                console.error('Failed to set session')
+                setAuthStatus('error')
+                setAuthMessage('Failed to set session. Please try again.')
+                return
+              }
+
+              // Authentication successful
+              setAuthStatus('success')
+              setRetrievedXpub(xpub)
+              setShowSuccessAnimation(true)
+
+              if (soundEnabled) {
+                playSuccessSound()
+              }
+
+              // Clear polling interval
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current)
+                pollingIntervalRef.current = null
+              }
+
+              // Wait for cookie to propagate, then redirect to returnUrl or dashboard
+              setTimeout(() => {
+                if (returnUrl) {
+                  console.log('Dashboard login: Redirecting to returnUrl:', decodeURIComponent(returnUrl))
+                  window.location.href = decodeURIComponent(returnUrl)
+                } else {
+                  console.log('Dashboard login: Redirecting to dashboard')
+                  router.push('/dashboard')
+                }
+              }, 1500)
+              return
+            }
+          }
+
+          // If we've polled too many times, stop and show error
+          if (pollCount >= maxPolls) {
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+            setAuthStatus('error')
+            setAuthMessage('Authentication timed out. Please try again or scan the QR code again.')
+          }
+        } catch (error) {
+          console.error('Error polling dashboard auth status:', error)
+        }
+      }, 2000) // Poll every 2 seconds
+    }
+
+    // Start polling after a short delay
+    const delay = setTimeout(() => {
+      startPolling()
+    }, 2000)
+
+    // Cleanup function
+    return () => {
+      clearTimeout(delay)
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+    }
+  }, [isAdmin, k1, loading, qrCode, siteId, isRefreshing, returnUrl, soundEnabled, router])
+
   // Poll for regular user authentication status (retrieve xpub from callback)
   useEffect(() => {
     if (isAdmin || !k1 || loading || !qrCode || !siteId || isRefreshing) return
