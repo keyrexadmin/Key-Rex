@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent DoS attacks and cost abuse
   // More lenient in development to allow testing (especially for QR code page which may fetch multiple times)
   // Increased limit for development to handle wizard flow and QR code page refreshes
-  const limit = process.env.NODE_ENV === 'development' ? 120 : 5
-  const rateLimit = rateLimitMiddleware(request, limit, 60000) // 120/min in dev, 5/min in production
+  // Production: 30/min allows for legitimate auth flow (initial load, retries, multiple components)
+  const limit = process.env.NODE_ENV === 'development' ? 120 : 30
+  const rateLimit = rateLimitMiddleware(request, limit, 60000) // 120/min in dev, 30/min in production
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }

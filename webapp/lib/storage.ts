@@ -11,7 +11,8 @@ import {
   prisma,
   serializeUsageStats,
   deserializeUsageStats,
-  maybeCleanupAuthSessions
+  maybeCleanupAuthSessions,
+  withRetry
 } from './db'
 
 // ============================================================================
@@ -29,14 +30,16 @@ export async function storeAuthSession(k1: string, xpub: string): Promise<void> 
   const expiresAt = now + (5 * 60 * 1000) // 5 minutes
 
   try {
-    await prisma.authSession.create({
-      data: {
-        k1: cleanK1,
-        xpub,
-        used: false,
-        timestamp: BigInt(now),
-        expiresAt: BigInt(expiresAt),
-      },
+    await withRetry(async () => {
+      return await prisma.authSession.create({
+        data: {
+          k1: cleanK1,
+          xpub,
+          used: false,
+          timestamp: BigInt(now),
+          expiresAt: BigInt(expiresAt),
+        },
+      })
     })
     console.log('Session stored in database')
 
@@ -57,8 +60,10 @@ export async function getAuthSession(k1: string): Promise<string | undefined> {
   console.log('Full cleaned k1:', cleanK1)
 
   try {
-    const session = await prisma.authSession.findUnique({
-      where: { k1: cleanK1 },
+    const session = await withRetry(async () => {
+      return await prisma.authSession.findUnique({
+        where: { k1: cleanK1 },
+      })
     })
 
     if (!session) {
@@ -109,9 +114,11 @@ export async function markAuthSessionAsUsed(k1: string): Promise<void> {
 
 export async function getUserByXpub(xpub: string): Promise<User | undefined> {
   try {
-    const dbUser = await prisma.user.findUnique({
-      where: { xpub },
-      include: { domains: true },
+    const dbUser = await withRetry(async () => {
+      return await prisma.user.findUnique({
+        where: { xpub },
+        include: { domains: true },
+      })
     })
 
     if (!dbUser) return undefined
@@ -151,9 +158,11 @@ export async function getUserByXpub(xpub: string): Promise<User | undefined> {
 
 export async function getUserBySiteId(siteId: string): Promise<User | undefined> {
   try {
-    const dbUser = await prisma.user.findUnique({
-      where: { siteId },
-      include: { domains: true },
+    const dbUser = await withRetry(async () => {
+      return await prisma.user.findUnique({
+        where: { siteId },
+        include: { domains: true },
+      })
     })
 
     if (!dbUser) return undefined

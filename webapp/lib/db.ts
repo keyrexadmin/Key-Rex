@@ -11,15 +11,83 @@
 import { PrismaClient } from '@prisma/client'
 
 // Singleton pattern prevents connection exhaustion in Vercel serverless
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
+const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined }
 
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    // Connection pool configuration for serverless
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
+
+// Ensure connection is established (warm up for serverless)
+prisma.$connect().catch((err) => {
+  console.error('Failed to connect to database:', err)
+})
+
+// Graceful shutdown handler
+if (process.env.NODE_ENV === 'production') {
+  // In serverless, connections should be reused but may need cleanup
+  process.on('beforeExit', async () => {
+    await prisma.$disconnect()
+  })
+}
+
+// ============================================================================
+// Database Connection Utilities
+// ============================================================================
+
+/**
+ * Retry wrapper for database operations
+ * Handles transient connection errors in serverless environments
+ */
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delayMs = 100
+): Promise<T> {
+  let lastError: Error | undefined
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error: any) {
+      lastError = error
+
+      // Check if error is retryable (connection issues, timeouts)
+      const isRetryable =
+        error?.code === 'P1001' || // Can't reach database server
+        error?.code === 'P1002' || // Database server timeout
+        error?.code === 'P1008' || // Operations timed out
+        error?.code === 'P1017' || // Server closed connection
+        error?.message?.includes('Connection') ||
+        error?.message?.includes('closed') ||
+        error?.message?.includes('timeout')
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw error
+      }
+
+      // Exponential backoff
+      const delay = delayMs * Math.pow(2, attempt - 1)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`)
+      }
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+
+  throw lastError || new Error('Operation failed after retries')
+}
 
 // ============================================================================
 // Map/Set ↔ JSON Conversion Helpers
