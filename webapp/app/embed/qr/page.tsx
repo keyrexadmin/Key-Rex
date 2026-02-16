@@ -148,15 +148,17 @@ function QRContent() {
         callbackUrl = `${domain}/api/admin/auth/login?k1=${newK1}`
       } else {
         callbackUrl = siteId
-          ? `${domain}/api/auth/callback?k1=${newK1}&siteId=${siteId}`
-          : `${domain}/api/auth/callback?k1=${newK1}`
+          ? `${domain}/api/auth/callback?tag=login&k1=${newK1}&siteId=${siteId}`
+          : `${domain}/api/auth/callback?tag=login&k1=${newK1}`
       }
 
       const plainLnurl = callbackUrl
-      const lightningProtocol = `lightning:${callbackUrl}`
+      // CRITICAL FIX: Use bech32-encoded LNURL for lightning: protocol for mobile wallet deep linking
+      // Mobile wallets like Zeus expect lightning:lnurl1... format, not lightning:https://...
+      const lightningBech32 = `lightning:${lnurlBech32}`
 
       setLnurl(plainLnurl)
-      setLightningLnurl(lightningProtocol)
+      setLightningLnurl(lightningBech32)
 
       // Use the bech32-encoded LNURL we already fetched for the QR code
       // QR codes should contain bech32 LNURL (lnurl...), not lightning: protocol URL
@@ -349,27 +351,17 @@ function QRContent() {
 
     console.log('[QR Page] Starting QR code generation for k1:', k1)
 
-    // If k1 is provided in URL, use it directly without fetching a new one
-    // This prevents rate limiting and unnecessary API calls
-
-    // Encode the callback URL into bech32 LNURL format
-    let callbackUrl: string
-    if (isAdmin) {
-      callbackUrl = `${domain}/api/admin/auth/login?k1=${k1}`
-    } else {
-      callbackUrl = siteId
-        ? `${domain}/api/auth/callback?k1=${k1}&siteId=${siteId}`
-        : `${domain}/api/auth/callback?k1=${k1}`
+    // Build the API URL to fetch/encode LNURL with our k1 and siteId
+    // IMPORTANT: Pass k1 and siteId so server encodes the correct callback URL
+    let lnurlApiUrl = `/api/auth/lnurl?k1=${encodeURIComponent(k1)}`
+    if (siteId) {
+      lnurlApiUrl += `&siteId=${encodeURIComponent(siteId)}`
     }
 
-    const plainLnurl = callbackUrl
-    const lightningProtocol = `lightning:${callbackUrl}`
+    console.log('[QR Page] Fetching LNURL from:', lnurlApiUrl)
 
-    setLnurl(plainLnurl)
-    setLightningLnurl(lightningProtocol)
-
-    // Fetch the bech32-encoded LNURL from server
-    fetch('/api/auth/lnurl', {
+    // Fetch bech32-encoded LNURL from server
+    fetch(lnurlApiUrl, {
       credentials: 'include',
     })
       .then(async res => {
@@ -414,6 +406,15 @@ function QRContent() {
         }
 
         console.log('[QR Page] Generating QR code with bech32 LNURL, length:', lnurlBech32.length)
+
+        // CRITICAL FIX: Use bech32-encoded LNURL for mobile wallet deep linking
+        // Mobile wallets like Zeus expect lightning:lnurl1... format, not lightning:https://...
+        const lightningBech32 = `lightning:${lnurlBech32}`
+
+        // Update state with proper LNURL values
+        setLnurl(data.callback)
+        setLightningLnurl(lightningBech32)
+        console.log('[QR Page] Updated lightning URL with bech32 LNURL for mobile deep linking')
 
         // Generate QR code with bech32-encoded LNURL
         const qrSize = isMobile ? 280 : 320

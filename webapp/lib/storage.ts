@@ -31,8 +31,15 @@ export async function storeAuthSession(k1: string, xpub: string): Promise<void> 
 
   try {
     await withRetry(async () => {
-      return await prisma.authSession.create({
-        data: {
+      return await prisma.authSession.upsert({
+        where: { k1: cleanK1 },
+        update: {
+          xpub,
+          used: false,
+          timestamp: BigInt(now),
+          expiresAt: BigInt(expiresAt),
+        },
+        create: {
           k1: cleanK1,
           xpub,
           used: false,

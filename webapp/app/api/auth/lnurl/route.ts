@@ -32,11 +32,24 @@ export async function GET(request: NextRequest) {
   }
   // No origin header means same-origin request - always allow
   
-  const k1 = generateChallenge()
+  // Check if k1 and siteId are provided (for encoding existing callback)
+  // Otherwise generate a new k1 (for dashboard login)
+  const searchParams = request.nextUrl.searchParams
+  const providedK1 = searchParams.get('k1')
+  const providedSiteId = searchParams.get('siteId')
+
+  const k1 = providedK1 || generateChallenge()
   const domain = request.nextUrl.origin
-  // LNURL-auth spec: callback URL should only include k1, not tag
-  // The tag is returned in the JSON response, not in the URL
-  const callbackUrl = `${domain}/api/auth/callback?k1=${encodeURIComponent(k1)}`
+
+  // LNURL-auth spec (LUD-04): callback URL MUST include tag=login
+  // so wallets know this is an auth request when they decode the bech32 LNURL
+  let callbackUrl: string
+  if (providedSiteId) {
+    callbackUrl = `${domain}/api/auth/callback?tag=login&k1=${encodeURIComponent(k1)}&siteId=${encodeURIComponent(providedSiteId)}`
+  } else {
+    callbackUrl = `${domain}/api/auth/callback?tag=login&k1=${encodeURIComponent(k1)}`
+  }
+
   const lnurlBech32 = encodeLNURL(callbackUrl)
   
   if (process.env.NODE_ENV === 'development') {

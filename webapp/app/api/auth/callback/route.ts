@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { getUserByXpub, createUser, getUserBySiteId, markAuthSessionAsUsed, getVerifiedDomains } from '@/lib/storage'
+import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains } from '@/lib/storage'
 import { generateSiteId, isTestDomain } from '@/lib/utils'
 import { validateDashboardOrigin, validateEmbedOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
 
@@ -181,16 +181,12 @@ export async function GET(request: NextRequest) {
       console.log('Initial LNURL-auth request (no sig/key yet)')
     }
     
-    // Return LNURL-auth response format
-    // LNURL-auth spec: callback URL should only include k1, not tag
-    // The tag is returned in the JSON response, not in the URL
-    const domain = request.nextUrl.origin
-    const callback = `${domain}/api/auth/callback?k1=${k1}${siteId ? `&siteId=${siteId}` : ''}`
-    
+    // Return LNURL-auth response per LUD-04 spec
+    // Only tag, k1, and optional action — no callback field (wallet uses the decoded URL)
     const initialResponse = NextResponse.json({
       tag: 'login',
       k1: k1,
-      callback: callback,
+      action: 'login',
     })
     
     // Set CORS headers based on origin
@@ -251,9 +247,10 @@ export async function GET(request: NextRequest) {
     console.log('✓ Signature cryptographically verified - authentication is valid')
   }
   
-  // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-  await markAuthSessionAsUsed(k1)
-  
+  // NOTE: k1 is marked as used later by /api/auth/set-session after the browser retrieves the xpub.
+  // We must NOT mark it here because the session hasn't been stored yet (storeAuthSession is below),
+  // and on retries this would mark the existing session as used, preventing the browser from retrieving it.
+
   // Derive xpub from pubkey
   const xpub = deriveXpub(key)
   
