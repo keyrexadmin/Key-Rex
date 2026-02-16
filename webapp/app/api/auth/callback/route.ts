@@ -337,7 +337,8 @@ export async function GET(request: NextRequest) {
     // Record login
     await recordLogin(siteId, key)
     
-    const response = NextResponse.json({ success: true, xpub })
+    // LUD-04 spec: wallet expects { status: "OK" } after successful auth
+    const response = NextResponse.json({ status: 'OK', xpub })
     
     // Set CORS headers for embed login
     const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')

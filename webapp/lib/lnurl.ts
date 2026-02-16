@@ -8,25 +8,6 @@ export function encodeLNURL(url: string): string {
   return bech32.encode('lnurl', words, 2000)
 }
 
-export function generateLNURLAuthUrl(domain: string, k1: string): string {
-  // LNURL-auth spec (LUD-04): callback URL MUST include tag=login
-  const callback = `${domain}/api/auth/callback?tag=login&k1=${k1}`
-  return `lightning:${callback}`
-}
-
-export function generateLNURLAuthBech32(domain: string, k1: string): string {
-  // LNURL-auth spec (LUD-04): callback URL MUST include tag=login
-  const callback = `${domain}/api/auth/callback?tag=login&k1=${k1}`
-  return encodeLNURL(callback)
-}
-
-export function createLNURLResponse(k1: string, domain: string) {
-  return {
-    tag: 'login',
-    k1,
-    callback: `${domain}/api/auth/callback`,
-  }
-}
 
 
 
