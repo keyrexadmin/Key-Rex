@@ -294,20 +294,43 @@
       transform: none;
     }
 
-    .success-message {
+    .form-status {
       display: none;
       padding: 1rem;
       border-radius: 0.5rem;
-      background: rgba(249, 115, 22, 0.1);
-      border: 1px solid rgba(249, 115, 22, 0.3);
-      color: var(--orange-400);
       font-size: 0.9rem;
       margin-top: 1rem;
     }
 
-    .success-message.show {
+    .form-status.show {
       display: block;
       animation: fade-in 0.3s ease-out;
+    }
+
+    .form-status.success {
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      color: var(--orange-400);
+    }
+
+    .form-status.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .submit-btn .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     /* Footer */
@@ -427,12 +450,20 @@
             Drop us a message and we'll reach out when we launch.
           </p>
 
-          <form id="signup-form">
+          <form id="signup-form" action="https://formsubmit.co/cole@keyrex.co" method="POST">
+            <!-- Formsubmit.co config -->
+            <input type="hidden" name="_subject" value="Key-Rex - New Interest Signup">
+            <input type="hidden" name="_template" value="table">
+            <input type="hidden" name="_next" id="form-next">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="text" name="_honey" style="display:none">
+
             <div class="form-group">
               <div class="form-row">
                 <input
                   type="text"
                   class="form-input"
+                  name="Name"
                   id="name"
                   placeholder="Your name"
                   required
@@ -440,6 +471,7 @@
                 <input
                   type="email"
                   class="form-input"
+                  name="Email"
                   id="email"
                   placeholder="Your email"
                   required
@@ -447,6 +479,7 @@
               </div>
               <textarea
                 class="form-input form-textarea"
+                name="Message"
                 id="message"
                 placeholder="Tell us about your project or what you're interested in (optional)"
               ></textarea>
@@ -460,11 +493,7 @@
             </button>
           </form>
 
-          <div class="success-message" id="success-message">
-            Thanks for your interest! Your email client should open shortly.
-            If it doesn't, you can email us directly at
-            <a href="mailto:cole@keyrex.co">cole@keyrex.co</a>.
-          </div>
+          <div class="form-status" id="form-status"></div>
         </div>
 
       </div>
@@ -480,36 +509,27 @@
   </div>
 
   <script>
-    document.getElementById('signup-form').addEventListener('submit', function(e) {
-      e.preventDefault();
+    // Set the _next redirect to come back to this page with ?success=true
+    document.getElementById('form-next').value =
+      window.location.origin + window.location.pathname + '?success=true';
 
-      var name = document.getElementById('name').value.trim();
-      var email = document.getElementById('email').value.trim();
-      var message = document.getElementById('message').value.trim();
+    // Check if we just came back from a successful submission
+    if (window.location.search.indexOf('success=true') !== -1) {
+      var status = document.getElementById('form-status');
+      status.textContent = "Thanks for reaching out! We'll be in touch soon.";
+      status.className = 'form-status success show';
 
-      var subject = encodeURIComponent('Key-Rex - Interest from ' + name);
-      var body = encodeURIComponent(
-        'Hi Key-Rex team,\n\n' +
-        'I\'m interested in learning more about Key-Rex.\n\n' +
-        'Name: ' + name + '\n' +
-        'Email: ' + email + '\n' +
-        (message ? 'Message: ' + message + '\n' : '') +
-        '\nPlease keep me updated on the launch!'
-      );
+      // Hide the form fields since they already submitted
+      document.getElementById('signup-form').style.display = 'none';
 
-      var mailtoLink = 'mailto:cole@keyrex.co?subject=' + subject + '&body=' + body;
+      // Clean the URL without reloading
+      if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
 
-      window.location.href = mailtoLink;
-
-      document.getElementById('success-message').classList.add('show');
-      document.getElementById('submit-btn').textContent = 'Email Client Opened!';
-      document.getElementById('submit-btn').disabled = true;
-
-      setTimeout(function() {
-        document.getElementById('submit-btn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Get in Touch';
-        document.getElementById('submit-btn').disabled = false;
-      }, 3000);
-    });
+      // Scroll to the signup card
+      document.querySelector('.signup-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   </script>
 </body>
 </html>
