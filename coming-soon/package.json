@@ -1,0 +1,9 @@
+{
+  "name": "keyrex-coming-soon",
+  "version": "1.0.0",
+  "description": "Key-Rex coming soon landing page - deployed independently to Vercel",
+  "private": true,
+  "scripts": {
+    "deploy": "vercel --prod"
+  }
+}

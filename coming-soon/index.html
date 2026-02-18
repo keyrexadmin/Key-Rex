@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Key-Rex - Coming Soon</title>
+  <meta name="description" content="Key-Rex: Passwordless authentication powered by Bitcoin Lightning. Coming soon.">
+  <link rel="icon" href="/keyrex-logov2.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --orange-400: #fb923c;
+      --orange-500: #f97316;
+      --orange-600: #ea580c;
+      --orange-700: #c2410c;
+      --dark-bg: #1a1a1a;
+      --dark-100: #141414;
+      --dark-200: #1a1a1a;
+      --dark-300: #1f1f1f;
+      --dark-400: #262626;
+      --dark-500: #2a2a2a;
+      --dark-600: #333333;
+      --dark-700: #404040;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #ffffff;
+      min-height: 100vh;
+      background-color: var(--dark-bg);
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.10) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.10) 0%, transparent 60%),
+        radial-gradient(circle at 40% 60%, rgba(249, 115, 22, 0.06) 0%, transparent 60%);
+      line-height: 1.6;
+    }
+
+    /* Animations */
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.15); }
+      50% { box-shadow: 0 0 40px rgba(249, 115, 22, 0.3); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Layout */
+    .page-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 48rem;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Logo */
+    .logo-section {
+      margin-bottom: 2rem;
+      animation: fade-in-up 0.8s ease-out;
+    }
+
+    .logo-img {
+      max-width: 100%;
+      height: auto;
+      max-height: 14rem;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    /* Coming Soon Badge */
+    .badge {
+      display: inline-block;
+      padding: 0.4rem 1.2rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: rgba(249, 115, 22, 0.15);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      color: var(--orange-400);
+      margin-bottom: 1.5rem;
+      animation: fade-in-up 0.8s ease-out 0.2s both;
+    }
+
+    /* Headings */
+    .headline {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      color: var(--orange-400);
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      animation: fade-in-up 0.8s ease-out 0.3s both;
+    }
+
+    .subheadline {
+      font-size: 1.15rem;
+      color: rgba(255, 255, 255, 0.85);
+      max-width: 36rem;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+      animation: fade-in-up 0.8s ease-out 0.4s both;
+    }
+
+    .subheadline .muted {
+      display: block;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 0.5rem;
+    }
+
+    /* Feature Hints */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 3rem;
+      animation: fade-in-up 0.8s ease-out 0.5s both;
+    }
+
+    @media (min-width: 768px) {
+      .features {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .feature-card {
+      background: rgba(26, 26, 26, 0.8);
+      border: 1px solid var(--dark-600);
+      border-radius: 0.75rem;
+      padding: 1.5rem 1rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+
+    .feature-desc {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.45);
+      line-height: 1.5;
+    }
+
+    /* Signup Card */
+    .signup-card {
+      background: rgba(20, 20, 20, 0.9);
+      border: 2px solid rgba(249, 115, 22, 0.3);
+      border-radius: 1rem;
+      padding: 2.5rem 2rem;
+      animation: fade-in-up 0.8s ease-out 0.6s both, pulse-glow 3s ease-in-out infinite;
+    }
+
+    .signup-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .signup-desc {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .form-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dark-600);
+      background: var(--dark-400);
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--orange-500);
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 5rem;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      border-radius: 0.5rem;
+      background: linear-gradient(to right, var(--orange-500), var(--orange-600));
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(to right, var(--orange-600), var(--orange-700));
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.98);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .success-message {
+      display: none;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      color: var(--orange-400);
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .success-message.show {
+      display: block;
+      animation: fade-in 0.3s ease-out;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 0.8rem;
+      animation: fade-in 0.8s ease-out 0.8s both;
+    }
+
+    .footer a {
+      color: var(--orange-400);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer a:hover {
+      color: var(--orange-500);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .form-row {
+        flex-direction: column;
+      }
+
+      .signup-card {
+        padding: 1.5rem 1.25rem;
+      }
+
+      .logo-img {
+        max-height: 10rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <main class="main-content">
+      <div class="container">
+
+        <!-- Logo -->
+        <div class="logo-section">
+          <img
+            src="/keyrex-mainlandingpage.png"
+            alt="Key-Rex"
+            class="logo-img"
+          >
+        </div>
+
+        <!-- Coming Soon Badge -->
+        <div class="badge">Coming Soon</div>
+
+        <!-- Headline -->
+        <h1 class="headline">Authentication, Unchained</h1>
+
+        <!-- Subheadline -->
+        <p class="subheadline">
+          Passwordless login built on Bitcoin.
+          Key-Rex uses the Lightning Network's LNURL-auth protocol to replace
+          passwords with cryptographic proof — no emails, no personal data, just your wallet.
+          <span class="muted">
+            Open source. Free forever. Privacy-first by design. Powered by Bitcoin.
+          </span>
+        </p>
+
+        <!-- Feature Hints -->
+        <div class="features">
+          <div class="feature-card">
+            <div class="feature-icon">&#8383;</div>
+            <div class="feature-title">Built on Bitcoin</div>
+            <div class="feature-desc">Leverages the Bitcoin Lightning Network for trustless, decentralized authentication</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#9889;</div>
+            <div class="feature-title">Lightning Fast</div>
+            <div class="feature-desc">One-tap sign in using any Lightning wallet — Alby, Phoenix, Zeus, and more</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128274;</div>
+            <div class="feature-title">No Passwords</div>
+            <div class="feature-desc">Cryptographic signatures replace passwords — nothing to hack or leak</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128065;&#8205;&#128488;</div>
+            <div class="feature-title">Zero Data Collection</div>
+            <div class="feature-desc">No emails, no names, no personal info — your users stay anonymous</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128736;</div>
+            <div class="feature-title">Two Lines of Code</div>
+            <div class="feature-desc">Drop-in embed script that works on any website with minimal setup</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#127760;</div>
+            <div class="feature-title">Open Source</div>
+            <div class="feature-desc">Fully transparent MIT-licensed code — verify exactly how it works</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128176;</div>
+            <div class="feature-title">Free Forever</div>
+            <div class="feature-desc">No subscription, no limits, no catch — unlimited sign-ins and domains</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128101;</div>
+            <div class="feature-title">Works Alongside Existing Auth</div>
+            <div class="feature-desc">Add Lightning login as an option next to your current sign-in methods</div>
+          </div>
+        </div>
+
+        <!-- Signup Card -->
+        <div class="signup-card">
+          <h2 class="signup-title">Be the First to Know</h2>
+          <p class="signup-desc">
+            Interested in adding Lightning authentication to your site?
+            Drop us a message and we'll reach out when we launch.
+          </p>
+
+          <form id="signup-form">
+            <div class="form-group">
+              <div class="form-row">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="name"
+                  placeholder="Your name"
+                  required
+                >
+                <input
+                  type="email"
+                  class="form-input"
+                  id="email"
+                  placeholder="Your email"
+                  required
+                >
+              </div>
+              <textarea
+                class="form-input form-textarea"
+                id="message"
+                placeholder="Tell us about your project or what you're interested in (optional)"
+              ></textarea>
+            </div>
+            <button type="submit" class="submit-btn" id="submit-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              Get in Touch
+            </button>
+          </form>
+
+          <div class="success-message" id="success-message">
+            Thanks for your interest! Your email client should open shortly.
+            If it doesn't, you can email us directly at
+            <a href="mailto:cole@keyrex.co">cole@keyrex.co</a>.
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>&copy; 2025 Key-Rex &middot; Open Source &middot; Bitcoin Lightning Authentication</p>
+      <p style="margin-top: 0.25rem;">
+        Questions? Email us at <a href="mailto:cole@keyrex.co">cole@keyrex.co</a>
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('signup-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var name = document.getElementById('name').value.trim();
+      var email = document.getElementById('email').value.trim();
+      var message = document.getElementById('message').value.trim();
+
+      var subject = encodeURIComponent('Key-Rex - Interest from ' + name);
+      var body = encodeURIComponent(
+        'Hi Key-Rex team,\n\n' +
+        'I\'m interested in learning more about Key-Rex.\n\n' +
+        'Name: ' + name + '\n' +
+        'Email: ' + email + '\n' +
+        (message ? 'Message: ' + message + '\n' : '') +
+        '\nPlease keep me updated on the launch!'
+      );
+
+      var mailtoLink = 'mailto:cole@keyrex.co?subject=' + subject + '&body=' + body;
+
+      window.location.href = mailtoLink;
+
+      document.getElementById('success-message').classList.add('show');
+      document.getElementById('submit-btn').textContent = 'Email Client Opened!';
+      document.getElementById('submit-btn').disabled = true;
+
+      setTimeout(function() {
+        document.getElementById('submit-btn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Get in Touch';
+        document.getElementById('submit-btn').disabled = false;
+      }, 3000);
+    });
+  </script>
+</body>
+</html>

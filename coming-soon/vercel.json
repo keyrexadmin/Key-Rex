@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.png",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/keyrex-mainlandingpage.png",
+      "dest": "/keyrex-mainlandingpage.png"
+    },
+    {
+      "src": "/keyrex-logov2.png",
+      "dest": "/keyrex-logov2.png"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
