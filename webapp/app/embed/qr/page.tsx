@@ -160,9 +160,9 @@ function QRContent() {
       setLnurl(plainLnurl)
       setLightningLnurl(lightningBech32)
 
-      // Use the bech32-encoded LNURL we already fetched for the QR code
-      // QR codes should contain bech32 LNURL (lnurl...), not lightning: protocol URL
-      // This is what Zeus and other wallets expect
+      // Generate QR code with bare bech32 LNURL (no lightning: prefix)
+      // Wallets scanning QR codes expect just lnurl1... and will decode it to get callback URL
+      // The lightning: prefix is only for deep links, not QR codes
       const qrSize = isMobile ? 300 : 350
       QRCode.toDataURL(lnurlBech32, {
         width: qrSize,
@@ -416,7 +416,9 @@ function QRContent() {
         setLightningLnurl(lightningBech32)
         console.log('[QR Page] Updated lightning URL with bech32 LNURL for mobile deep linking')
 
-        // Generate QR code with bech32-encoded LNURL
+        // Generate QR code with bare bech32 LNURL (no lightning: prefix)
+        // Wallets scanning QR codes expect just lnurl1... and will decode it to get callback URL
+        // The lightning: prefix is only for deep links, not QR codes
         const qrSize = isMobile ? 280 : 320
         return QRCode.toDataURL(lnurlBech32, {
           width: qrSize,
