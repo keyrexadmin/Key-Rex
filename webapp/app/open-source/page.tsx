@@ -49,6 +49,10 @@ export default function OpenSource() {
           path: 'app/for-wallets/page.tsx',
           description: 'Wallet Partnerships page for Lightning wallet providers who want to integrate with Key-Rex.',
         },
+        {
+          path: 'app/docs/page.tsx',
+          description: 'Developer documentation and integration guide with quick start, framework examples, API reference, and troubleshooting.',
+        },
       ],
     },
     {
@@ -68,6 +72,10 @@ export default function OpenSource() {
           description:
             'Admin dashboard for system-wide analytics, user management, contact submissions, and featured wallets.',
         },
+        {
+          path: 'app/onboarding/page.tsx',
+          description: 'Multi-step onboarding wizard for new Key-Rex customers, guiding them through account setup and first integration.',
+        },
       ],
     },
     {
@@ -85,6 +93,10 @@ export default function OpenSource() {
         {
           path: 'app/embed/qr/page.tsx',
           description: 'QR-code-based sign-in flow for users on mobile wallets or without WebLN.',
+        },
+        {
+          path: 'app/auth/success/page.tsx',
+          description: 'Post-authentication success page that receives the xpub from the auth flow and redirects the user back to the client site.',
         },
         {
           path: 'app/api/auth/callback/route.ts',
@@ -119,7 +131,7 @@ export default function OpenSource() {
         {
           path: 'app/api/contact/route.ts',
           description:
-            'Stores contact form submissions (in-memory in development) and captures basic metadata for support.',
+            'Stores contact form submissions in the database and captures basic metadata for support.',
         },
         {
           path: 'app/api/admin/*',
@@ -129,7 +141,15 @@ export default function OpenSource() {
         {
           path: 'lib/storage.ts',
           description:
-            'In-memory storage module for users, domains, analytics, and contact submissions (replaceable with a real database).',
+            'PostgreSQL storage layer using Prisma ORM for users, domains, analytics, and contact submissions. All functions are async and return Promises.',
+        },
+        {
+          path: 'lib/db.ts',
+          description: 'Prisma database client singleton with connection pooling for serverless, retry logic for transient errors, and Map/Set to JSON serialization helpers.',
+        },
+        {
+          path: 'prisma/schema.prisma',
+          description: 'PostgreSQL database schema defining all models: User, Domain, UsageStats, ActivityLog, AuthSession, FeaturedWallet, and ContactSubmission.',
         },
         {
           path: 'types/index.ts',
@@ -155,6 +175,18 @@ export default function OpenSource() {
         {
           path: 'lib/domain-verification.ts',
           description: 'DNS TXT record lookup and domain verification logic. Checks for keyrex-verification tokens in domain DNS records.',
+        },
+        {
+          path: 'lib/lnurl.ts',
+          description: 'LNURL bech32 encoding and decoding used to generate Lightning authentication challenge URLs.',
+        },
+        {
+          path: 'lib/cors.ts',
+          description: 'Cross-origin request validation for the embed script, checking request origins against allowed domains.',
+        },
+        {
+          path: 'lib/rate-limit.ts',
+          description: 'Rate limiting middleware to protect API endpoints from abuse.',
         },
       ],
     },
@@ -376,7 +408,7 @@ export default function OpenSource() {
                   </div>
                 </div>
                 <p className="text-white/300 text-xs mt-4">
-                  All of this behavior is implemented in first-party code under <code className="bg-dark-900 px-1 rounded">lib/storage.ts</code> and
+                  All of this behavior is implemented in first-party code under <code className="bg-dark-900 px-1 rounded">lib/storage.ts</code>, <code className="bg-dark-900 px-1 rounded">lib/db.ts</code>, and
                   various API routes in <code className="bg-dark-900 px-1 rounded">app/api/</code>. There are no hidden third-party analytics SDKs.
                 </p>
               </Card>
@@ -421,8 +453,8 @@ export default function OpenSource() {
                   <li>Run the development server (usually <code className="bg-dark-900 px-1 rounded">npm run dev</code>).</li>
                   <li>Set any required environment variables (for example, <code className="bg-dark-900 px-1 rounded">ADMIN_XPUB</code> for admin login).</li>
                   <li>
-                    In production, replace the in-memory storage in <code className="bg-dark-900 px-1 rounded">lib/storage.ts</code> with a real database or
-                    key-value store.
+                    In production, set <code className="bg-dark-900 px-1 rounded">DATABASE_URL</code> to your PostgreSQL connection string and run{' '}
+                    <code className="bg-dark-900 px-1 rounded">npx prisma migrate deploy</code> to initialize the database.
                   </li>
                   <li>Deploy to your preferred host (Vercel, your own infrastructure, etc.).</li>
                 </ol>
@@ -432,8 +464,8 @@ export default function OpenSource() {
                     The current implementation includes some simplified implementations that work for development and basic use, but should be enhanced for production deployments:
                   </p>
                   <ul className="text-white/300 text-xs space-y-1 ml-4 list-disc mb-2">
-                    <li><strong>Storage:</strong> Uses in-memory storage that resets on server restart. Replace with persistent storage (database or key-value store) for production.</li>
-                    <li><strong>Signature Verification:</strong> Current implementation works but may need hardening for high-security production environments. See <code className="bg-dark-900 px-1 rounded">lib/auth.ts</code> for details.</li>
+                    <li><strong>Database:</strong> Uses PostgreSQL via Prisma ORM. Connection pooling may need tuning for serverless environments (e.g., Vercel). See <code className="bg-dark-900 px-1 rounded">lib/db.ts</code> for the current pooling configuration.</li>
+                    <li><strong>Signature Verification:</strong> Uses production-grade libraries (<code className="bg-dark-900 px-1 rounded">@noble/secp256k1</code> and <code className="bg-dark-900 px-1 rounded">elliptic</code>) with support for both compact and DER-encoded signatures. Consider reducing verbose debug logging in <code className="bg-dark-900 px-1 rounded">lib/auth.ts</code> for production.</li>
                     <li><strong>xpub Derivation:</strong> Uses a simplified derivation method. For production, consider implementing proper HD wallet derivation if you need to link multiple keys from the same wallet.</li>
                   </ul>
                   <p className="text-white/400 text-xs">
@@ -523,6 +555,7 @@ export default function OpenSource() {
                   </p>
                   <ul className="text-white/300 text-xs space-y-1 ml-4 list-disc">
                     <li><strong>Next.js & React</strong> - Web framework and UI library</li>
+                    <li><strong>Prisma & @prisma/client</strong> - Database ORM and PostgreSQL access layer</li>
                     <li><strong>@noble/secp256k1</strong> - Cryptographic signature verification</li>
                     <li><strong>bech32</strong> - LNURL encoding/decoding</li>
                     <li><strong>qrcode</strong> - QR code generation for mobile authentication</li>

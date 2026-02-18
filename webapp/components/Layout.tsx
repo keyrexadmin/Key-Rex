@@ -12,7 +12,7 @@ interface LayoutProps {
 export default function Layout({ children, showNav = true }: LayoutProps) {
   // Use state to track pathname after mount to avoid hydration issues
   const [pathname, setPathname] = useState('/')
-  const [logoSrc, setLogoSrc] = useState('/images/keyrex-logov2.png')
+  const [logoSrc, setLogoSrc] = useState('/images/paw2.png')
   const isHomePage = pathname === '/'
   
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
     if (typeof window !== 'undefined') {
       setPathname(window.location.pathname)
       // Add cache-busting query parameter to force browser to reload image
-      setLogoSrc(`/images/keyrex-logov2.png?t=${Date.now()}`)
+      setLogoSrc(`/images/paw2.png?t=${Date.now()}`)
     }
   }, [])
 
@@ -60,7 +60,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
                       console.error('Failed to load logo image:', logoSrc)
                       // Fallback to original path without cache-busting
                       if (logoSrc.includes('?t=')) {
-                        e.currentTarget.src = '/images/keyrex-logov2.png'
+                        e.currentTarget.src = '/images/paw2.png'
                       }
                     }}
                   />

@@ -52,7 +52,7 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'contacts' | 'wallets'>('overview')
-  const [logoSrc, setLogoSrc] = useState('/images/keyrex-logov2.png')
+  const [logoSrc, setLogoSrc] = useState('/images/paw2.png')
   
   // Data state
   const [stats, setStats] = useState<SystemStats | null>(null)
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
 
   // Set cache-busting parameter for logo only on client side
   useEffect(() => {
-    setLogoSrc(`/images/keyrex-logov2.png?t=${Date.now()}`)
+    setLogoSrc(`/images/paw2.png?t=${Date.now()}`)
   }, [])
 
   useEffect(() => {
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
                   onError={(e) => {
                     // Fallback if image fails to load
                     console.error('Logo image failed to load:', logoSrc)
-                    e.currentTarget.src = '/images/keyrex-logov2.png'
+                    e.currentTarget.src = '/images/paw2.png'
                   }}
                 />
               </div>

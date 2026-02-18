@@ -45,7 +45,7 @@ export default function Docs() {
             {/* Header */}
             <div className="text-center space-y-4">
               <h1 className="text-3xl sm:text-4xl font-bold text-white">Documentation</h1>
-              <p className="text-xl text-white/200 leading-relaxed">
+              <p className="text-xl text-white/70 leading-relaxed">
                 Complete guide to integrating Key-Rex authentication into your website
               </p>
               
@@ -54,7 +54,7 @@ export default function Docs() {
                 <a href="#quick-start" className="bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 text-orange-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                   🚀 Quick Start
                 </a>
-                <a href="#prerequisites" className="bg-dark-700/50 hover:bg-dark-700/70 border border-dark-600/50 text-white/300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                <a href="#prerequisites" className="bg-dark-700/50 hover:bg-dark-700/70 border border-dark-600/50 text-white/70 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                   📋 Prerequisites
                 </a>
                 <a href="#integration-guide" className="bg-dark-700/50 hover:bg-dark-700/70 border border-dark-600/50 text-white/300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -109,8 +109,8 @@ export default function Docs() {
   
   <!-- Key-Rex Integration Code -->
   <script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-  <!-- Note: Key-Rex.init() is optional - script auto-initializes when DOM is ready -->
-  <script>Key-Rex.init();</script>
+  <!-- Note: KeyRex.init() is optional - script auto-initializes when DOM is ready -->
+  <script>KeyRex.init();</script>
 </body>`}
                       </pre>
                     </div>
@@ -317,8 +317,8 @@ export default function Docs() {
   
   <!-- Key-Rex Integration -->
   <script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-  <!-- Note: Key-Rex.init() is optional - script auto-initializes when DOM is ready -->
-  <script>Key-Rex.init();</script>
+  <!-- Note: KeyRex.init() is optional - script auto-initializes when DOM is ready -->
+  <script>KeyRex.init();</script>
 </body>
 </html>`}
                       </pre>
@@ -339,8 +339,8 @@ export default function Docs() {
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
 {`<!-- Set up callbacks BEFORE loading the script -->
 <script>
-  window.Key-Rex = window.Key-Rex || {};
-  window.Key-Rex.onSuccess = function(xpub) {
+  window.KeyRex = window.KeyRex || {};
+  window.KeyRex.onSuccess = function(xpub) {
     console.log('User authenticated:', xpub);
     // Send xpub to your backend
     fetch('/api/auth/callback', {
@@ -358,7 +358,7 @@ export default function Docs() {
     });
   };
   
-  window.Key-Rex.onError = function(error) {
+  window.KeyRex.onError = function(error) {
     console.error('Key-Rex error:', error);
     alert('Authentication failed: ' + error.message);
   };
@@ -366,7 +366,7 @@ export default function Docs() {
 
 <!-- Then load the Key-Rex script -->
 <script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-<script>Key-Rex.init();</script>`}
+<script>KeyRex.init();</script>`}
                       </pre>
                     </div>
                   </div>
@@ -385,7 +385,7 @@ export default function Docs() {
 </div>
 
 <script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-<script>Key-Rex.init();</script>`}
+<script>KeyRex.init();</script>`}
                       </pre>
                     </div>
                   </div>
@@ -417,8 +417,8 @@ export default function Docs() {
 function LoginPage() {
   useEffect(() => {
     // Set up callbacks
-    window.Key-Rex = window.Key-Rex || {};
-    window.Key-Rex.onSuccess = function(xpub) {
+    window.KeyRex = window.KeyRex || {};
+    window.KeyRex.onSuccess = function(xpub) {
       console.log('User authenticated:', xpub);
       // Handle authentication
       fetch('/api/auth/callback', {
@@ -432,7 +432,7 @@ function LoginPage() {
       });
     };
     
-    window.Key-Rex.onError = function(error) {
+    window.KeyRex.onError = function(error) {
       console.error('Auth error:', error);
     };
     
@@ -486,8 +486,8 @@ import { onMounted, onUnmounted } from 'vue';
 
 onMounted(() => {
   // Set up callbacks
-  window.Key-Rex = window.Key-Rex || {};
-  window.Key-Rex.onSuccess = function(xpub) {
+  window.KeyRex = window.KeyRex || {};
+  window.KeyRex.onSuccess = function(xpub) {
     console.log('User authenticated:', xpub);
     // Handle authentication
     fetch('/api/auth/callback', {
@@ -501,7 +501,7 @@ onMounted(() => {
     });
   };
   
-  window.Key-Rex.onError = function(error) {
+  window.KeyRex.onError = function(error) {
     console.error('Auth error:', error);
   };
   
@@ -540,8 +540,8 @@ import { useEffect } from 'react';
 export default function LoginPage() {
   useEffect(() => {
     // Set up callbacks
-    window.Key-Rex = window.Key-Rex || {};
-    window.Key-Rex.onSuccess = function(xpub) {
+    window.KeyRex = window.KeyRex || {};
+    window.KeyRex.onSuccess = function(xpub) {
       console.log('User authenticated:', xpub);
       // Handle authentication
       fetch('/api/auth/callback', {
@@ -555,7 +555,7 @@ export default function LoginPage() {
       });
     };
     
-    window.Key-Rex.onError = function(error) {
+    window.KeyRex.onError = function(error) {
       console.error('Auth error:', error);
     };
     
@@ -605,8 +605,8 @@ export default function LoginPage() {
   
   <!-- Set up callbacks BEFORE loading script -->
   <script>
-    window.Key-Rex = window.Key-Rex || {};
-    window.Key-Rex.onSuccess = function(xpub) {
+    window.KeyRex = window.KeyRex || {};
+    window.KeyRex.onSuccess = function(xpub) {
       console.log('User authenticated:', xpub);
       // Send to your backend
       fetch('/api/auth/callback', {
@@ -620,7 +620,7 @@ export default function LoginPage() {
       });
     };
     
-    window.Key-Rex.onError = function(error) {
+    window.KeyRex.onError = function(error) {
       console.error('Auth error:', error);
       alert('Authentication failed');
     };
@@ -628,8 +628,8 @@ export default function LoginPage() {
   
   <!-- Load Key-Rex script -->
   <script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-  <!-- Note: Key-Rex.init() is optional - script auto-initializes when DOM is ready -->
-  <script>Key-Rex.init();</script>
+  <!-- Note: KeyRex.init() is optional - script auto-initializes when DOM is ready -->
+  <script>KeyRex.init();</script>
   
   <!-- Optional: Place button in specific location -->
   <div id="keyrex-container"></div>
@@ -871,7 +871,7 @@ CREATE TABLE sessions (
 // Script auto-initializes when DOM is ready
 
 // Manual initialization (optional)
-Key-Rex.init();`}
+KeyRex.init();`}
                       </pre>
                     </div>
                   </div>
@@ -883,7 +883,7 @@ Key-Rex.init();`}
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.Key-Rex.onSuccess = function(xpub) {
+{`window.KeyRex.onSuccess = function(xpub) {
   console.log('User authenticated:', xpub);
   // Send xpub to your backend
   fetch('/api/auth/callback', {
@@ -908,7 +908,7 @@ Key-Rex.init();`}
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.Key-Rex.onError = function(error) {
+{`window.KeyRex.onError = function(error) {
   console.error('Key-Rex error:', error);
   // Handle error (show message to user, etc.)
   alert('Authentication failed: ' + error.message);
@@ -959,7 +959,7 @@ Key-Rex.init();`}
 
 <!-- If no container found, button is appended to <body> -->
 <script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-<script>Key-Rex.init();</script>`}
+<script>KeyRex.init();</script>`}
                       </pre>
                     </div>
                   </div>
@@ -1022,8 +1022,8 @@ Key-Rex.init();`}
                     <p className="text-white/300 mb-4">Open browser Developer Tools (F12) and use these commands:</p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`// Check if Key-Rex is loaded
-Key-Rex
+{`// Check if KeyRex is loaded
+KeyRex
 
 // Check if button exists
 document.getElementById('keyrex-button')
@@ -1083,7 +1083,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.Key-Rex.onError = function(error) {
+{`window.KeyRex.onError = function(error) {
   console.error('Key-Rex error:', error);
   
   // Handle specific error types
@@ -1135,7 +1135,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.Key-Rex.onError = function(error) {
+{`window.KeyRex.onError = function(error) {
   // Map technical errors to user-friendly messages
   const userMessages = {
     'Invalid siteId': 'This website is not properly configured. Please contact support.',
@@ -1188,6 +1188,8 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
   } else if (event.data && event.data.type === 'keyrex-auth-error') {
     const error = event.data.error;
     // Handle error
+  } else if (event.data && event.data.type === 'keyrex-popup-closed') {
+    // User closed the popup without completing authentication
   }
 });`}
                       </pre>
@@ -1339,7 +1341,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     <div className="bg-dark-950 rounded-lg p-3 border border-dark-700 overflow-x-auto">
                       <pre className="text-xs text-white/200 font-mono whitespace-pre-wrap break-words">
 {`<script src="https://yourdomain.com/embed?siteId=YOUR_SITE_ID"></script>
-<script>Key-Rex.init();</script>`}
+<script>KeyRex.init();</script>`}
                       </pre>
                     </div>
                   </div>
@@ -1348,10 +1350,10 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     <h3 className="text-lg font-semibold text-white mb-3">With Callbacks</h3>
                     <div className="bg-dark-950 rounded-lg p-3 border border-dark-700 overflow-x-auto">
                       <pre className="text-xs text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.Key-Rex.onSuccess = (xpub) => {
+{`window.KeyRex.onSuccess = (xpub) => {
   // Handle success
 };
-window.Key-Rex.onError = (error) => {
+window.KeyRex.onError = (error) => {
   // Handle error
 };`}
                       </pre>

@@ -9,12 +9,12 @@ import KeyRexButtonPreview from '@/components/KeyRexButtonPreview'
 
 function HomeContent() {
   const [wizardOpen, setWizardOpen] = useState(false)
-  const [imageSrc, setImageSrc] = useState('/images/keyrex-mainlandingpage.png')
+  const [imageSrc, setImageSrc] = useState('/images/KR%20Paw.png')
   const [mounted, setMounted] = useState(false)
 
   // Set cache-busting parameter only on client side to avoid hydration mismatch
   useEffect(() => {
-    setImageSrc(`/images/keyrex-mainlandingpage.png?t=${Date.now()}`)
+    setImageSrc(`/images/KR%20Paw.png?t=${Date.now()}`)
   }, [])
 
   // Check if we should open wizard from URL hash or query param
