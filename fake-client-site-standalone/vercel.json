@@ -1,9 +1,12 @@
 {
   "version": 2,
-  "name": "neuralapi-demo",
   "builds": [
     {
       "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "dashboard.html",
       "use": "@vercel/static"
     }
   ],

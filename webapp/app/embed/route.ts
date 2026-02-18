@@ -808,28 +808,18 @@ export async function GET(request: NextRequest) {
         return true; // Found and processed
       }
       
-      // Method 2: Check URL parameters for xpub (redirect mode)
+      // Method 2: Poll callback endpoint to retrieve xpub (popup mode or fallback)
       // Note: Cookies are now httpOnly and cannot be read client-side
-      // xpub is passed via URL parameter after QR authentication
-      const urlParams = new URLSearchParams(window.location.search);
-      const xpubFromUrl = urlParams.get('xpub');
-      
-      if (xpubFromUrl) {
-        console.log('Key-Rex: Found xpub in URL parameter (redirect mode), calling onSuccess');
-        
-        // Clean up URL parameter (remove xpub from URL without reload)
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('xpub');
-        window.history.replaceState({}, '', newUrl.toString());
-        
-        // Call success callback
-        if (window.KeyRex && window.KeyRex.onSuccess) {
-          window.KeyRex.onSuccess(xpubFromUrl);
+      // xpub is passed via URL parameter after QR authentication (handled in Method 1 above)
+      const cookies = document.cookie.split(';');
+      let storedK1 = null;
+      for (let c of cookies) {
+        const [name, value] = c.trim().split('=');
+        if (name.trim() === 'keyrex_k1') {
+          storedK1 = decodeURIComponent(value);
+          break;
         }
-        return true; // Found and processed
       }
-      
-      // Method 3: Poll callback endpoint to retrieve xpub (popup mode or fallback)
       if (storedK1) {
         fetch(baseUrl + '/api/auth/callback?k1=' + encodeURIComponent(storedK1) + '&siteId=' + siteId, {
           credentials: 'include'
@@ -974,8 +964,8 @@ export async function GET(request: NextRequest) {
   // Check for xpub in URL params immediately (user returned from QR page redirect)
   // But wait a moment for onSuccess callback to be set up by customer site
   (function checkUrlParamsImmediately() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const xpubFromUrl = urlParams.get('xpub');
+    var immediateParams = new URLSearchParams(window.location.search);
+    var xpubFromUrl = immediateParams.get('xpub');
     
     if (xpubFromUrl) {
       // Wait a bit for customer site to set up onSuccess callback
