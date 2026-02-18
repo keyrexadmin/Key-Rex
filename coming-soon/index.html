@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Key-Rex - Coming Soon</title>
   <meta name="description" content="Key-Rex: Passwordless authentication powered by Bitcoin Lightning. Coming soon.">
-  <link rel="icon" href="/keyrex-logov2.png" type="image/png">
+  <link rel="icon" href="paw2.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -68,21 +68,151 @@
       50% { transform: translateY(-8px); }
     }
 
+    /* Lightning canvas */
+    .lightning-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* How it works */
+    .how-it-works {
+      margin-bottom: 3rem;
+      animation: fade-in-up 0.8s ease-out 0.55s both;
+    }
+
+    .how-it-works-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      color: var(--orange-400);
+      letter-spacing: 0.04em;
+      margin-bottom: 2rem;
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+
+    .flow-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.25rem 1rem;
+      min-width: 8rem;
+      opacity: 0;
+      animation: fade-in-up 0.6s ease-out forwards;
+    }
+
+    .flow-step:nth-child(1) { animation-delay: 0.8s; }
+    .flow-step:nth-child(3) { animation-delay: 1.2s; }
+    .flow-step:nth-child(5) { animation-delay: 1.6s; }
+
+    .flow-icon-wrap {
+      width: 4.5rem;
+      height: 4.5rem;
+      border-radius: 50%;
+      background: rgba(249, 115, 22, 0.1);
+      border: 2px solid rgba(249, 115, 22, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .flow-step:hover .flow-icon-wrap {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: var(--orange-500);
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(249, 115, 22, 0.3);
+    }
+
+    .flow-icon {
+      font-size: 1.8rem;
+    }
+
+    .flow-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .flow-sublabel {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: -0.4rem;
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 0.25rem;
+      opacity: 0;
+      animation: fade-in 0.4s ease-out forwards;
+    }
+
+    .flow-arrow:nth-child(2) { animation-delay: 1.0s; }
+    .flow-arrow:nth-child(4) { animation-delay: 1.4s; }
+
+    .flow-arrow svg {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
+    .bolt-path {
+      stroke: var(--orange-500);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 60;
+      stroke-dashoffset: 60;
+      animation: draw-bolt 0.6s ease-out forwards;
+    }
+
+    .flow-arrow:nth-child(2) .bolt-path { animation-delay: 1.0s; }
+    .flow-arrow:nth-child(4) .bolt-path { animation-delay: 1.4s; }
+
+    @keyframes draw-bolt {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .flow {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .flow-arrow {
+        transform: rotate(90deg);
+        padding: 0;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
       }
+      .lightning-canvas { display: none; }
     }
 
     /* Layout */
-    .page-wrapper {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
     .main-content {
       flex: 1;
       display: flex;
@@ -107,7 +237,7 @@
     .logo-img {
       max-width: 100%;
       height: auto;
-      max-height: 14rem;
+      max-height: 20rem;
       animation: float 4s ease-in-out infinite;
     }
 
@@ -363,12 +493,13 @@
       }
 
       .logo-img {
-        max-height: 10rem;
+        max-height: 16rem;
       }
     }
   </style>
 </head>
 <body>
+  <canvas class="lightning-canvas" id="lightning-canvas"></canvas>
   <div class="page-wrapper">
     <main class="main-content">
       <div class="container">
@@ -376,7 +507,7 @@
         <!-- Logo -->
         <div class="logo-section">
           <img
-            src="/keyrex-mainlandingpage.png"
+            src="/paw2.png"
             alt="Key-Rex"
             class="logo-img"
           >
@@ -394,7 +525,7 @@
           Key-Rex uses the Lightning Network's LNURL-auth protocol to replace
           passwords with cryptographic proof — no emails, no personal data, just your wallet.
           <span class="muted">
-            Open source. Free forever. Privacy-first by design. Powered by Bitcoin.
+            Open source. Privacy-first by design. Powered by Bitcoin.
           </span>
         </p>
 
@@ -416,9 +547,9 @@
             <div class="feature-desc">Cryptographic signatures replace passwords — nothing to hack or leak</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">&#128065;&#8205;&#128488;</div>
-            <div class="feature-title">Zero Data Collection</div>
-            <div class="feature-desc">No emails, no names, no personal info — your users stay anonymous</div>
+            <div class="feature-icon">&#128272;</div>
+            <div class="feature-title">Your Wallet Is Your Identity</div>
+            <div class="feature-desc">Your Bitcoin wallet becomes your universal login — no accounts to create or manage</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon">&#128736;</div>
@@ -431,14 +562,61 @@
             <div class="feature-desc">Fully transparent MIT-licensed code — verify exactly how it works</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">&#128176;</div>
-            <div class="feature-title">Free Forever</div>
-            <div class="feature-desc">No subscription, no limits, no catch — unlimited sign-ins and domains</div>
+            <div class="feature-icon">&#128737;</div>
+            <div class="feature-title">Battle-Tested Cryptography</div>
+            <div class="feature-desc">Built on the same ECDSA signatures that secure billions in Bitcoin transactions</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon">&#128101;</div>
             <div class="feature-title">Works Alongside Existing Auth</div>
             <div class="feature-desc">Add Lightning login as an option next to your current sign-in methods</div>
+          </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="how-it-works">
+          <h2 class="how-it-works-title">How It Works</h2>
+          <div class="flow">
+            <!-- Step 1: Wallet -->
+            <div class="flow-step">
+              <div class="flow-icon-wrap">
+                <span class="flow-icon">&#128241;</span>
+              </div>
+              <span class="flow-label">Open Wallet</span>
+              <span class="flow-sublabel">Any Lightning wallet</span>
+            </div>
+
+            <!-- Arrow 1 -->
+            <div class="flow-arrow">
+              <svg viewBox="0 0 40 40">
+                <path class="bolt-path" d="M8,22 L18,22 L15,12 L32,20 L22,20 L25,30 L8,22" />
+              </svg>
+            </div>
+
+            <!-- Step 2: Sign -->
+            <div class="flow-step">
+              <div class="flow-icon-wrap">
+                <span class="flow-icon">&#9889;</span>
+              </div>
+              <span class="flow-label">One Tap</span>
+              <span class="flow-sublabel">Cryptographic signature</span>
+            </div>
+
+            <!-- Arrow 2 -->
+            <div class="flow-arrow">
+              <svg viewBox="0 0 40 40">
+                <path class="bolt-path" d="M8,22 L18,22 L15,12 L32,20 L22,20 L25,30 L8,22" />
+              </svg>
+            </div>
+
+            <!-- Step 3: Done -->
+            <div class="flow-step">
+              <div class="flow-icon-wrap">
+                <span class="flow-icon">&#10003;</span>
+              </div>
+              <span class="flow-label">Signed In</span>
+              <span class="flow-sublabel">No password needed</span>
+            </div>
           </div>
         </div>
 
@@ -530,6 +708,103 @@
       // Scroll to the signup card
       document.querySelector('.signup-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  </script>
+
+  <script>
+    // Animated lightning bolts background
+    (function() {
+      var canvas = document.getElementById('lightning-canvas');
+      var ctx = canvas.getContext('2d');
+      var bolts = [];
+      var w, h;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      function createBolt() {
+        // Random start point along edges
+        var side = Math.random();
+        var x, y, angle;
+        if (side < 0.25) {
+          x = Math.random() * w; y = -10; angle = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+        } else if (side < 0.5) {
+          x = Math.random() * w; y = h + 10; angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+        } else if (side < 0.75) {
+          x = -10; y = Math.random() * h; angle = (Math.random() - 0.5) * 0.8;
+        } else {
+          x = w + 10; y = Math.random() * h; angle = Math.PI + (Math.random() - 0.5) * 0.8;
+        }
+
+        var segments = [];
+        var cx = x, cy = y;
+        var len = 80 + Math.random() * 200;
+        var segCount = 6 + Math.floor(Math.random() * 8);
+        var segLen = len / segCount;
+
+        for (var i = 0; i < segCount; i++) {
+          var jitter = (Math.random() - 0.5) * segLen * 1.2;
+          var nx = cx + Math.cos(angle) * segLen + Math.cos(angle + Math.PI/2) * jitter;
+          var ny = cy + Math.sin(angle) * segLen + Math.sin(angle + Math.PI/2) * jitter;
+          segments.push({ x1: cx, y1: cy, x2: nx, y2: ny });
+          cx = nx;
+          cy = ny;
+        }
+
+        return {
+          segments: segments,
+          life: 1,
+          decay: 0.015 + Math.random() * 0.025,
+          width: 1 + Math.random() * 1.5,
+          hue: 25 + Math.random() * 15
+        };
+      }
+
+      function tick() {
+        ctx.clearRect(0, 0, w, h);
+
+        // Randomly spawn bolts
+        if (Math.random() < 0.03) {
+          bolts.push(createBolt());
+        }
+
+        for (var i = bolts.length - 1; i >= 0; i--) {
+          var b = bolts[i];
+          b.life -= b.decay;
+          if (b.life <= 0) {
+            bolts.splice(i, 1);
+            continue;
+          }
+
+          var alpha = b.life * 0.25;
+          ctx.strokeStyle = 'hsla(' + b.hue + ', 95%, 60%, ' + alpha + ')';
+          ctx.lineWidth = b.width * b.life;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.shadowColor = 'hsla(' + b.hue + ', 95%, 60%, ' + (alpha * 0.8) + ')';
+          ctx.shadowBlur = 8 * b.life;
+
+          ctx.beginPath();
+          for (var j = 0; j < b.segments.length; j++) {
+            var s = b.segments[j];
+            if (j === 0) ctx.moveTo(s.x1, s.y1);
+            ctx.lineTo(s.x2, s.y2);
+          }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      // Respect prefers-reduced-motion
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        tick();
+      }
+    })();
   </script>
 </body>
 </html>

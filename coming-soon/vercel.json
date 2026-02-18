@@ -12,12 +12,8 @@
   ],
   "routes": [
     {
-      "src": "/keyrex-mainlandingpage.png",
-      "dest": "/keyrex-mainlandingpage.png"
-    },
-    {
-      "src": "/keyrex-logov2.png",
-      "dest": "/keyrex-logov2.png"
+      "src": "/(.+\\.png)$",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
