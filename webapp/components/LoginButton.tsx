@@ -282,13 +282,14 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
             loading ? (
               <span className="text-xs">Loading...</span>
             ) : (
-              <Image 
-                src={buttonImage} 
+              <Image
+                src={buttonImage}
                 alt={imageAlt}
-                width={128}
-                height={56}
-                className="h-full max-h-full w-full object-contain"
-                style={{ maxHeight: '100%', transform: 'scale(1.8225)', transformOrigin: 'center' }}
+                width={0}
+                height={0}
+                sizes="80vw"
+                className="w-auto object-contain"
+                style={{ height: '6rem', width: '10rem' }}
                 priority
               />
             )

@@ -306,33 +306,46 @@ export default function KeyRexButtonPreview({ siteId, className = '', customCSS,
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-5">
       {/* Left side container - logo button */}
       <div className="flex-shrink-0 flex flex-col items-center gap-2 relative">
-        {/* Main Login Button - matches embed script exactly with orange-400 background to match "Lightning Wallet Authentication" text */}
+        {/* Main Login Button - transparent background with orange glow on hover */}
         <button
           id="keyrex-button-preview"
-          className="bg-orange-400 border-none cursor-pointer transition-all duration-300 ease-out outline-none focus:outline-2 focus:outline-orange-500/50 focus:outline-offset-4 rounded-lg shadow-sm flex items-center justify-center"
+          className="bg-transparent border-none cursor-pointer transition-all duration-300 ease-out outline-none focus:outline-2 focus:outline-orange-500/50 focus:outline-offset-4 rounded-lg flex items-center justify-center"
           style={{
             transform: 'scale(1)',
             minWidth: '12rem',
             overflow: 'hidden',
             padding: '0.5rem',
+            boxShadow: 'none',
           }}
           onMouseEnter={(e) => {
             if (!customCSS) {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'
-              e.currentTarget.style.boxShadow = '0 8px 16px rgba(249, 115, 22, 0.2), 0 2px 4px rgba(249, 115, 22, 0.1)'
-              e.currentTarget.style.animation = 'keyrex-logo-glow 2s ease-in-out infinite'
-              e.currentTarget.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              e.currentTarget.style.transform = 'scale(1.03)'
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(249, 115, 22, 0.5), 0 0 24px rgba(249, 115, 22, 0.25)'
+              e.currentTarget.style.outline = '2px solid rgba(249, 115, 22, 0.6)'
             }
             setShowLogoTooltip(true)
           }}
           onMouseLeave={(e) => {
             if (!customCSS) {
-              e.currentTarget.style.transform = 'translateY(0) scale(1)'
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
-              e.currentTarget.style.animation = 'none'
-              e.currentTarget.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = 'none'
+              e.currentTarget.style.outline = 'none'
             }
             setShowLogoTooltip(false)
+          }}
+          onMouseDown={(e) => {
+            if (!customCSS) {
+              e.currentTarget.style.transform = 'scale(0.98)'
+              e.currentTarget.style.boxShadow = '0 0 16px rgba(249, 115, 22, 0.7), 0 0 32px rgba(249, 115, 22, 0.4)'
+              e.currentTarget.style.outline = '2px solid rgba(249, 115, 22, 0.8)'
+            }
+          }}
+          onMouseUp={(e) => {
+            if (!customCSS) {
+              e.currentTarget.style.transform = 'scale(1.03)'
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(249, 115, 22, 0.5), 0 0 24px rgba(249, 115, 22, 0.25)'
+              e.currentTarget.style.outline = '2px solid rgba(249, 115, 22, 0.6)'
+            }
           }}
           onFocus={() => {
             setShowLogoTooltip(true)
@@ -348,11 +361,10 @@ export default function KeyRexButtonPreview({ siteId, className = '', customCSS,
           aria-label="Sign in with Key-Rex"
           title="Don't see your wallet? Click Sign in with Key-Rex"
         >
-          {/* Increased logo size and zoom to fill button, centered */}
           <img
-            src="/images/keyrex-websitebutton.png"
+            src="/images/sign-in-with-paw.png"
             alt="Sign in with Key-Rex"
-            style={{ height: 'auto', width: 'auto', maxHeight: '5rem', objectFit: 'contain', display: 'block', transform: 'scale(1.5)', transformOrigin: 'center' }}
+            style={{ height: 'auto', width: 'auto', maxHeight: '7rem', objectFit: 'contain', display: 'block' }}
           />
         </button>
 

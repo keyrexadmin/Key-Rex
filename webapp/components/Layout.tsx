@@ -12,7 +12,7 @@ interface LayoutProps {
 export default function Layout({ children, showNav = true }: LayoutProps) {
   // Use state to track pathname after mount to avoid hydration issues
   const [pathname, setPathname] = useState('/')
-  const [logoSrc, setLogoSrc] = useState('/images/paw2.png')
+  const [logoSrc, setLogoSrc] = useState('/images/dino-head.png')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isHomePage = pathname === '/'
 
@@ -21,7 +21,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
     if (typeof window !== 'undefined') {
       setPathname(window.location.pathname)
       // Add cache-busting query parameter to force browser to reload image
-      setLogoSrc(`/images/paw2.png?t=${Date.now()}`)
+      setLogoSrc(`/images/dino-head.png?t=${Date.now()}`)
     }
   }, [])
 
@@ -66,20 +66,10 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
                       console.error('Failed to load logo image:', logoSrc)
                       // Fallback to original path without cache-busting
                       if (logoSrc.includes('?t=')) {
-                        e.currentTarget.src = '/images/paw2.png'
+                        e.currentTarget.src = '/images/dino-head.png'
                       }
                     }}
                   />
-                  <span
-                    className="md:hidden text-2xl font-extrabold tracking-tight -ml-1 drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
-                    style={{
-                      background: 'linear-gradient(180deg, #f5b942 0%, #e8912d 50%, #c46d1a 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
-                  >
-                    Key-Rex
-                  </span>
                 </Link>
               </div>
 
@@ -129,9 +119,9 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
                       <span className="block font-semibold text-orange-400">Key-Rex Account?</span>
                     </span>
                     <LoginButton
-                      buttonImage="/images/keyrex-websitebutton.png"
+                      buttonImage="/images/sign-in-with-paw.png"
                       imageAlt="Sign in with Key-Rex"
-                      buttonClassName="bg-orange-400 hover:bg-orange-500 active:bg-orange-600 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 hover:shadow-xl shadow-lg border-2 border-orange-400/40 hover:border-orange-400/80 active:border-orange-400 flex items-center justify-center h-14 max-h-14 w-32 overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:ring-offset-2 focus:ring-offset-[#1a1a1a]"
+                      buttonClassName="bg-transparent hover:shadow-[0_0_12px_rgba(249,115,22,0.5),0_0_24px_rgba(249,115,22,0.25)] hover:outline hover:outline-2 hover:outline-orange-500/60 active:shadow-[0_0_16px_rgba(249,115,22,0.7),0_0_32px_rgba(249,115,22,0.4)] active:outline-orange-500/80 rounded-lg transition-all duration-300 ease-out transform hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center max-h-16 overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:ring-offset-2 focus:ring-offset-[#1a1a1a]"
                       compact={true}
                     />
                   </div>

@@ -519,7 +519,7 @@ export async function GET(request: NextRequest) {
     // COMPACT: Reduced gap from 0.5rem to 0.25rem
     leftContainer.style.cssText = 'display: flex; flex-direction: column; flex-shrink: 0; align-items: center; gap: 0.25rem;';
     
-    // Key-Rex logo image as the button itself with enhanced styling and white background for logo visibility
+    // Key-Rex logo image as the button itself - transparent background with orange glow on hover
     const logoButton = document.createElement('button');
     logoButton.id = 'keyrex-button';
     logoButton.setAttribute('data-keyrex', 'button');
@@ -527,14 +527,12 @@ export async function GET(request: NextRequest) {
     // Very discrete native tooltip for users who don't see their wallet
     logoButton.title = "Don't see your wallet? Click Sign in with Key-Rex";
     logoButton.onclick = handleLogin;
-    const buttonBg = 'rgb(251, 146, 60)'; // Orange-400 background to match navigation sign-in button
-    logoButton.style.cssText = 'background: ' + buttonBg + '; border: none; padding: 0.5rem; border-radius: 0.75rem; cursor: pointer; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease; outline: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); min-width: 12rem; overflow: hidden; display: flex; align-items: center; justify-content: center;';
-    
+    logoButton.style.cssText = 'background: transparent; border: none; padding: 0.5rem; border-radius: 0.75rem; cursor: pointer; transition: all 0.3s ease; outline: none; box-shadow: none; min-width: 12rem; overflow: hidden; display: flex; align-items: center; justify-content: center;';
+
     const logoImg = document.createElement('img');
-    logoImg.src = baseUrl + '/images/keyrex-websitebutton.png';
+    logoImg.src = baseUrl + '/images/sign-in-with-paw.png';
     logoImg.alt = 'Sign in with Key-Rex';
-    // Increased logo size and zoom to fill button, centered
-    logoImg.style.cssText = 'height: auto; width: auto; max-height: 5rem; object-fit: contain; display: block; transform: scale(1.5); transform-origin: center;';
+    logoImg.style.cssText = 'height: auto; width: auto; max-height: 5rem; object-fit: contain; display: block;';
     logoImg.onload = function() {
       console.log('Key-Rex: Main logo loaded successfully:', logoImg.src);
     };
@@ -542,29 +540,38 @@ export async function GET(request: NextRequest) {
       console.error('Key-Rex: Main logo failed to load:', logoImg.src);
     };
     logoButton.appendChild(logoImg);
-    
-    // Enhanced hover effects with refined lift animation and dramatic glow
+
+    // Hover: orange outline glow
     logoButton.onmouseover = function() {
-      this.style.transform = 'translateY(-2px) scale(1.02)';
-      this.style.boxShadow = '0 8px 16px rgba(249, 115, 22, 0.2), 0 2px 4px rgba(249, 115, 22, 0.1)';
-      this.style.animation = 'keyrex-logo-glow 2s ease-in-out infinite';
-      this.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      this.style.transform = 'scale(1.03)';
+      this.style.boxShadow = '0 0 12px rgba(249, 115, 22, 0.5), 0 0 24px rgba(249, 115, 22, 0.25)';
+      this.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
     };
     logoButton.onmouseout = function() {
-      this.style.transform = 'translateY(0) scale(1)';
-      this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-      this.style.animation = 'none';
-      this.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      this.style.transform = 'scale(1)';
+      this.style.boxShadow = 'none';
+      this.style.outline = 'none';
     };
-    
-    // Focus state for accessibility
+    // Active (click): brighter glow
+    logoButton.onmousedown = function() {
+      this.style.transform = 'scale(0.98)';
+      this.style.boxShadow = '0 0 16px rgba(249, 115, 22, 0.7), 0 0 32px rgba(249, 115, 22, 0.4)';
+      this.style.outline = '2px solid rgba(249, 115, 22, 0.8)';
+    };
+    logoButton.onmouseup = function() {
+      this.style.transform = 'scale(1.03)';
+      this.style.boxShadow = '0 0 12px rgba(249, 115, 22, 0.5), 0 0 24px rgba(249, 115, 22, 0.25)';
+      this.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
+    };
+
+    // Focus state for accessibility (keyboard nav)
     logoButton.onfocus = function() {
       this.style.outline = '2px solid rgba(249, 115, 22, 0.5)';
       this.style.outlineOffset = '4px';
-      this.style.borderRadius = '0.5rem';
     };
     logoButton.onblur = function() {
       this.style.outline = 'none';
+      this.style.outlineOffset = '0';
     };
     
     leftContainer.appendChild(logoButton);
