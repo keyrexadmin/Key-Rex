@@ -251,7 +251,7 @@ export default function FAQ() {
                 View Open Source Code
               </a>
               <a
-                href="/why-bitpass"
+                href="/why-keyrex"
                 className="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white rounded-lg font-medium transition-colors"
               >
                 Learn More About Key-Rex

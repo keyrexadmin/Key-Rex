@@ -315,7 +315,7 @@ function HomeContent() {
               </div>
               <div className="text-center">
                 <Link
-                  href="/why-bitpass"
+                  href="/why-keyrex"
                   className="inline-block px-6 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-lg font-medium transition-colors"
                 >
                   Learn More About Key-Rex →
@@ -395,7 +395,7 @@ function HomeContent() {
                     <p className="text-white/400 text-sm leading-relaxed">Understand how visitors sign in and how to add it to your site</p>
                   </Card>
                 </Link>
-                <Link href="/why-bitpass" className="block">
+                <Link href="/why-keyrex" className="block">
                   <Card className="p-6 hover:border-orange-500/50 transition-all duration-200 text-center">
                     <div className="text-3xl mb-2">💡</div>
                     <h3 className="text-xl font-semibold text-white mb-2">Why Key-Rex</h3>

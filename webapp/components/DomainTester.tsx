@@ -103,7 +103,7 @@ export default function DomainTester({ userSiteId, userDomains, integrationEnabl
     <Card className="p-6">
       <h3 className="text-xl font-semibold text-white mb-4">Domain Integration Tester</h3>
       <p className="text-white/300 text-sm mb-4">
-        Test if a specific domain is properly configured and ready for BitPass authentication.
+        Test if a specific domain is properly configured and ready for Key-Rex authentication.
       </p>
 
       <div className="flex gap-2 mb-4">

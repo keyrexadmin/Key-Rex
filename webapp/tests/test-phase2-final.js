@@ -9,7 +9,7 @@
  * 3. k1 Challenge Reuse Prevention
  */
 
-const BASE_URL = process.env.BITPASS_URL || 'http://localhost:3000'
+const BASE_URL = process.env.KEYREX_URL || 'http://localhost:3000'
 const CLIENT_DOMAIN = 'http://localhost:3001'
 
 let testResults = {

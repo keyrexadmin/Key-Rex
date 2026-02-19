@@ -4879,7 +4879,7 @@ export default function LoginPage() {
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">Overview</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          When a user successfully authenticates with BitPass, your frontend receives their <code className="bg-dark-800 px-1 rounded">xpub</code> (extended public key) via the <code className="bg-dark-800 px-1 rounded">KeyRex.onSuccess()</code> callback. Your backend must:
+                          When a user successfully authenticates with Key-Rex, your frontend receives their <code className="bg-dark-800 px-1 rounded">xpub</code> (extended public key) via the <code className="bg-dark-800 px-1 rounded">KeyRex.onSuccess()</code> callback. Your backend must:
                         </p>
                         <ol className="list-decimal list-inside space-y-2 text-sm text-white/80 ml-2">
                           <li>Receive the xpub from your frontend</li>
@@ -5483,11 +5483,11 @@ window.opener.postMessage({
                           <div className="bg-dark-950 rounded-lg p-4 border border-dark-700">
                             <h5 className="text-base font-semibold text-orange-400 mb-2">Polling Fallback</h5>
                             <p className="text-sm text-white/80 mb-2">
-                              If other methods fail, BitPass polls the callback endpoint to retrieve xpub:
+                              If other methods fail, Key-Rex polls the callback endpoint to retrieve xpub:
                             </p>
                             <div className="bg-dark-900 rounded-lg p-3 border border-dark-600 mb-2 overflow-x-auto">
                               <pre className="text-xs text-white/80 font-mono whitespace-pre-wrap break-words">
-{`// BitPass polls this endpoint:
+{`// Key-Rex polls this endpoint:
 GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
 
 // Response when authenticated:
@@ -5538,7 +5538,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           <ul className="list-disc list-inside space-y-1 ml-4">
                             <li><code className="bg-dark-800 px-1 rounded">siteId</code> - Your unique site identifier</li>
                             <li><code className="bg-dark-800 px-1 rounded">buttonText</code> - Standard button text (fixed: "Sign in with Key-Rex")</li>
-                            <li><code className="bg-dark-800 px-1 rounded">featuredWallets</code> - Array of featured wallet names (managed by BitPass)</li>
+                            <li><code className="bg-dark-800 px-1 rounded">featuredWallets</code> - Array of featured wallet names (managed by Key-Rex)</li>
                             <li><code className="bg-dark-800 px-1 rounded">footerText</code> - Footer text below the button (fixed: "Powered by Key-Rex — open-source")</li>
                             <li><code className="bg-dark-800 px-1 rounded">integrationEnabled</code> - Whether integration is active</li>
                             <li><code className="bg-dark-800 px-1 rounded">showBranding</code> - Whether branding is required (always true for free accounts)</li>
@@ -5555,7 +5555,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                   <div id="configuration" className="bg-dark-800/70 border-2 border-orange-500/30 rounded-lg p-6 mb-6 scroll-mt-24">
                     <h3 className="text-xl font-semibold text-white mb-4">Configuration</h3>
                     <p className="text-white/80 text-base mb-4 leading-relaxed">
-                      The BitPass button uses a standardized design with fixed button text, footer text, and featured wallets. Configuration is managed server-side and automatically fetched when the script loads.
+                      The Key-Rex button uses a standardized design with fixed button text, footer text, and featured wallets. Configuration is managed server-side and automatically fetched when the script loads.
                     </p>
 
                     <div className="space-y-6">
@@ -5563,12 +5563,12 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">Standard Button Configuration</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          All BitPass integrations use the same standardized button design. Configuration is fetched from the server and cannot be customized client-side:
+                          All Key-Rex integrations use the same standardized button design. Configuration is fetched from the server and cannot be customized client-side:
                         </p>
                         <div className="space-y-2 text-sm text-white/80">
                           <p><strong className="text-white">Button Text:</strong> "Sign in with Key-Rex" (server-managed, fixed)</p>
                           <p><strong className="text-white">Footer Text:</strong> "Powered by Key-Rex — open-source" (server-managed, fixed)</p>
-                          <p><strong className="text-white">Featured Wallets:</strong> Managed by BitPass server (includes popular wallets like Alby, Phoenix, Zeus)</p>
+                          <p><strong className="text-white">Featured Wallets:</strong> Managed by Key-Rex server (includes popular wallets like Alby, Phoenix, Zeus)</p>
                           <p><strong className="text-white">Configuration Source:</strong> Automatically fetched from <code className="bg-dark-800 px-1 rounded">/api/embed/config?siteId=...</code> when script loads</p>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
                             <p className="text-xs text-orange-200">
@@ -5644,7 +5644,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           </ul>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
                             <p className="text-xs text-orange-200">
-                              <strong>Note:</strong> This fallback ensures your site remains functional even if the BitPass API is temporarily unavailable. The button will work, but you may want to monitor for configuration API failures.
+                              <strong>Note:</strong> This fallback ensures your site remains functional even if the Key-Rex API is temporarily unavailable. The button will work, but you may want to monitor for configuration API failures.
                             </p>
                           </div>
                         </div>
@@ -5654,7 +5654,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">Container Placement</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          Control where the BitPass button appears on your page by specifying a container element with <code className="bg-dark-800 px-1 rounded">id="keyrex-container"</code>.
+                          Control where the Key-Rex button appears on your page by specifying a container element with <code className="bg-dark-800 px-1 rounded">id="keyrex-container"</code>.
                         </p>
 
                         <div className="space-y-4">
@@ -5670,7 +5670,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
   <h1>My Website</h1>
   <p>Content here...</p>
   
-  <!-- BitPass button will be added here automatically -->
+  <!-- Key-Rex button will be added here automatically -->
   <script src="https://yourdomain.com/embed?siteId=..."></script>
   <!-- Script auto-initializes -->
 </body>`}
@@ -5698,7 +5698,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
     <div class="login-section">
       <h2>Sign In</h2>
       
-      <!-- BitPass button will be inserted here -->
+      <!-- Key-Rex button will be inserted here -->
       <div id="keyrex-container"></div>
     </div>
   </main>
@@ -5717,7 +5717,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           <div className="bg-dark-950 rounded-lg p-4 border border-dark-700">
                             <h5 className="text-base font-semibold text-orange-400 mb-2">Important: Only One Container</h5>
                             <p className="text-sm text-white/80 mb-2">
-                              If multiple elements with <code className="bg-dark-800 px-1 rounded">id="keyrex-container"</code> exist, BitPass will use the first one found:
+                              If multiple elements with <code className="bg-dark-800 px-1 rounded">id="keyrex-container"</code> exist, Key-Rex will use the first one found:
                             </p>
                             <div className="bg-dark-900 rounded-lg p-3 border border-dark-600 mb-2 overflow-x-auto">
                               <pre className="text-xs text-white/80 font-mono whitespace-pre-wrap break-words">
@@ -5777,7 +5777,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
 
                         <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
                           <p className="text-xs text-orange-200">
-                            <strong>Detection:</strong> BitPass checks for <code className="bg-orange-600/30 px-1 rounded">#keyrex-container</code> when <code className="bg-orange-600/30 px-1 rounded">init()</code> is called (or auto-initializes). If found, the button is placed there. Otherwise, it's appended to <code className="bg-orange-600/30 px-1 rounded">&lt;body&gt;</code>.
+                            <strong>Detection:</strong> Key-Rex checks for <code className="bg-orange-600/30 px-1 rounded">#keyrex-container</code> when <code className="bg-orange-600/30 px-1 rounded">init()</code> is called (or auto-initializes). If found, the button is placed there. Otherwise, it's appended to <code className="bg-orange-600/30 px-1 rounded">&lt;body&gt;</code>.
                           </p>
                         </div>
                       </div>
@@ -5842,7 +5842,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">📦 Handling xpub from URL Parameters & Cookies</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          After authentication, the xpub may arrive via URL parameters (mobile redirect) or cookies (cross-domain). BitPass handles this automatically, but you should be aware of the behavior:
+                          After authentication, the xpub may arrive via URL parameters (mobile redirect) or cookies (cross-domain). Key-Rex handles this automatically, but you should be aware of the behavior:
                         </p>
                         <div className="space-y-3 text-sm text-white/80">
                           <div>
@@ -5857,7 +5857,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           <div>
                             <p className="font-semibold text-white mb-2">Cookies (Cross-Domain):</p>
                             <ul className="list-disc list-inside space-y-1 ml-4">
-                              <li>Used for cross-domain redirects (e.g., BitPass on different domain)</li>
+                              <li>Used for cross-domain redirects (e.g., Key-Rex on different domain)</li>
                               <li>Cookies: <code className="bg-dark-800 px-1 rounded">keyrex_k1</code>, <code className="bg-dark-800 px-1 rounded">keyrex_xpub_*</code></li>
                               <li>Key-Rex automatically reads cookies and cleans them up after use</li>
                               <li>No manual cookie handling required</li>
@@ -5865,7 +5865,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                           </div>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
                             <p className="text-xs text-orange-200">
-                              <strong>Best Practice:</strong> Don't manually parse URL parameters or cookies. BitPass handles all xpub retrieval automatically. Just register your <code className="bg-orange-600/30 px-1 rounded">KeyRex.onSuccess()</code> callback and handle the xpub when it arrives.
+                              <strong>Best Practice:</strong> Don't manually parse URL parameters or cookies. Key-Rex handles all xpub retrieval automatically. Just register your <code className="bg-orange-600/30 px-1 rounded">KeyRex.onSuccess()</code> callback and handle the xpub when it arrives.
                             </p>
                           </div>
                         </div>
@@ -5934,7 +5934,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                             <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
 {`// Key-Rex automatically handles this:
 // 1. Try popup
-const popup = window.open(qrUrl, 'BitPass Authentication', ...);
+const popup = window.open(qrUrl, 'Key-Rex Authentication', ...);
 
 // 2. If blocked, fallback to redirect
 if (!popup) {
@@ -5949,7 +5949,7 @@ if (!popup) {
   window.location.href = qrUrl + '&redirect=true';
 }
 
-// No action needed from you - BitPass handles it automatically`}
+// No action needed from you - Key-Rex handles it automatically`}
                             </pre>
                           </div>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
@@ -6012,7 +6012,7 @@ if (!popup) {
 {`// Debug information is automatically logged to console
 // Open browser DevTools (F12) and check Console tab
 
-// Check if BitPass is loaded
+// Check if Key-Rex is loaded
 console.log('Key-Rex object:', window.KeyRex);
 
 // Check if button exists
@@ -6056,7 +6056,7 @@ console.log('Button element:', document.getElementById('keyrex-button'));
                             <p>Network error or server issue. Check your internet connection and try again.</p>
                           </div>
                           <div>
-                            <p className="font-semibold text-white mb-1">"BitPass is not defined"</p>
+                            <p className="font-semibold text-white mb-1">"Key-Rex is not defined"</p>
                             <p>Script didn't load. Check Network tab for failed requests.</p>
                           </div>
                         </div>
@@ -6117,14 +6117,14 @@ KeyRex.onError(function(error) {
                         </p>
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                           <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
-{`<!-- Custom button that triggers BitPass -->
-<button id="custom-login-btn" onclick="triggerBitPassLogin()">
+{`<!-- Custom button that triggers Key-Rex -->
+<button id="custom-login-btn" onclick="triggerKeyRexLogin()">
   Login with Lightning
 </button>
 
 <script>
-function triggerBitPassLogin() {
-  // Get the BitPass button and click it programmatically
+function triggerKeyRexLogin() {
+  // Get the Key-Rex button and click it programmatically
   const keyrexBtn = document.getElementById('keyrex-button');
   if (keyrexBtn) {
     keyrexBtn.click();
@@ -6149,7 +6149,7 @@ function triggerBitPassLogin() {
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                           <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
 {`// Trigger authentication programmatically
-function loginWithBitPass() {
+function loginWithKeyRex() {
   const button = document.getElementById('keyrex-button');
   if (button) {
     button.click();
@@ -6160,7 +6160,7 @@ function loginWithBitPass() {
 
 // Example: Auto-trigger on page load (not recommended for UX)
 // window.addEventListener('load', () => {
-//   setTimeout(loginWithBitPass, 1000);
+//   setTimeout(loginWithKeyRex, 1000);
 // });`}
                           </pre>
                         </div>
@@ -6211,7 +6211,7 @@ KeyRex.onSuccess(function(xpub) {
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">postMessage API (Popup Communication)</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          When using desktop popup mode, the popup communicates with your page using the browser's <code className="bg-dark-800 px-1 rounded">postMessage</code> API. BitPass handles this automatically, but you can listen manually if needed:
+                          When using desktop popup mode, the popup communicates with your page using the browser's <code className="bg-dark-800 px-1 rounded">postMessage</code> API. Key-Rex handles this automatically, but you can listen manually if needed:
                         </p>
                         <div className="space-y-4">
                           <div>
@@ -6244,9 +6244,9 @@ KeyRex.onSuccess(function(xpub) {
                             <p className="text-sm font-semibold text-white mb-2">Manual Listener (Optional):</p>
                             <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                               <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
-{`// Listen for messages from BitPass popup
+{`// Listen for messages from Key-Rex popup
 window.addEventListener('message', function(event) {
-  // IMPORTANT: Verify origin matches BitPass domain (security)
+  // IMPORTANT: Verify origin matches Key-Rex domain (security)
   const keyrexDomain = 'https://your-keyrex-domain.com';
   if (event.origin !== keyrexDomain) {
     return; // Ignore messages from other origins
@@ -6269,7 +6269,7 @@ window.addEventListener('message', function(event) {
                           </div>
                           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
                             <p className="text-xs text-yellow-200">
-                              <strong>Security:</strong> Always verify <code className="bg-yellow-600/30 px-1 rounded">event.origin</code> matches your BitPass domain before processing messages. This prevents malicious sites from sending fake authentication messages.
+                              <strong>Security:</strong> Always verify <code className="bg-yellow-600/30 px-1 rounded">event.origin</code> matches your Key-Rex domain before processing messages. This prevents malicious sites from sending fake authentication messages.
                             </p>
                           </div>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
@@ -6321,7 +6321,7 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                           </div>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
                             <p className="text-xs text-orange-200">
-                              <strong>Automatic:</strong> No configuration needed. BitPass detects your site's theme and adapts automatically. Works with CSS <code className="bg-orange-600/30 px-1 rounded">prefers-color-scheme</code> and common dark mode class names.
+                              <strong>Automatic:</strong> No configuration needed. Key-Rex detects your site's theme and adapts automatically. Works with CSS <code className="bg-orange-600/30 px-1 rounded">prefers-color-scheme</code> and common dark mode class names.
                             </p>
                           </div>
                         </div>
@@ -6364,7 +6364,7 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
 // 2. Real button and wallets are rendered
 // 3. Error occurs (shows error message instead)
 
-// No manual control needed - BitPass handles it automatically`}
+// No manual control needed - Key-Rex handles it automatically`}
                             </pre>
                           </div>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3">
@@ -6381,7 +6381,7 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                   <div id="account-linking" className="bg-dark-800/70 border-2 border-orange-500/30 rounded-lg p-6 mb-6 scroll-mt-24">
                     <h3 className="text-xl font-semibold text-white mb-4">Account Linking & User Management</h3>
                     <p className="text-white/80 text-base mb-4 leading-relaxed">
-                      Learn how to link BitPass authentication to existing user accounts and manage user identity in your application.
+                      Learn how to link Key-Rex authentication to existing user accounts and manage user identity in your application.
                     </p>
 
                     <div className="space-y-6">
@@ -6390,7 +6390,7 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                         <h4 className="text-lg font-semibold text-white mb-3">Understanding xpub and User Identity</h4>
                         <div className="space-y-3 text-sm text-white/80">
                           <p>
-                            When a user authenticates with BitPass, you receive their <code className="bg-dark-800 px-1 rounded">xpub</code> (extended public key) in the <code className="bg-dark-800 px-1 rounded">KeyRex.onSuccess()</code> callback. The xpub is:
+                            When a user authenticates with Key-Rex, you receive their <code className="bg-dark-800 px-1 rounded">xpub</code> (extended public key) in the <code className="bg-dark-800 px-1 rounded">KeyRex.onSuccess()</code> callback. The xpub is:
                           </p>
                           <ul className="list-disc list-inside space-y-1 ml-2">
                             <li><strong className="text-white">Deterministic:</strong> Same wallet = same xpub every time</li>
@@ -6411,14 +6411,14 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                         <h4 className="text-lg font-semibold text-white mb-3">Supporting Multiple Wallets per User</h4>
                         <div className="space-y-3 text-sm text-white/80">
                           <p>
-                            Some of your users may want to sign in with more than one Lightning wallet (for example, a mobile wallet and a desktop wallet). BitPass makes this straightforward: each wallet has its own <code className="bg-dark-800 px-1 rounded">xpub</code>, and you can allow multiple xpubs to be linked to the same user account in your system.
+                            Some of your users may want to sign in with more than one Lightning wallet (for example, a mobile wallet and a desktop wallet). Key-Rex makes this straightforward: each wallet has its own <code className="bg-dark-800 px-1 rounded">xpub</code>, and you can allow multiple xpubs to be linked to the same user account in your system.
                           </p>
                           <div>
                             <p className="text-sm font-semibold text-white mb-1">Recommended approach:</p>
                             <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li>Store one primary BitPass xpub for each user (for example, the first wallet they used to sign in).</li>
+                              <li>Store one primary Key-Rex xpub for each user (for example, the first wallet they used to sign in).</li>
                               <li>Add a separate field or table to store additional linked xpubs for the same account (for example, a <code className="bg-dark-800 px-1 rounded">linked_xpubs</code> array or a <code className="bg-dark-800 px-1 rounded">user_wallets</code> table).</li>
-                              <li>When BitPass returns an xpub you haven&apos;t seen before, decide whether to attach it to an existing account (user is already logged in) or create a new account if this is a completely new user.</li>
+                              <li>When Key-Rex returns an xpub you haven&apos;t seen before, decide whether to attach it to an existing account (user is already logged in) or create a new account if this is a completely new user.</li>
                             </ul>
                           </div>
                           <div>
@@ -6435,7 +6435,7 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                         <h4 className="text-lg font-semibold text-white mb-3">Handling Lost Wallets & Account Recovery</h4>
                         <div className="space-y-3 text-sm text-white/80">
                           <p>
-                            Because BitPass is a passwordless system based on Lightning wallets, there is no &quot;reset password&quot; button for a lost wallet. If a user loses access to a wallet that was their only way to sign in, your application needs to provide a separate recovery path.
+                            Because Key-Rex is a passwordless system based on Lightning wallets, there is no &quot;reset password&quot; button for a lost wallet. If a user loses access to a wallet that was their only way to sign in, your application needs to provide a separate recovery path.
                           </p>
                           <div>
                             <p className="text-sm font-semibold text-white mb-1">Recommended recovery strategy:</p>
@@ -6453,7 +6453,7 @@ const isDarkMode = prefersDark || document.documentElement.classList.contains('d
                             </ul>
                           </div>
                           <p>
-                            BitPass&apos;s role is to provide a strong cryptographic identifier (xpub) for each wallet. How you handle recovery and wallet replacement is up to your application&apos;s account management and support policies.
+                            Key-Rex&apos;s role is to provide a strong cryptographic identifier (xpub) for each wallet. How you handle recovery and wallet replacement is up to your application&apos;s account management and support policies.
                           </p>
                         </div>
                       </div>
@@ -6638,7 +6638,7 @@ const xpub = result.normalized;`}
                         <h4 className="text-lg font-semibold text-white mb-3">The Account Linking Challenge</h4>
                         <div className="space-y-3 text-sm text-white/80">
                           <p>
-                            When a user clicks "Sign in with BitPass" for the first time, you receive their xpub. But how do you know if this is:
+                            When a user clicks "Sign in with Key-Rex" for the first time, you receive their xpub. But how do you know if this is:
                           </p>
                           <ul className="list-disc list-inside space-y-1 ml-2">
                             <li>A <strong className="text-white">new user</strong> who needs a new account created?</li>
@@ -6654,7 +6654,7 @@ const xpub = result.normalized;`}
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">Step 1: Database Setup</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          Add a column to store the BitPass xpub in your user table.
+                          Add a column to store the Key-Rex xpub in your user table.
                         </p>
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                           <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
@@ -6772,7 +6772,7 @@ app.post('/api/auth/keyrex', async (req, res) => {
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                           <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
 {`// Frontend: Account Settings Page (User already logged in)
-function LinkBitPassWallet() {
+function LinkKeyRexWallet() {
   const [linking, setLinking] = useState(false);
   
   const handleLinkWallet = () => {
@@ -6810,8 +6810,8 @@ function LinkBitPassWallet() {
       }
     });
     
-    // Trigger BitPass authentication
-    // (User clicks button, BitPass handles the rest)
+    // Trigger Key-Rex authentication
+    // (User clicks button, Key-Rex handles the rest)
   };
   
   return (
@@ -6940,10 +6940,10 @@ app.post('/api/auth/keyrex', async (req, res) => {
                         </p>
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                           <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
-{`// components/BitPassLogin.jsx
+{`// components/KeyRexLogin.jsx
 import { useEffect, useState } from 'react';
 
-export default function BitPassLogin({ onSuccess, onError }) {
+export default function KeyRexLogin({ onSuccess, onError }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   useEffect(() => {
@@ -7014,7 +7014,7 @@ export default function AccountSettings({ user }) {
       }
     });
     
-    // User will click BitPass button to authenticate
+    // User will click Key-Rex button to authenticate
   };
   
   return (
@@ -7202,11 +7202,11 @@ if (data.error === 'wallet_already_linked') {
                           <div>
                             <p className="text-sm font-semibold text-white mb-2">Method 1: Email Verification Flow</p>
                             <p className="text-sm text-white/80 mb-2">
-                              User authenticates with BitPass, then enters their email to verify account ownership.
+                              User authenticates with Key-Rex, then enters their email to verify account ownership.
                             </p>
                             <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                               <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
-{`// Step 1: User authenticates with BitPass
+{`// Step 1: User authenticates with Key-Rex
 KeyRex.onSuccess(async function(xpub) {
   // Check if wallet is already linked
   const checkResponse = await fetch(\`/api/auth/check-wallet?xpub=\${xpub}\`);
@@ -7305,11 +7305,11 @@ app.get('/verify-wallet-link', async (req, res) => {
                           <div>
                             <p className="text-sm font-semibold text-white mb-2">Method 2: Username/Password Confirmation</p>
                             <p className="text-sm text-white/80 mb-2">
-                              User authenticates with BitPass, then confirms their identity with existing credentials.
+                              User authenticates with Key-Rex, then confirms their identity with existing credentials.
                             </p>
                             <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                               <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
-{`// Step 1: User authenticates with BitPass
+{`// Step 1: User authenticates with Key-Rex
 KeyRex.onSuccess(async function(xpub) {
   // Check if wallet is linked
   const checkResponse = await fetch(\`/api/auth/check-wallet?xpub=\${xpub}\`);
@@ -7402,7 +7402,7 @@ app.post('/api/auth/confirm-and-link', async (req, res) => {
                       <div className="bg-dark-900/50 rounded-lg p-5 border border-dark-700">
                         <h4 className="text-lg font-semibold text-white mb-3">Wallet Unlinking Implementation</h4>
                         <p className="text-sm text-white/80 mb-3">
-                          Allow users to unlink their wallet if they want to use a different one or remove BitPass authentication.
+                          Allow users to unlink their wallet if they want to use a different one or remove Key-Rex authentication.
                         </p>
                         
                         <div className="space-y-4">
@@ -7493,7 +7493,7 @@ app.post('/api/users/unlink-wallet', authenticateUser, async (req, res) => {
   // Check if user has other login methods
   const user = await db.users.findOne({ id: userId });
   
-  // If BitPass is their only login method, require alternative first
+  // If Key-Rex is their only login method, require alternative first
   if (!user.email && !user.passwordHash) {
     return res.status(400).json({
       success: false,
@@ -7759,7 +7759,7 @@ function formatDate(date) {
 {`// Verify wallet ownership
 function verifyWallet() {
   const confirmed = window.confirm(
-    'Verify your wallet by authenticating with BitPass.\\n\\n' +
+    'Verify your wallet by authenticating with Key-Rex.\\n\\n' +
     'This confirms you still have access to the linked wallet.'
   );
   
@@ -7788,8 +7788,8 @@ function verifyWallet() {
     }
   });
   
-  // Trigger BitPass authentication
-  // (User clicks button, BitPass handles the rest)
+  // Trigger Key-Rex authentication
+  // (User clicks button, Key-Rex handles the rest)
 }
 
 // Backend: Update verification timestamp
@@ -7853,7 +7853,7 @@ app.post('/api/users/update-wallet-verification', authenticateUser, async (req, 
                         },
                         {
                           q: "Can I customize the button text or styling?",
-                          a: "The BitPass button uses a standardized design with fixed button text ('Sign in with Key-Rex') and orange styling. This ensures consistent branding and user recognition. If you need custom branding or styling options, contact us to discuss custom solutions."
+                          a: "The Key-Rex button uses a standardized design with fixed button text ('Sign in with Key-Rex') and orange styling. This ensures consistent branding and user recognition. If you need custom branding or styling options, contact us to discuss custom solutions."
                         },
                         {
                           q: "Is the xpub secure? Can others use it to access my account?",
@@ -7861,7 +7861,7 @@ app.post('/api/users/update-wallet-verification', authenticateUser, async (req, 
                         },
                         {
                           q: "Can I customize the button appearance?",
-                          a: "The BitPass button uses a standard design with orange styling and includes 'BitPass' branding. This helps users recognize and trust the authentication method. If you're interested in custom branding or styling options, contact us to discuss custom solutions."
+                          a: "The Key-Rex button uses a standard design with orange styling and includes 'Key-Rex' branding. This helps users recognize and trust the authentication method. If you're interested in custom branding or styling options, contact us to discuss custom solutions."
                         },
                         {
                           q: "What browsers are supported?",
@@ -8143,7 +8143,7 @@ KeyRex.onError(function(error) {
                         <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 mb-3 overflow-x-auto">
                           <pre className="text-sm text-white/80 font-mono whitespace-pre-wrap break-words">
 {`// Health check function
-async function checkBitPassHealth() {
+async function checkKeyRexHealth() {
   const checks = {
     scriptLoaded: false,
     buttonExists: false,
@@ -8171,7 +8171,7 @@ async function checkBitPassHealth() {
 }
 
 // Run health check
-checkBitPassHealth().then(checks => {
+checkKeyRexHealth().then(checks => {
     console.log('Key-Rex Health:', checks);
   // Send to monitoring service
   if (!checks.scriptLoaded || !checks.buttonExists || !checks.configLoaded || !checks.integrationEnabled) {
@@ -8210,7 +8210,7 @@ KeyRex.onSuccess(function(xpub) {
   if (window.gtag) {
     gtag('event', 'keyrex_login_success', {
       'event_category': 'Authentication',
-      'event_label': 'BitPass'
+      'event_label': 'Key-Rex'
     });
   }
   
@@ -8218,7 +8218,7 @@ KeyRex.onSuccess(function(xpub) {
   if (window.dataLayer) {
     dataLayer.push({
       'event': 'keyrex_login_success',
-      'method': 'BitPass'
+      'method': 'Key-Rex'
     });
   }
 });
@@ -8347,7 +8347,7 @@ KeyRex.onError(function(error) {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-red-400 mb-2">Lost Wallet Access</h3>
                     <p className="text-white/80 text-sm mb-3">
-                      <strong>Important:</strong> If you lose access to the Lightning wallet you use to sign in to your BitPass dashboard, you must create a new Key-Rex account with a different wallet. There is no account recovery—this is by design to prevent bad actors from gaining unauthorized access to accounts.
+                      <strong>Important:</strong> If you lose access to the Lightning wallet you use to sign in to your Key-Rex dashboard, you must create a new Key-Rex account with a different wallet. There is no account recovery—this is by design to prevent bad actors from gaining unauthorized access to accounts.
                     </p>
                     <div className="bg-dark-900/50 rounded-lg p-4 mt-3">
                       <p className="text-sm font-semibold text-white mb-2">What this means:</p>

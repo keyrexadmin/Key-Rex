@@ -222,15 +222,15 @@ export default function AdminDashboard() {
     switch (type) {
       case 'users':
         data = users
-        filename = `bitpass-users-${new Date().toISOString().split('T')[0]}.json`
+        filename = `keyrex-users-${new Date().toISOString().split('T')[0]}.json`
         break
       case 'contacts':
         data = contacts
-        filename = `bitpass-contacts-${new Date().toISOString().split('T')[0]}.json`
+        filename = `keyrex-contacts-${new Date().toISOString().split('T')[0]}.json`
         break
       case 'analytics':
         data = analytics
-        filename = `bitpass-analytics-${new Date().toISOString().split('T')[0]}.json`
+        filename = `keyrex-analytics-${new Date().toISOString().split('T')[0]}.json`
         break
     }
     
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
         if (res.ok) {
           await loadData()
           // Force preview refresh by triggering a page event
-          window.dispatchEvent(new Event('bitpass-wallet-updated'))
+          window.dispatchEvent(new Event('keyrex-wallet-updated'))
           setShowWalletModal(false)
           setEditingWallet(null)
           setWalletForm({ name: '', logoUrl: '', downloadUrl: '', enabled: true, priority: 0 })
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
         if (res.ok) {
           await loadData()
           // Force preview refresh by triggering a page event
-          window.dispatchEvent(new Event('bitpass-wallet-updated'))
+          window.dispatchEvent(new Event('keyrex-wallet-updated'))
           setShowWalletModal(false)
           setWalletForm({ name: '', logoUrl: '', downloadUrl: '', enabled: true, priority: 0 })
         }
@@ -293,7 +293,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         await loadData()
         // Force preview refresh by triggering a page event
-        window.dispatchEvent(new Event('bitpass-wallet-updated'))
+        window.dispatchEvent(new Event('keyrex-wallet-updated'))
       }
     } catch (err) {
       console.error('Error deleting wallet:', err)

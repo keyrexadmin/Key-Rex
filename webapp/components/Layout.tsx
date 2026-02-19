@@ -87,7 +87,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
               <div className="flex-1 flex justify-center items-center">
                 <div className="hidden md:flex items-center space-x-3 flex-nowrap">
                   <NavLink href="/how-it-works" active={pathname === '/how-it-works'}>How It Works</NavLink>
-                  <NavLink href="/why-bitpass" active={pathname === '/why-bitpass'}>Why Key-Rex</NavLink>
+                  <NavLink href="/why-keyrex" active={pathname === '/why-keyrex'}>Why Key-Rex</NavLink>
                   <NavLink href="/requirements" active={pathname === '/requirements'}>Requirements</NavLink>
                   <NavLink href="/docs" active={pathname === '/docs'}>Documentation</NavLink>
                   <NavLink href="/faq" active={pathname === '/faq'}>FAQ</NavLink>
@@ -144,7 +144,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-orange-500/20 px-4 py-3 space-y-1" style={{ backgroundColor: 'rgba(26, 26, 26, 0.98)' }}>
               <NavLink href="/how-it-works" active={pathname === '/how-it-works'}>How It Works</NavLink>
-              <NavLink href="/why-bitpass" active={pathname === '/why-bitpass'}>Why Key-Rex</NavLink>
+              <NavLink href="/why-keyrex" active={pathname === '/why-keyrex'}>Why Key-Rex</NavLink>
               <NavLink href="/requirements" active={pathname === '/requirements'}>Requirements</NavLink>
               <NavLink href="/docs" active={pathname === '/docs'}>Documentation</NavLink>
               <NavLink href="/faq" active={pathname === '/faq'}>FAQ</NavLink>
@@ -173,7 +173,7 @@ export default function Layout({ children, showNav = true }: LayoutProps) {
                 <Link href="/how-it-works" className="text-white/70 hover:text-orange-400 text-sm transition-colors">
                   How It Works
                 </Link>
-                <Link href="/why-bitpass" className="text-white/60 hover:text-orange-400 text-sm transition-colors">
+                <Link href="/why-keyrex" className="text-white/60 hover:text-orange-400 text-sm transition-colors">
                   Why Key-Rex
                 </Link>
                 <Link href="/for-wallets" className="text-white/60 hover:text-orange-400 text-sm transition-colors">

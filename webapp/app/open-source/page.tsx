@@ -42,7 +42,7 @@ export default function OpenSource() {
           description: 'Technical requirements for using Key-Rex on a website (backend, domains, HTTPS, etc.).',
         },
         {
-          path: 'app/why-bitpass/page.tsx',
+          path: 'app/why-keyrex/page.tsx',
           description: 'Why Key-Rex exists, what makes it different, and how it fits Bitcoin-first companies.',
         },
         {

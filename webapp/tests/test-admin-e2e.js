@@ -8,7 +8,7 @@
  * Note: UI tests, wallet interactions, and visual verification require manual testing.
  */
 
-const BASE_URL = process.env.BITPASS_URL || 'http://localhost:3000'
+const BASE_URL = process.env.KEYREX_URL || 'http://localhost:3000'
 
 let testResults = {
   passed: 0,

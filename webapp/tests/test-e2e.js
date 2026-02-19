@@ -8,7 +8,7 @@
  * Note: UI tests, wallet interactions, and visual verification require manual testing.
  */
 
-const BASE_URL = process.env.BITPASS_URL || 'http://localhost:3000'
+const BASE_URL = process.env.KEYREX_URL || 'http://localhost:3000'
 const CLIENT_DOMAIN = 'http://localhost:3001'
 
 let testResults = {
@@ -131,7 +131,7 @@ await test('TC-1.1: Landing Page Loads', async () => {
 await test('TC-1.3: Public Pages Load', async () => {
   const pages = [
     '/how-it-works',
-    '/why-bitpass',
+    '/why-keyrex',
     '/requirements',
     '/docs',
     '/faq',

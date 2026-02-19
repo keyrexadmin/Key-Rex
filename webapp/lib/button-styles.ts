@@ -1,5 +1,5 @@
 /**
- * Shared button styling constants for BitPass authentication button
+ * Shared button styling constants for Key-Rex authentication button
  * 
  * This file ensures the embed script and all preview components
  * use the exact same styling. When you update these constants,

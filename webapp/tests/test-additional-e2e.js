@@ -10,7 +10,7 @@
  * 4. Contact form messages and admin dashboard receival
  */
 
-const BASE_URL = process.env.BITPASS_URL || 'http://localhost:3000'
+const BASE_URL = process.env.KEYREX_URL || 'http://localhost:3000'
 
 let testResults = {
   passed: 0,

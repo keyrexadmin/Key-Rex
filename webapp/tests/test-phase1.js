@@ -10,7 +10,7 @@
  * 4. Authentication flows
  */
 
-const BASE_URL = process.env.BITPASS_URL || 'http://localhost:3000'
+const BASE_URL = process.env.KEYREX_URL || 'http://localhost:3000'
 const CLIENT_DOMAIN = 'http://localhost:3001'
 const INVALID_DOMAIN = 'http://evil.com'
 
