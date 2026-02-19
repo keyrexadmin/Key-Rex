@@ -1091,7 +1091,7 @@ export default function AdminLoginPage() {
 
                     <div className="pt-3 border-t border-dark-700/50">
                       <p className="text-white/400 text-xs mb-1">
-                        <strong className="text-white/300">Recommended wallets:</strong> Alby (browser extension), Phoenix (mobile), Zeus (mobile), Breez (mobile)
+                        <strong className="text-white/300">Recommended wallets:</strong> Any Lightning wallet that supports LNURL-auth (browser extensions or mobile apps)
                       </p>
                     </div>
                   </div>
@@ -1225,7 +1225,7 @@ export default function AdminLoginPage() {
           {!showQRCode && (
             <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="text-blue-300 text-xs text-center">
-                <span className="font-semibold">💡 Tip:</span> If you don't have a Lightning wallet browser extension (like Alby), you can use a mobile wallet to scan a QR code.
+                <span className="font-semibold">💡 Tip:</span> If you don't have a Lightning wallet browser extension, you can use a mobile wallet to scan a QR code.
               </p>
             </div>
           )}

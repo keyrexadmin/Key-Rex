@@ -15,7 +15,7 @@ export default function FAQ() {
         },
         {
           q: 'How long does it take to set up?',
-          a: 'Setup takes just a few minutes. You\'ll need a Lightning wallet (such as Alby), sign in to create your account, add and verify your domain (requires adding a DNS TXT record), and copy the integration code to your website. Domain verification can take 5-10 minutes for DNS propagation. Test domains work immediately without verification. The entire process typically takes less than 15 minutes including verification.',
+          a: 'Setup takes just a few minutes. You\'ll need a Lightning wallet, sign in to create your account, add and verify your domain (requires adding a DNS TXT record), and copy the integration code to your website. Domain verification can take 5-10 minutes for DNS propagation. Test domains work immediately without verification. The entire process typically takes less than 15 minutes including verification.',
         },
         {
           q: 'Do I need a backend server?',
@@ -40,7 +40,7 @@ export default function FAQ() {
       questions: [
         {
           q: 'What if my visitors don\'t have Lightning wallets?',
-          a: 'If someone doesn\'t have a Lightning wallet, they won\'t be able to use Key-Rex to sign in. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works for them. Popular Lightning wallets such as Alby (browser extension for desktop), are all are free to download.',
+          a: 'If someone doesn\'t have a Lightning wallet, they won\'t be able to use Key-Rex to sign in. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works for them. Compatible Lightning wallets are free to download.',
         },
         {
           q: 'Can I use this alongside email/password authentication?',
@@ -48,7 +48,7 @@ export default function FAQ() {
         },
         {
           q: 'What browsers and devices are supported?',
-          a: 'Any modern browser that supports JavaScript. Lightning wallets work on desktop (via browser extensions like Alby) and mobile (via apps like Phoenix or Zeus). The authentication button works on all devices.',
+          a: 'Any modern browser that supports JavaScript. Lightning wallets work on desktop (via browser extensions) and mobile (via wallet apps). The authentication button works on all devices.',
         },
         {
           q: 'What happens if the Lightning Network is down?',
@@ -157,15 +157,15 @@ export default function FAQ() {
       questions: [
         {
           q: 'The sign-in button doesn\'t do anything when I click it',
-          a: 'This usually means your browser extension (like Alby) isn\'t installed or enabled. Try these steps: (1) Install a Lightning wallet browser extension—Alby is recommended for desktop browsers, (2) Make sure the extension is enabled in your browser settings, (3) Refresh the page and try clicking the button again. If you\'re on mobile, you won\'t use a browser extension—instead, you\'ll see a QR code to scan with your mobile wallet app, or an "Open in Wallet" button that opens your wallet directly.',
+          a: 'This usually means your browser extension isn\'t installed or enabled. Try these steps: (1) Install a Lightning wallet browser extension, (2) Make sure the extension is enabled in your browser settings, (3) Refresh the page and try clicking the button again. If you\'re on mobile, you won\'t use a browser extension—instead, you\'ll see a QR code to scan with your mobile wallet app, or an "Open in Wallet" button that opens your wallet directly.',
         },
         {
           q: 'I scanned the QR code but nothing happened',
-          a: 'Try these steps: (1) Make sure you approved the sign-in request in your wallet app—just scanning isn\'t enough, you need to tap "Approve" or "Sign In" in your wallet, (2) Check that your wallet supports LNURL-auth (most modern Lightning wallets do, including Phoenix, Zeus, Breez, and Alby), (3) Make sure the QR code hasn\'t expired—they expire after 5 minutes, so if it\'s been a while, click the sign-in button again to get a new one, (4) If you\'re on mobile, make sure you return to the browser tab after approving in your wallet—the sign-in completes automatically when you come back.',
+          a: 'Try these steps: (1) Make sure you approved the sign-in request in your wallet app—just scanning isn\'t enough, you need to tap "Approve" or "Sign In" in your wallet, (2) Check that your wallet supports LNURL-auth (most modern Lightning wallets do), (3) Make sure the QR code hasn\'t expired—they expire after 5 minutes, so if it\'s been a while, click the sign-in button again to get a new one, (4) If you\'re on mobile, make sure you return to the browser tab after approving in your wallet—the sign-in completes automatically when you come back.',
         },
         {
           q: 'My wallet app won\'t open when I click the button',
-          a: 'If you\'re using a desktop browser: (1) Make sure you have a Lightning wallet browser extension installed (Alby is the most popular), (2) Check that the extension is enabled in your browser settings, (3) Try refreshing the page. If you\'re on mobile: (1) You should see a QR code or an "Open in Wallet" button—if you don\'t, try refreshing the page, (2) Make sure you have a Lightning wallet app installed on your phone (Phoenix, Zeus, or Breez are good options), (3) Some browsers block popups, so make sure popups are allowed for this website.',
+          a: 'If you\'re using a desktop browser: (1) Make sure you have a Lightning wallet browser extension installed, (2) Check that the extension is enabled in your browser settings, (3) Try refreshing the page. If you\'re on mobile: (1) You should see a QR code or an "Open in Wallet" button—if you don\'t, try refreshing the page, (2) Make sure you have a Lightning wallet app installed on your phone, (3) Some browsers block popups, so make sure popups are allowed for this website.',
         },
         {
           q: 'I get an "Authentication failed" or "Invalid signature" error',
@@ -181,11 +181,11 @@ export default function FAQ() {
         },
         {
           q: 'I\'m on mobile but don\'t see a QR code',
-          a: 'On mobile devices, you should see an "Open in Wallet" button instead of a QR code. Tap that button to open your wallet app directly—this is usually faster than scanning. If you don\'t see the button: (1) Make sure you have a Lightning wallet app installed on your phone (Phoenix, Zeus, or Breez are popular free options), (2) Try refreshing the page, (3) If the button doesn\'t work, look for a "Copy LNURL" option—you can copy that and paste it into your wallet app manually.',
+          a: 'On mobile devices, you should see an "Open in Wallet" button instead of a QR code. Tap that button to open your wallet app directly—this is usually faster than scanning. If you don\'t see the button: (1) Make sure you have a Lightning wallet app installed on your phone, (2) Try refreshing the page, (3) If the button doesn\'t work, look for a "Copy LNURL" option—you can copy that and paste it into your wallet app manually.',
         },
         {
           q: 'My wallet doesn\'t support this type of sign-in',
-          a: 'Key-Rex requires a Lightning wallet that supports LNURL-auth (a specific authentication protocol). Most modern Lightning wallets support this, including: Alby (browser extension for desktop), Phoenix (mobile app), Zeus (mobile app), Breez (mobile app), and many others. If your wallet doesn\'t support LNURL-auth, you have two options: (1) Use a different wallet that does support it (all the wallets listed above are free to download), or (2) Contact the website owner to see if they offer alternative sign-in methods like email/password.',
+          a: 'Key-Rex requires a Lightning wallet that supports LNURL-auth (a specific authentication protocol). Most modern Lightning wallets support this, including browser extensions for desktop and mobile wallet apps. If your wallet doesn\'t support LNURL-auth, you have two options: (1) Use a different wallet that does support it (compatible wallets are free to download), or (2) Contact the website owner to see if they offer alternative sign-in methods like email/password.',
         },
       ],
     },

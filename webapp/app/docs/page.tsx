@@ -172,7 +172,7 @@ export default function Docs() {
                       You need a Key-Rex account to get your integration code. <Link href="/" className="text-orange-400 hover:text-orange-300">Sign up</Link> for free - no credit card required.
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
-                      <li>Sign in with a Lightning wallet (Alby, Phoenix, Zeus, etc.)</li>
+                      <li>Sign in with a compatible Lightning wallet</li>
                       <li>Complete the onboarding wizard</li>
                       <li>Get your unique Site ID from the dashboard</li>
                     </ul>
@@ -222,20 +222,13 @@ export default function Docs() {
                       To test your integration, you'll need a Lightning wallet:
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
-                      <li><strong>Desktop:</strong> Alby browser extension (recommended for WebLN testing)</li>
-                      <li><strong>Mobile:</strong> Phoenix, Zeus, or other Lightning wallets</li>
+                      <li><strong>Desktop:</strong> A browser extension wallet (recommended for WebLN testing)</li>
+                      <li><strong>Mobile:</strong> A mobile Lightning wallet app</li>
                       <li>Wallet must support LNURL-auth protocol</li>
                     </ul>
-                    <div className="flex flex-wrap gap-3 mt-4">
-                      <a href="https://getalby.com" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 text-sm">
-                        Get Alby →
-                      </a>
-                      <a href="https://phoenix.acinq.co" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 text-sm">
-                        Get Phoenix →
-                      </a>
-                      <a href="https://zeusln.app" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 text-sm">
-                        Get Zeus →
-                      </a>
+                    <div className="bg-dark-900/30 border border-dashed border-orange-500/30 rounded-lg p-3 mt-4 text-center">
+                      <p className="text-white/60 text-sm font-medium">Featured Wallets — Coming Soon</p>
+                      <p className="text-white/40 text-xs mt-1">Partner wallets will be showcased here</p>
                     </div>
                   </div>
 
@@ -795,7 +788,7 @@ CREATE TABLE sessions (
                     <h3 className="text-xl font-semibold text-white mb-4">WebLN (Browser Extension) Flow</h3>
                     <ol className="list-decimal list-inside space-y-3 text-white/300">
                       <li>User clicks Key-Rex button on your website</li>
-                      <li>Script detects WebLN extension (Alby, etc.) in browser</li>
+                      <li>Script detects WebLN extension in browser</li>
                       <li>Extension prompts user to approve sign-in request</li>
                       <li>User approves in extension</li>
                       <li>Extension returns signature directly to script</li>
@@ -937,7 +930,7 @@ KeyRex.init();`}
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
                       <li><strong>Button Text:</strong> Standardized to "Sign in with Key-Rex"</li>
                       <li><strong>Footer Text:</strong> Standardized branding</li>
-                      <li><strong>Featured Wallets:</strong> Standard wallet list (Alby, Phoenix, Zeus)</li>
+                      <li><strong>Featured Wallets:</strong> Partner wallet list (managed by admin)</li>
                       <li><strong>Integration Toggle:</strong> Enable/disable authentication across all domains</li>
                     </ul>
                     <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
@@ -1054,7 +1047,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
                     <h3 className="text-xl font-semibold text-white mb-4">Testing Checklist</h3>
                     <ol className="list-decimal list-inside space-y-2 text-white/300 ml-4">
-                      <li>Test on desktop browser with WebLN extension (Alby)</li>
+                      <li>Test on desktop browser with a WebLN extension</li>
                       <li>Test on desktop browser without WebLN (should show QR popup)</li>
                       <li>Test on mobile device (should redirect to QR page)</li>
                       <li>Test with popup blocker enabled (should fallback to redirect)</li>
@@ -1313,7 +1306,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
                     <h3 className="text-xl font-semibold text-white mb-3">What if a user doesn't have a Lightning wallet?</h3>
                     <p className="text-white/300">
-                      Users need a Lightning wallet to use Key-Rex. You can provide links to download wallets (Alby, Phoenix, Zeus) or offer alternative authentication methods alongside Key-Rex.
+                      Users need a Lightning wallet to use Key-Rex. You can provide links to download compatible wallets or offer alternative authentication methods alongside Key-Rex.
                     </p>
                   </div>
 

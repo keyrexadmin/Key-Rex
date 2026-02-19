@@ -185,9 +185,9 @@ export default function Requirements() {
                   For someone to sign in with Key-Rex, they need to have a Lightning wallet app on their phone or computer. If they don't have one, they won't be able to use this sign-in method. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works for them.
                 </p>
                 <ul className="text-white/300 space-y-2 text-sm ml-4 list-disc">
-                  <li>Users need a Lightning wallet (Alby, Phoenix, Zeus, etc.)</li>
-                  <li>Desktop: Browser extension (Alby recommended)</li>
-                  <li>Mobile: Mobile wallet app (Phoenix, Zeus recommended)</li>
+                  <li>Users need a compatible Lightning wallet</li>
+                  <li>Desktop: A browser extension wallet</li>
+                  <li>Mobile: A mobile wallet app</li>
                   <li>All wallets are free to download and use</li>
                 </ul>
                 <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mt-4">

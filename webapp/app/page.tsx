@@ -119,7 +119,7 @@ function HomeContent() {
                       <span className="text-orange-400 font-bold text-base">1</span>
                     </div>
                     <p className="text-white/90 text-base leading-relaxed flex-1">
-                      <strong className="text-white">Get a Lightning wallet</strong> if you don't have one (Alby, Phoenix, or Zeus are recommended)
+                      <strong className="text-white">Get a Lightning wallet</strong> if you don't have one (a compatible Lightning wallet is recommended)
                     </p>
                   </div>
                   <div className="flex items-start gap-4">
@@ -243,7 +243,7 @@ function HomeContent() {
                     <h3 className="text-xl font-semibold text-white mb-3">Your Visitors Need Lightning Wallets</h3>
                   </div>
                   <p className="text-white/80 text-base leading-relaxed mb-4 text-center">
-                    For someone to sign in with Key-Rex, they need a Lightning wallet app (like Alby, Phoenix, or Zeus). These are free to download. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works best for them.
+                    For someone to sign in with Key-Rex, they need a Lightning wallet app. These are free to download. Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works best for them.
                   </p>
                   <div className="text-center">
                     <Link href="/how-it-works#lightning-wallets" className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">

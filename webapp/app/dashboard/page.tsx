@@ -2313,14 +2313,14 @@ function DashboardContent() {
                         <p className="font-semibold text-white mb-2">Things to Check:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
                           <li>Domain matches exactly (including www vs non-www)</li>
-                          <li>User has a Lightning wallet installed (Alby, Phoenix, Zeus, etc.)</li>
+                          <li>User has a compatible Lightning wallet installed</li>
                           <li>Wallet supports LNURL-auth protocol</li>
                           <li>Browser console shows no errors (press F12 to check)</li>
                         </ul>
                       </div>
                       <div>
                         <p className="font-semibold text-white mb-2">Solution:</p>
-                        <p>Try a different Lightning wallet. Recommended wallets: <strong>Alby</strong> (browser extension), <strong>Phoenix</strong> (mobile), or <strong>Zeus</strong> (mobile). Make sure your domain is added and verified in the Domains tab.</p>
+                        <p>Try a different Lightning wallet. Use any wallet that supports LNURL-auth (browser extensions or mobile apps). Make sure your domain is added and verified in the Domains tab.</p>
                       </div>
                     </div>
                   </div>
@@ -2672,7 +2672,7 @@ document.body.appendChild(script);`}
                         <p className="font-semibold text-white mb-2">Authentication Flow:</p>
                         <ol className="list-decimal list-inside space-y-1 ml-2">
                           <li>User clicks Key-Rex button</li>
-                          <li>Script checks for WebLN browser extension (Alby, etc.)</li>
+                          <li>Script checks for WebLN browser extension</li>
                           <li>If WebLN available: Direct authentication in browser</li>
                           <li>If no WebLN: Popup window opens with QR code (or redirect if popup blocked)</li>
                           <li>User scans QR with mobile wallet or approves in extension</li>
@@ -2730,7 +2730,7 @@ document.body.appendChild(script);`}
                       <div>
                         <p className="text-sm font-semibold text-white mb-2">Desktop Testing:</p>
                         <ul className="text-sm text-white/80 space-y-1 list-disc list-inside ml-2">
-                          <li>Test with WebLN extension (Alby) - should authenticate directly</li>
+                          <li>Test with a WebLN extension - should authenticate directly</li>
                           <li>Test without WebLN - should open popup with QR code</li>
                           <li>Test with popup blocker enabled - should fallback to redirect</li>
                           <li>Test with different browsers (Chrome, Firefox, Safari, Edge)</li>
@@ -2742,7 +2742,7 @@ document.body.appendChild(script);`}
                         <ul className="text-sm text-white/80 space-y-1 list-disc list-inside ml-2">
                           <li>Test on actual mobile device (iOS Safari, Android Chrome)</li>
                           <li>Test QR code scanning with separate device</li>
-                          <li>Test with different mobile wallets (Phoenix, Zeus)</li>
+                          <li>Test with different mobile wallets</li>
                           <li>Verify URL parameter cleanup (xpub should be removed from URL)</li>
                           <li>Test in mobile browser's private/incognito mode</li>
                         </ul>
@@ -3266,10 +3266,9 @@ window.KeyRex.onError = function(error) {
                     <h4 className="text-base font-semibold text-white mb-3">Supported Wallets</h4>
                     <div className="space-y-2">
                       {[
-                        { name: 'Alby', type: 'Browser Extension', status: '✓ Fully Supported', link: 'https://getalby.com' },
-                        { name: 'Phoenix', type: 'Mobile (iOS/Android)', status: '✓ Fully Supported', link: 'https://phoenix.acinq.co' },
-                        { name: 'Zeus', type: 'Mobile (iOS/Android)', status: '✓ Fully Supported', link: 'https://zeusln.app' },
-                        { name: 'Other LNURL-auth wallets', type: 'Various', status: '✓ Compatible', link: null },
+                        { name: 'Browser Extension Wallets', type: 'Desktop', status: '✓ Supported', link: null },
+                        { name: 'Mobile Wallet Apps', type: 'iOS/Android', status: '✓ Supported', link: null },
+                        { name: 'Other LNURL-auth Wallets', type: 'Various', status: '✓ Compatible', link: null },
                       ].map((wallet, idx) => (
                         <div key={idx} className="flex items-start justify-between p-2 bg-dark-800/50 rounded border border-dark-700">
                           <div className="flex-1">
@@ -3754,7 +3753,7 @@ document.getElementById('keyrex-button')
                         <p className="font-semibold text-white mb-2">Default configuration includes:</p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
                           <li>Standard button text: <code className="bg-dark-800 px-1 rounded">"Sign in with Key-Rex"</code></li>
-                          <li>Featured wallets: Alby, Phoenix, Zeus (with logo URLs)</li>
+                          <li>Featured wallets: Partner wallet list (managed by admin)</li>
                           <li>Integration enabled: <code className="bg-dark-800 px-1 rounded">true</code> (allows authentication)</li>
                           <li>Show branding: <code className="bg-dark-800 px-1 rounded">true</code></li>
                           <li>Footer text: <code className="bg-dark-800 px-1 rounded">"Powered by Key-Rex — open-source"</code></li>
@@ -4386,7 +4385,7 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                             'Button is clickable (not disabled)',
                             'Wallet prompt appears when clicked',
                             'Authentication completes successfully',
-                            'Tested with multiple wallets (Alby, Phoenix, Zeus)',
+                            'Tested with multiple wallets',
                             'Tested on mobile device',
                           ]},
                           { category: 'Backend Integration', items: [
@@ -4442,7 +4441,7 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                           When a user clicks the Key-Rex button, the system follows this flow:
                         </p>
                         <ol className="list-decimal list-inside space-y-2 text-sm text-white/80 ml-2">
-                          <li><strong className="text-white">WebLN Detection:</strong> Script checks for WebLN browser extension (Alby, etc.)</li>
+                          <li><strong className="text-white">WebLN Detection:</strong> Script checks for WebLN browser extension</li>
                           <li><strong className="text-white">WebLN Authentication:</strong> If WebLN is available, user authenticates directly in browser</li>
                           <li><strong className="text-white">QR Code Fallback:</strong> If no WebLN, system generates QR code for mobile wallet scanning</li>
                           <li><strong className="text-white">Device-Specific Behavior:</strong>
@@ -4461,7 +4460,7 @@ fetch('/api/embed/config?siteId=YOUR_SITE_ID')
                         <h4 className="text-lg font-semibold text-white mb-3">WebLN Authentication (Desktop Browser)</h4>
                         <div className="space-y-3 text-sm text-white/80">
                           <p>
-                            If the user has a WebLN-compatible browser extension (like Alby), authentication happens seamlessly:
+                            If the user has a WebLN-compatible browser extension, authentication happens seamlessly:
                           </p>
                           <ol className="list-decimal list-inside space-y-1 ml-2">
                             <li>User clicks Key-Rex button</li>
@@ -4619,7 +4618,7 @@ window.addEventListener('message', function(event) {
                           <li>Visit your website where you added the code</li>
                           <li>Look for the "Sign in with Key-Rex" button</li>
                           <li>Click the button to test the authentication flow</li>
-                          <li>If you have a Lightning wallet (Alby, Phoenix, Zeus), you should see a login prompt</li>
+                          <li>If you have a Lightning wallet, you should see a login prompt</li>
                         </ol>
                         <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
                           <p className="text-xs text-orange-200">
@@ -5526,7 +5525,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
 {`{
   "siteId": "your-site-id",
   "buttonText": "Sign in with Key-Rex",
-  "featuredWallets": ["Alby", "Phoenix", "Zeus"],
+  "featuredWallets": [],
   "footerText": "Powered by Key-Rex — open-source",
   "integrationEnabled": true,
   "showBranding": true
@@ -5568,7 +5567,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                         <div className="space-y-2 text-sm text-white/80">
                           <p><strong className="text-white">Button Text:</strong> "Sign in with Key-Rex" (server-managed, fixed)</p>
                           <p><strong className="text-white">Footer Text:</strong> "Powered by Key-Rex — open-source" (server-managed, fixed)</p>
-                          <p><strong className="text-white">Featured Wallets:</strong> Managed by Key-Rex server (includes popular wallets like Alby, Phoenix, Zeus)</p>
+                          <p><strong className="text-white">Featured Wallets:</strong> Managed by Key-Rex server (partner wallets showcased here)</p>
                           <p><strong className="text-white">Configuration Source:</strong> Automatically fetched from <code className="bg-dark-800 px-1 rounded">/api/embed/config?siteId=...</code> when script loads</p>
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-3">
                             <p className="text-xs text-orange-200">
@@ -5622,9 +5621,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
   buttonText: 'Sign in with Key-Rex',
   showBranding: true,
   featuredWallets: [
-    { name: 'Alby', url: 'https://getalby.com', logoUrl: '...' },
-    { name: 'Phoenix', url: 'https://phoenix.acinq.co', logoUrl: '...' },
-    { name: 'Zeus', url: 'https://zeusln.app', logoUrl: '...' }
+    // Partner wallets will be listed here when available
   ],
   footerText: 'Powered by Key-Rex — open-source',
   integrationEnabled: true
@@ -5882,7 +5879,7 @@ GET /api/auth/callback?tag=login&k1=<challenge>&siteId=<siteId>
                             <p className="text-sm font-semibold text-white mb-2">Desktop Behavior:</p>
                             <ul className="text-sm text-white/80 space-y-1 list-disc list-inside ml-4">
                               <li>Uses popup window for QR code (better UX, maintains page context)</li>
-                              <li>WebLN extensions work seamlessly (Alby, etc.)</li>
+                              <li>WebLN extensions work seamlessly</li>
                               <li>Popup communicates via <code className="bg-dark-800 px-1 rounded">postMessage</code></li>
                               <li>If popup is blocked, automatically falls back to full-page redirect</li>
                             </ul>
@@ -5965,7 +5962,7 @@ if (!popup) {
                         <h4 className="text-base font-semibold text-orange-300 mb-3">💡 General Tips</h4>
                         <ul className="space-y-2 text-sm text-orange-200 list-disc list-inside ml-2">
                           <li>Test your integration in multiple browsers (Chrome, Firefox, Safari, Edge)</li>
-                          <li>Test with different Lightning wallets (Alby, Phoenix, Zeus)</li>
+                          <li>Test with different Lightning wallets</li>
                           <li>Always test on mobile devices - many users will authenticate from mobile</li>
                           <li>Test with popup blockers enabled to verify fallback behavior</li>
                           <li>Monitor your Analytics tab to track authentication usage</li>
@@ -6033,7 +6030,7 @@ console.log('Button element:', document.getElementById('keyrex-button'));
                           <li><strong className="text-white">Check Network Tab:</strong> Verify the embed script loads (status 200). Check config request succeeds.</li>
                           <li><strong className="text-white">Verify Domain:</strong> Ensure your domain is added and verified in the dashboard (production domains require DNS TXT record verification) and matches exactly.</li>
                           <li><strong className="text-white">Check Integration Status:</strong> Verify integration is enabled in the "My Integration Code" tab.</li>
-                          <li><strong className="text-white">Test Wallet:</strong> Try different Lightning wallets (Alby, Phoenix, Zeus).</li>
+                          <li><strong className="text-white">Test Wallet:</strong> Try different Lightning wallets.</li>
                           <li><strong className="text-white">Clear Cache:</strong> Hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to clear cached scripts.</li>
                           <li><strong className="text-white">Check Script Placement:</strong> Ensure scripts are in <code className="bg-dark-800 px-1 rounded">&lt;body&gt;</code>, not <code className="bg-dark-800 px-1 rounded">&lt;head&gt;</code>.</li>
                         </ol>
@@ -7845,7 +7842,7 @@ app.post('/api/users/update-wallet-verification', authenticateUser, async (req, 
                       {[
                         {
                           q: "Do I need a Lightning wallet to test the integration?",
-                          a: "Yes, you need a Lightning wallet that supports LNURL-auth. Recommended wallets: Alby (browser extension), Phoenix (mobile), or Zeus (mobile)."
+                          a: "Yes, you need a Lightning wallet that supports LNURL-auth. Any compatible browser extension or mobile wallet app will work."
                         },
                         {
                           q: "Can I use this on multiple domains?",
@@ -8192,7 +8189,7 @@ checkKeyRexHealth().then(checks => {
                           <li><strong className="text-white">Authentication Success Rate:</strong> Track successful vs failed authentications</li>
                           <li><strong className="text-white">Error Frequency:</strong> Monitor common errors (domain not authorized, integration disabled, etc.)</li>
                           <li><strong className="text-white">Response Times:</strong> Track config fetch and authentication response times</li>
-                          <li><strong className="text-white">Wallet Compatibility:</strong> Track which wallets users are using (Alby, Phoenix, Zeus, etc.)</li>
+                          <li><strong className="text-white">Wallet Compatibility:</strong> Track which wallets users are using</li>
                         </ul>
                       </div>
 

@@ -377,39 +377,8 @@ export default function KeyRexButtonPreview({ siteId, className = '', customCSS,
 
       {/* Right side container - wallets only - COMPACT MODE */}
       <div className="flex flex-col gap-1 justify-center items-center">
-        {/* Label above featured wallets */}
-        <p className="text-[0.6875rem] font-medium text-white/60 mb-1 text-center w-full">
-          Featured Wallets
-        </p>
-        {/* Featured Wallets - functional links with logos and text - centered */}
-        <div className="flex justify-center items-center gap-3 py-0.5 flex-wrap">
-          {/* Alby */}
-          <WalletLogoWithTooltip
-            name="Alby"
-            url="https://getalby.com"
-            logoUrl="/images/wallets/alby-logo.svg"
-            isDarkMode={isDarkMode}
-            index={0}
-          />
-          
-          {/* Phoenix */}
-          <WalletLogoWithTooltip
-            name="Phoenix"
-            url="https://phoenix.acinq.co"
-            logoUrl="/images/wallets/phoenix-logo.svg"
-            isDarkMode={isDarkMode}
-            index={1}
-          />
-          
-          {/* Zeus */}
-          <WalletLogoWithTooltip
-            name="Zeus"
-            url="https://zeusln.app"
-            logoUrl="/images/wallets/zeus-logo.svg"
-            isDarkMode={isDarkMode}
-            index={2}
-          />
-        </div>
+        <p className="text-[0.6875rem] font-medium text-white/60 mb-1 text-center w-full">Featured Wallets</p>
+        <p className="text-[0.625rem] text-white/40 italic">Coming Soon</p>
         
         {customCSS && (
           <div className="mt-1 text-xs text-green-500 text-left">

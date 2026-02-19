@@ -76,7 +76,7 @@ export default function HowItWorks() {
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-white mb-2">Their Wallet App Asks for Approval</h3>
                       <p className="text-white/200 text-base leading-relaxed">
-                        The visitor's Lightning wallet app (like Alby, Phoenix, or Zeus) opens and shows them a sign-in request. This request is unique to this specific sign-in attempt and expires after a short time for security.
+                        The visitor's Lightning wallet app opens and shows them a sign-in request. This request is unique to this specific sign-in attempt and expires after a short time for security.
                       </p>
                     </div>
                   </div>
@@ -198,54 +198,11 @@ export default function HowItWorks() {
                   For someone to sign in with Key-Rex, they need a Lightning wallet app on their phone or computer. These are free apps that work with Bitcoin's Lightning Network. Think of them like a digital wallet that can also prove your identity. Here are the most popular options your visitors might use:
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  <Card className="p-6 text-center">
-                    <div className="text-4xl mb-4">🦉</div>
-                    <h3 className="text-white font-semibold text-lg mb-2">Alby</h3>
-                      <p className="text-white/400 text-sm mb-4">
-                      A browser extension that works great for signing in on desktop computers.
-                    </p>
-                    <a
-                      href="https://getalby.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Get Alby →
-                    </a>
-                  </Card>
-
-                  <Card className="p-6 text-center">
-                    <div className="text-4xl mb-4">🔥</div>
-                    <h3 className="text-white font-semibold text-lg mb-2">Phoenix</h3>
-                      <p className="text-white/400 text-sm mb-4">
-                      A mobile app for iPhone and Android phones. Easy to use and set up.
-                    </p>
-                    <a
-                      href="https://phoenix.acinq.co"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Get Phoenix →
-                    </a>
-                  </Card>
-
-                  <Card className="p-6 text-center">
-                    <div className="text-4xl mb-4">⚡</div>
-                    <h3 className="text-white font-semibold text-lg mb-2">Zeus</h3>
-                      <p className="text-white/400 text-sm mb-4">
-                      A more advanced mobile app for users who want more control over their Lightning setup.
-                    </p>
-                    <a
-                      href="https://zeusln.app"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Get Zeus →
-                    </a>
-                  </Card>
+                <div className="bg-dark-800/50 border-2 border-dashed border-orange-500/30 rounded-lg p-6 text-center">
+                  <div className="text-3xl mb-3">⚡</div>
+                  <h3 className="text-white font-semibold text-lg mb-2">Featured Wallets</h3>
+                  <p className="text-white/60 text-sm">Coming Soon</p>
+                  <p className="text-white/40 text-xs mt-2">Partner wallets will be showcased here</p>
                 </div>
 
                 <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50 mt-6">

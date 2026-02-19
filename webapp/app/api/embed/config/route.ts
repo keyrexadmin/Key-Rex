@@ -108,38 +108,7 @@ export async function GET(request: NextRequest) {
       // Ensure we have featured wallets (use defaults if storage is empty)
       const baseUrl = getBaseUrl(request)
       const now = Date.now()
-      const defaultWallets: FeaturedWallet[] = featuredWallets.length > 0 ? featuredWallets : [
-        { 
-          id: 'alby-default',
-          name: 'Alby', 
-          downloadUrl: 'https://getalby.com', 
-          logoUrl: baseUrl + '/images/wallets/alby-logo.svg',
-          enabled: true,
-          priority: 1,
-          createdAt: now,
-          updatedAt: now
-        },
-        { 
-          id: 'phoenix-default',
-          name: 'Phoenix', 
-          downloadUrl: 'https://phoenix.acinq.co', 
-          logoUrl: baseUrl + '/images/wallets/phoenix-logo.svg',
-          enabled: true,
-          priority: 2,
-          createdAt: now,
-          updatedAt: now
-        },
-        { 
-          id: 'zeus-default',
-          name: 'Zeus', 
-          downloadUrl: 'https://zeusln.app', 
-          logoUrl: baseUrl + '/images/wallets/zeus-logo.svg',
-          enabled: true,
-          priority: 3,
-          createdAt: now,
-          updatedAt: now
-        }
-      ]
+      const defaultWallets: FeaturedWallet[] = featuredWallets.length > 0 ? featuredWallets : []
       
       const defaultConfig: EmbedConfig = {
         siteId,

@@ -52,34 +52,9 @@ export default function Onboarding() {
                     <p className="text-white/300 mb-3">
                       If you don't have a Lightning wallet yet, choose one of these popular options:
                     </p>
-                    <div className="flex flex-wrap gap-3">
-                      <a
-                        href="https://getalby.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 rounded-lg text-orange-400 text-sm font-medium transition-colors"
-                      >
-                        <span>🦉</span>
-                        <span>Alby</span>
-                      </a>
-                      <a
-                        href="https://phoenix.acinq.co"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 rounded-lg text-orange-400 text-sm font-medium transition-colors"
-                      >
-                        <span>🔥</span>
-                        <span>Phoenix</span>
-                      </a>
-                      <a
-                        href="https://zeusln.app"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 rounded-lg text-orange-400 text-sm font-medium transition-colors"
-                      >
-                        <span>⚡</span>
-                        <span>Zeus</span>
-                      </a>
+                    <div className="bg-dark-800/30 border border-dashed border-orange-500/30 rounded-lg p-4 text-center">
+                      <p className="text-white/60 text-sm font-medium">Featured Wallets — Coming Soon</p>
+                      <p className="text-white/40 text-xs mt-1">Partner wallets will be showcased here</p>
                     </div>
                   </div>
                 </div>

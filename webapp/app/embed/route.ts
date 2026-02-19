@@ -571,165 +571,22 @@ export async function GET(request: NextRequest) {
     
     wrapper.appendChild(leftContainer);
     
-    // Create right side container for wallets only - COMPACT MODE
+    // Create right side container - Featured Wallets ad space (Coming Soon)
     const rightContainer = document.createElement('div');
     rightContainer.setAttribute('data-keyrex', 'right-container');
-    // COMPACT: Reduced gap from 0.5rem to 0.25rem, no flex: 1 so it only takes as much width as it needs
     rightContainer.style.cssText = 'display: flex; flex-direction: column; gap: 0.25rem; justify-content: center; align-items: center;';
-    
-    // Label above featured wallets
+
+    // Featured Wallets - Coming Soon placeholder
     const walletsLabel = document.createElement('div');
     walletsLabel.textContent = 'Featured Wallets';
     walletsLabel.style.cssText = 'font-size: 0.6875rem; font-weight: 500; color: ' + (isDarkMode ? 'rgb(148, 163, 184)' : 'rgb(100, 116, 139)') + '; margin-bottom: 0.125rem; text-align: center; width: 100%;';
     rightContainer.appendChild(walletsLabel);
-    
-    // Create featured wallets section with functional links and enhanced styling - COMPACT MODE
-    console.log('Key-Rex: About to create walletsContainer');
-    const walletsContainer = document.createElement('div');
-    walletsContainer.setAttribute('data-keyrex', 'wallets');
-    // COMPACT: Reduced gap from 1rem to 0.75rem, reduced padding, centered content
-    walletsContainer.style.cssText = 'display: flex; justify-content: center; align-items: flex-start; gap: 0.75rem; padding: 0.125rem 0; flex-wrap: wrap;';
-    console.log('Key-Rex: walletsContainer created');
-    
-    // Featured wallets with deep links and logos
-    console.log('Key-Rex: About to define featuredWallets array');
-    const featuredWallets = [
-      { name: 'Alby', url: 'https://getalby.com', logoUrl: baseUrl + '/images/wallets/alby-logo.svg' },
-      { name: 'Phoenix', url: 'https://phoenix.acinq.co', logoUrl: baseUrl + '/images/wallets/phoenix-logo.svg' },
-      { name: 'Zeus', url: 'https://zeusln.app', logoUrl: baseUrl + '/images/wallets/zeus-logo.svg' }
-    ];
-    
-    console.log('Key-Rex: Creating', featuredWallets.length, 'featured wallets');
-    try {
-      featuredWallets.forEach((wallet, index) => {
-        console.log('Key-Rex: Creating wallet element for:', wallet.name, 'logoUrl:', wallet.logoUrl);
-      // Create wrapper for logo and text with staggered entrance animation - COMPACT MODE
-      const walletWrapper = document.createElement('div');
-      // COMPACT: Reduced gap from 0.375rem to 0.25rem
-      walletWrapper.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 0.25rem; opacity: 0; animation: keyrex-fade-in-stagger 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-delay: ' + (0.2 + (index * 0.1)) + 's;';
-      
-      // Create container for logo with background circle and dark mode support
-      const containerBg = isDarkMode ? 'rgba(249, 115, 22, 0.1)' : 'rgba(249, 115, 22, 0.05)';
-      const containerBorder = isDarkMode ? 'rgba(249, 115, 22, 0.2)' : 'rgba(249, 115, 22, 0.1)';
-      const logoContainer = document.createElement('div');
-      // COMPACT: Reduced wallet circle size from 3rem to 2.5rem
-      logoContainer.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; background: ' + containerBg + '; border-radius: 50%; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid ' + containerBorder + '; position: relative;';
-      
-      const walletLink = document.createElement('a');
-      walletLink.setAttribute('data-keyrex', 'wallet');
-      walletLink.setAttribute('aria-label', wallet.name + ' wallet');
-      walletLink.href = wallet.url;
-      walletLink.target = '_blank';
-      walletLink.rel = 'noopener noreferrer';
-      walletLink.style.cssText = 'display: flex; align-items: center; justify-content: center; padding: 0.5rem; text-decoration: none; width: 100%; height: 100%; border-radius: 50%;';
-      
-      // Create tooltip element (subtle, non-intrusive)
-      const tooltip = document.createElement('div');
-      tooltip.setAttribute('data-keyrex', 'tooltip');
-      tooltip.textContent = 'Get ' + wallet.name + ' wallet';
-      const tooltipBg = isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 41, 59, 0.95)';
-      tooltip.style.cssText = 'position: absolute; bottom: calc(100% + 0.5rem); left: 50%; transform: translateX(-50%) translateY(-4px); background: ' + tooltipBg + '; color: white; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 1000; font-weight: 500; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
-      
-      // Tooltip arrow
-      const tooltipArrow = document.createElement('div');
-      tooltipArrow.style.cssText = 'position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid ' + tooltipBg + ';';
-      tooltip.appendChild(tooltipArrow);
-      logoContainer.appendChild(tooltip);
-      
-      // Tooltip hover logic with delay (non-intrusive)
-      let tooltipTimeout;
-      const showTooltip = function() {
-        tooltipTimeout = setTimeout(function() {
-          tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateX(-50%) translateY(0)';
-        }, 500); // 500ms delay - only shows if user hovers intentionally
-      };
-      const hideTooltip = function() {
-        clearTimeout(tooltipTimeout);
-        tooltip.style.opacity = '0';
-        tooltip.style.transform = 'translateX(-50%) translateY(-4px)';
-      };
-      
-      const walletLogo = document.createElement('img');
-      walletLogo.src = wallet.logoUrl;
-      walletLogo.alt = wallet.name;
-      // COMPACT: Reduced wallet logo size from 1.75rem to 1.5rem
-      walletLogo.style.cssText = 'height: 1.5rem; width: auto; object-fit: contain; display: block; transition: transform 0.3s ease;';
-      
-      walletLogo.onload = function() {
-        console.log('Key-Rex: Wallet logo loaded successfully:', wallet.name, wallet.logoUrl);
-      };
-      
-      // Enhanced hover effects with refined lift animation and glow
-      logoContainer.onmouseenter = function() {
-        this.style.transform = 'translateY(-3px) scale(1.08)';
-        const hoverBg = isDarkMode ? 'rgba(249, 115, 22, 0.2)' : 'rgba(249, 115, 22, 0.1)';
-        this.style.background = hoverBg;
-        this.style.boxShadow = '0 6px 16px rgba(249, 115, 22, 0.2), 0 2px 6px rgba(249, 115, 22, 0.15), 0 0 20px rgba(249, 115, 22, 0.2)';
-        this.style.animation = 'keyrex-glow 2s ease-in-out infinite';
-        const hoverBorder = isDarkMode ? 'rgba(249, 115, 22, 0.3)' : 'rgba(249, 115, 22, 0.2)';
-        this.style.borderColor = hoverBorder;
-        this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        walletLogo.style.transform = 'scale(1.08)';
-        walletLogo.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        showTooltip();
-      };
-      logoContainer.onmouseleave = function() {
-        this.style.transform = 'translateY(0) scale(1)';
-        this.style.background = containerBg;
-        this.style.boxShadow = 'none';
-        this.style.animation = 'none';
-        this.style.borderColor = containerBorder;
-        this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        walletLogo.style.transform = 'scale(1)';
-        walletLogo.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        hideTooltip();
-      };
-      
-      // Focus state for accessibility (on the link, not container)
-      walletLink.onfocus = function() {
-        logoContainer.style.outline = '2px solid rgba(249, 115, 22, 0.5)';
-        logoContainer.style.outlineOffset = '2px';
-        showTooltip();
-      };
-      walletLink.onblur = function() {
-        logoContainer.style.outline = 'none';
-        hideTooltip();
-      };
-      
-      walletLogo.onerror = function() {
-        console.error('Key-Rex: Wallet logo failed to load:', wallet.name, wallet.logoUrl);
-        // Fallback to text if image fails to load - COMPACT MODE
-        this.style.display = 'none';
-        logoContainer.textContent = wallet.name.charAt(0);
-        // COMPACT: Reduced size from 3rem to 2.5rem, font from 0.875rem to 0.75rem
-        logoContainer.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; background: rgba(249, 115, 22, 0.1); border-radius: 50%; font-size: 0.75rem; font-weight: 600; color: rgb(249, 115, 22);';
-        console.log('Key-Rex: Applied fallback text for wallet:', wallet.name);
-      };
-      
-      walletLink.appendChild(walletLogo);
-      logoContainer.appendChild(walletLink);
-      walletWrapper.appendChild(logoContainer);
-      
-      // Add wallet name text below logo with enhanced typography and dark mode support
-      const walletName = document.createElement('span');
-      walletName.textContent = wallet.name;
-      const walletNameColor = isDarkMode ? 'rgb(148, 163, 184)' : 'rgb(113, 128, 150)';
-      // COMPACT: Reduced font size from 0.75rem to 0.6875rem (11px)
-      walletName.style.cssText = 'font-size: 0.6875rem; color: ' + walletNameColor + '; text-align: center; line-height: 1.2; font-weight: 500; letter-spacing: 0.01em;';
-      walletWrapper.appendChild(walletName);
-      
-      walletsContainer.appendChild(walletWrapper);
-      console.log('Key-Rex: Wallet element appended for:', wallet.name, 'walletsContainer now has', walletsContainer.children.length, 'children');
-    });
-    
-    console.log('Key-Rex: All wallets created. Total wallet elements:', walletsContainer.children.length);
-    } catch (error) {
-      console.error('Key-Rex: Error creating wallets:', error);
-    }
-    rightContainer.appendChild(walletsContainer);
-    console.log('Key-Rex: walletsContainer appended to rightContainer');
-    
+
+    const comingSoonText = document.createElement('div');
+    const comingSoonColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.35)';
+    comingSoonText.textContent = 'Coming Soon';
+    comingSoonText.style.cssText = 'font-size: 0.625rem; color: ' + comingSoonColor + '; font-style: italic; text-align: center; padding: 0.25rem 0;';
+    rightContainer.appendChild(comingSoonText);
     wrapper.appendChild(rightContainer);
     card.appendChild(wrapper);
     
@@ -891,11 +748,7 @@ export async function GET(request: NextRequest) {
           siteId: siteId,
           buttonText: 'Sign in with Key-Rex',
           showBranding: true,
-          featuredWallets: [
-            { name: 'Alby', url: 'https://getalby.com', logoUrl: baseUrl + '/images/wallets/alby-logo.svg' },
-            { name: 'Phoenix', url: 'https://phoenix.acinq.co', logoUrl: baseUrl + '/images/wallets/phoenix-logo.svg' },
-            { name: 'Zeus', url: 'https://zeusln.app', logoUrl: baseUrl + '/images/wallets/zeus-logo.svg' }
-          ],
+          featuredWallets: [],
           footerText: 'Powered by Key-Rex — open-source',
           integrationEnabled: true,
         };

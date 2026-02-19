@@ -396,57 +396,11 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {/* Alby */}
-                <a
-                  href="https://getalby.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-dark-800/50 border-2 border-dark-700 hover:border-orange-500/50 rounded-lg p-4 text-center transition-all group"
-                >
-                  <div className="text-4xl mb-3">🦉</div>
-                  <h4 className="text-white font-semibold mb-2">Alby</h4>
-                  <p className="text-white/400 text-sm mb-3">
-                    Browser extension wallet. Perfect for web authentication.
-                  </p>
-                  <span className="text-orange-400 text-sm font-medium group-hover:text-orange-300">
-                    Get Alby →
-                  </span>
-                </a>
-
-                {/* Phoenix */}
-                <a
-                  href="https://phoenix.acinq.co"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-dark-800/50 border-2 border-dark-700 hover:border-orange-500/50 rounded-lg p-4 text-center transition-all group"
-                >
-                  <div className="text-4xl mb-3">🔥</div>
-                  <h4 className="text-white font-semibold mb-2">Phoenix</h4>
-                  <p className="text-white/400 text-sm mb-3">
-                    Mobile wallet for iOS and Android. Simple and user-friendly.
-                  </p>
-                  <span className="text-orange-400 text-sm font-medium group-hover:text-orange-300">
-                    Get Phoenix →
-                  </span>
-                </a>
-
-                {/* Zeus */}
-                <a
-                  href="https://zeusln.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-dark-800/50 border-2 border-dark-700 hover:border-orange-500/50 rounded-lg p-4 text-center transition-all group"
-                >
-                  <div className="text-4xl mb-3">⚡</div>
-                  <h4 className="text-white font-semibold mb-2">Zeus</h4>
-                  <p className="text-white/400 text-sm mb-3">
-                    Advanced mobile wallet. Connect to your own Lightning node.
-                  </p>
-                  <span className="text-orange-400 text-sm font-medium group-hover:text-orange-300">
-                    Get Zeus →
-                  </span>
-                </a>
+              <div className="bg-dark-800/50 border-2 border-dashed border-orange-500/30 rounded-lg p-6 text-center mb-6">
+                <div className="text-3xl mb-3">⚡</div>
+                <h4 className="text-white font-semibold mb-2">Featured Wallets</h4>
+                <p className="text-white/60 text-sm">Coming Soon</p>
+                <p className="text-white/40 text-xs mt-2">Partner wallets will be showcased here</p>
               </div>
 
               <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
