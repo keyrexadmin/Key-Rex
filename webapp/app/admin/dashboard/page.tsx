@@ -488,7 +488,7 @@ export default function AdminDashboard() {
             {/* Users Tab */}
             {activeTab === 'users' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-2xl font-bold text-white">Users</h2>
                   <div className="flex items-center gap-4">
                     <div className="text-white/60 text-sm">Total: {users.length}</div>
@@ -664,9 +664,9 @@ export default function AdminDashboard() {
             {/* Contact Submissions Tab */}
             {activeTab === 'contacts' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-2xl font-bold text-white">Contact Submissions</h2>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="text-white/60 text-sm">
                       Total: {contacts.length} | Unread: {contacts.filter(c => c.status === 'unread').length}
                     </div>
@@ -699,7 +699,7 @@ export default function AdminDashboard() {
                 
                 {/* Filter */}
                 <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                     <span className="text-white/80 text-sm">Filter:</span>
                     {(['all', 'unread', 'read', 'replied', 'archived'] as const).map((status) => (
                       <button
@@ -811,7 +811,7 @@ export default function AdminDashboard() {
                   <h3 className="text-lg font-semibold text-white mb-4">Manage Wallets</h3>
                   <div className="space-y-4">
                     {wallets.map((wallet) => (
-                      <div key={wallet.id} className="flex items-center justify-between p-4 bg-dark-800/50 rounded-lg">
+                      <div key={wallet.id} className="flex flex-wrap items-center justify-between gap-4 p-4 bg-dark-800/50 rounded-lg">
                         <div className="flex items-center gap-4">
                           {wallet.logoUrl && (
                             <img src={wallet.logoUrl} alt={wallet.name} className="w-12 h-12 object-contain" />
@@ -893,7 +893,7 @@ export default function AdminDashboard() {
                   <div className="p-6 space-y-6">
                     {userDetail ? (
                       <>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <Card className="p-4 bg-dark-200/90 border-2 border-orange-500/30">
                             <div className="text-white/60 text-sm mb-1">xpub</div>
                             <div className="text-white font-mono text-sm break-all">{userDetail.user.xpub}</div>
@@ -1011,7 +1011,7 @@ export default function AdminDashboard() {
                         className="w-full bg-dark-900/50 border border-dark-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-white/80 text-sm mb-2">Priority</label>
                         <input

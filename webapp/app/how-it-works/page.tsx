@@ -16,9 +16,9 @@ export default function HowItWorks() {
 
   return (
     <Layout showNav={true}>
-      <div className="min-h-screen flex relative">
+      <div className="min-h-screen flex flex-col lg:flex-row relative">
         {/* Sticky Navigation */}
-        <div className="hidden lg:block">
+        <div>
           <PageNavigation items={navItems} title="On This Page" />
         </div>
 
@@ -198,7 +198,7 @@ export default function HowItWorks() {
                   For someone to sign in with Key-Rex, they need a Lightning wallet app on their phone or computer. These are free apps that work with Bitcoin's Lightning Network. Think of them like a digital wallet that can also prove your identity. Here are the most popular options your visitors might use:
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   <Card className="p-6 text-center">
                     <div className="text-4xl mb-4">🦉</div>
                     <h3 className="text-white font-semibold text-lg mb-2">Alby</h3>

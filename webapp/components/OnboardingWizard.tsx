@@ -343,7 +343,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
   const progress = (currentStep / totalSteps) * 100
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-8 sm:pt-20">
       {/* Backdrop - transparent so landing page shows through */}
       <div 
         className="absolute inset-0 bg-black/20"
@@ -628,7 +628,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                 </div>
               )}
 
-              <div className="bg-dark-800/70 border border-orange-500/20 rounded-lg p-6 max-h-[400px] overflow-y-auto">
+              <div className="bg-dark-800/70 border border-orange-500/20 rounded-lg p-4 sm:p-6 max-h-[250px] sm:max-h-[400px] overflow-y-auto">
                 <p className="text-white/100 mb-4 leading-relaxed">
                   Key-Rex is open-source software provided under the MIT License. The service is provided "as-is" and "as-available" with no warranties of any kind, express or implied. By using the free version, you agree:
                 </p>
@@ -719,7 +719,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
               disabled={isAcceptingDisclaimer}
               className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isAcceptingDisclaimer ? 'Accepting...' : 'I Accept & Continue to Dashboard'}
+              {isAcceptingDisclaimer ? 'Accepting...' : 'Accept & Continue'}
             </button>
           )}
         </div>

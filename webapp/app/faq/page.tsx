@@ -198,9 +198,9 @@ export default function FAQ() {
 
   return (
     <Layout showNav={true}>
-      <div className="min-h-screen flex relative">
+      <div className="min-h-screen flex flex-col lg:flex-row relative">
         {/* Sticky Navigation */}
-        <div className="hidden lg:block">
+        <div>
           <PageNavigation items={navItems} title="Categories" />
         </div>
 

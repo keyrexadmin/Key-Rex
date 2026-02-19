@@ -70,9 +70,9 @@ export default function Support() {
 
   return (
     <Layout showNav={true}>
-      <div className="min-h-screen flex relative">
+      <div className="min-h-screen flex flex-col lg:flex-row relative">
         {/* Sticky Navigation */}
-        <div className="hidden lg:block">
+        <div>
           <PageNavigation items={navItems} title="On This Page" />
         </div>
 
@@ -363,7 +363,7 @@ export default function Support() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-6">
                   <div className="bg-dark-800/50 rounded-lg p-4">
                     <div className="text-2xl mb-2">🎨</div>
                     <h3 className="text-white font-semibold mb-2">White-Label Branding</h3>

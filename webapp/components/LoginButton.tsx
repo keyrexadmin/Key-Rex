@@ -310,7 +310,7 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
           />
           
           {/* Modal - positioned lower */}
-          <div className="relative w-full max-w-md bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 rounded-2xl shadow-2xl border border-orange-500/20 overflow-hidden" style={{ marginTop: '10rem' }}>
+          <div className="relative w-full max-w-md bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 rounded-2xl shadow-2xl border border-orange-500/20 overflow-hidden mt-20 sm:mt-40 max-h-[85vh] overflow-y-auto">
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 border-b border-orange-400/30">
               <div className="flex items-center justify-between">

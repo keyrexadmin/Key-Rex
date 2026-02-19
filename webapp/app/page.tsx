@@ -78,10 +78,17 @@ function HomeContent() {
           <div className="max-w-4xl w-full text-center space-y-8">
             {/* Main Heading */}
             <div className="mb-6 leading-tight">
-              <img 
+              {/* Mobile: paw2 logo, Desktop: KR Paw logo */}
+              <img
+                src="/images/paw2.png"
+                alt="Key-Rex"
+                className="mx-auto max-w-full h-auto md:hidden"
+                style={{ maxHeight: '14rem' }}
+              />
+              <img
                 src={imageSrc}
-                alt="Key-Rex" 
-                className="mx-auto max-w-full h-auto"
+                alt="Key-Rex"
+                className="mx-auto max-w-full h-auto hidden md:block"
                 style={{ maxHeight: '20rem' }}
               />
               <h1 className="text-3xl sm:text-4xl lg:text-5xl text-orange-400 mt-4 text-center">
@@ -99,7 +106,7 @@ function HomeContent() {
 
             {/* Get Started Box */}
             <div className="pt-8 max-w-2xl mx-auto">
-              <Card className="p-8 border-2 border-orange-500/40 bg-dark-200/90">
+              <Card className="p-4 sm:p-8 border-2 border-orange-500/40 bg-dark-200/90">
                 <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-center">
                   Get Started
                 </h2>
