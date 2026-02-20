@@ -509,8 +509,8 @@ export async function GET(request: NextRequest) {
     if (!document.getElementById('keyrex-responsive-styles')) {
       const styleEl = document.createElement('style');
       styleEl.id = 'keyrex-responsive-styles';
-      // COMPACT: Reduced mobile logo size from 4rem to 3rem
-      styleEl.textContent = '@media (max-width: 640px) { [data-keyrex="wrapper"] { flex-direction: column; gap: 0.75rem; } [data-keyrex="button"] img { max-height: 3rem !important; } }';
+      // COMPACT: Reduced mobile logo size from 4rem to 4.5rem
+      styleEl.textContent = '@media (max-width: 640px) { [data-keyrex="wrapper"] { flex-direction: column; gap: 0.75rem; } [data-keyrex="button"] img { max-height: 4.5rem !important; } }';
       document.head.appendChild(styleEl);
     }
     
@@ -532,7 +532,7 @@ export async function GET(request: NextRequest) {
     const logoImg = document.createElement('img');
     logoImg.src = baseUrl + '/images/sign-in-with-paw.png';
     logoImg.alt = 'Sign in with Key-Rex';
-    logoImg.style.cssText = 'height: auto; width: auto; max-height: 5rem; object-fit: contain; display: block;';
+    logoImg.style.cssText = 'height: auto; width: auto; max-height: 7rem; object-fit: contain; display: block;';
     logoImg.onload = function() {
       console.log('Key-Rex: Main logo loaded successfully:', logoImg.src);
     };
