@@ -114,6 +114,9 @@ export function verifySignature(k1: string, sig: string, key: string): boolean {
     const k1Buffer = Buffer.from(k1, 'hex')
     if (k1Buffer.length !== 32) {
       console.error('Invalid k1 length:', k1Buffer.length, 'expected 32 bytes (64 hex chars)')
+      console.error('k1 string length:', k1.length, 'chars')
+      console.error('k1 first 40 chars:', JSON.stringify(k1.substring(0, 40)))
+      console.error('k1 is valid hex:', /^[0-9a-fA-F]{64}$/.test(k1))
       return false
     }
     const messageHashBuffer = crypto.createHash('sha256').update(k1Buffer).digest()

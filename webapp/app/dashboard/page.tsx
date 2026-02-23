@@ -381,6 +381,8 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
               const domainStatus = getDomainStatus(domain)
               const isVerified = domainStatus?.verified || isTestDomain(domain)
               const isPending = domainStatus?.status === 'pending' && !isTestDomain(domain)
+              const isFailed = domainStatus?.status === 'failed' && !isTestDomain(domain)
+              const needsVerification = isPending || isFailed
               const showInstructions = showingVerificationInstructions === domain
               
               return (
@@ -440,7 +442,7 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
                         )}
                       </div>
                       <div className="flex gap-2">
-                        {isPending && (
+                        {needsVerification && (
                           <button
                             onClick={() => handleVerifyDomain(domain)}
                             disabled={loading || verifyingDomain === domain}
@@ -452,7 +454,7 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
                                 Verifying...
                               </>
                             ) : (
-                              'Verify'
+                              isFailed ? 'Retry Verification' : 'Verify'
                             )}
                           </button>
                         )}
@@ -476,7 +478,7 @@ function DomainManager({ user, setUser, onNavigateToTab }: { user: User; setUser
                     </div>
                     
                     {/* Verification Instructions */}
-                    {(isPending || showInstructions) && domainStatus?.verificationToken && (
+                    {(needsVerification || showInstructions) && domainStatus?.verificationToken && (
                       <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-4 text-sm">
                         <p className="font-semibold text-orange-200 mb-2">Verify Domain Ownership</p>
                         <p className="text-white/80 mb-3">Add the following DNS TXT record to verify domain ownership:</p>

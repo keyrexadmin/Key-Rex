@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ToastProvider } from '@/components/ToastContainer'
-import PreviewGate from '@/components/PreviewGate'
 
 export const metadata: Metadata = {
   title: 'Key-Rex - Bitcoin Lightning Login',
@@ -27,7 +26,6 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <PreviewGate />
         <ToastProvider>
           {children}
         </ToastProvider>

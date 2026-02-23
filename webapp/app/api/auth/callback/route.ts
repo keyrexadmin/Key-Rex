@@ -56,11 +56,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Request URL too long' }, { status: 414 })
   }
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('=== /api/auth/callback called ===')
-    console.log('Timestamp:', new Date().toISOString())
-    console.log('Full URL:', request.url.substring(0, 200) + '...') // Truncate long URLs
-  }
+  // Always log callback requests (critical for diagnosing mobile wallet auth issues)
+  const userAgent = request.headers.get('user-agent') || 'unknown'
+  const reqOrigin = request.headers.get('origin')
+  const isLikelyWallet = !reqOrigin && !userAgent.includes('Mozilla')
+  console.log('=== /api/auth/callback ===', {
+    time: new Date().toISOString(),
+    url: request.url.substring(0, 300),
+    ua: userAgent.substring(0, 100),
+    origin: reqOrigin || 'none',
+    isLikelyWallet,
+  })
+
   const searchParams = request.nextUrl.searchParams
   // Get k1 - handle case where there might be extra query params
   let k1 = searchParams.get('k1')
@@ -72,13 +79,18 @@ export async function GET(request: NextRequest) {
   const sig = searchParams.get('sig')
   const key = searchParams.get('key')
   const siteId = searchParams.get('siteId')
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Callback params:', {
-      k1: k1 ? k1.substring(0, 20) + '...' : 'MISSING',
-      sig: sig ? 'PRESENT (' + sig.length + ' chars)' : 'MISSING',
-      key: key ? 'PRESENT (' + key.length + ' chars)' : 'MISSING',
-      siteId: siteId || 'none'
+  const tag = searchParams.get('tag')
+
+  // Always log params for wallet callbacks (sig+key present) to diagnose mobile issues
+  if (sig || key || isLikelyWallet) {
+    console.log('WALLET CALLBACK params:', {
+      k1: k1 ? `present (${k1.length} chars): ${k1.substring(0, 20)}...` : 'MISSING/EMPTY',
+      k1_raw: k1 === null ? 'null' : k1 === '' ? 'empty_string' : `truthy(${k1.length})`,
+      sig: sig ? `present (${sig.length} chars)` : 'MISSING',
+      key: key ? `present (${key.length} chars)` : 'MISSING',
+      tag: tag || 'none',
+      siteId: siteId || 'none',
+      allParams: Array.from(searchParams.entries()).map(([k, v]) => `${k}=${v.substring(0, 20)}`).join(', '),
     })
   }
   
@@ -122,16 +134,16 @@ export async function GET(request: NextRequest) {
       if (process.env.NODE_ENV === 'development') {
         console.log('Retrieval request: Found stored xpub for k1:', k1.substring(0, 20) + '...')
       }
-      
+
       // SECURITY: Validate origin for embedded logins
       if (siteId) {
         const user = await getUserBySiteId(siteId)
         if (user) {
           const origin = request.headers.get('origin')
-          
+
           // Always validate origin if present (check verified domains only)
           if (origin) {
-            
+
             // Extract domain from origin
             let requestDomain: string | null = null
             try {
@@ -140,22 +152,29 @@ export async function GET(request: NextRequest) {
             } catch {
               requestDomain = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0]
             }
-            
+
             // Test domains are always allowed
             if (requestDomain && !isTestDomain(requestDomain)) {
-              const verifiedDomains = await getVerifiedDomains(user.xpub)
-              
-              // If user has no verified domains, block authentication from production domains
-              if (verifiedDomains.length === 0) {
-                return NextResponse.json({ 
-                  error: 'No verified domains found. Please add and verify at least one domain in your dashboard before using authentication.' 
-                }, { status: 403 })
-              }
-              
-              // Check if domain is in verified list
-              if (!validateEmbedOrigin(request, verifiedDomains, user.xpub)) {
-                console.warn('CORS: Invalid origin for xpub retrieval:', origin, 'siteId:', siteId)
-                return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+              // Allow requests from KeyRex's own domain (the QR page is hosted on KeyRex
+              // and polls this endpoint with siteId during the auth flow)
+              const keyrexDomain = getKeyRexDomain(request)
+              const isKeyrexOrigin = requestDomain === keyrexDomain || requestDomain.endsWith('.' + keyrexDomain)
+
+              if (!isKeyrexOrigin) {
+                const verifiedDomains = await getVerifiedDomains(user.xpub)
+
+                // If user has no verified domains, block authentication from production domains
+                if (verifiedDomains.length === 0) {
+                  return NextResponse.json({
+                    error: 'No verified domains found. Please add and verify at least one domain in your dashboard before using authentication.'
+                  }, { status: 403 })
+                }
+
+                // Check if domain is in verified list
+                if (!validateEmbedOrigin(request, verifiedDomains, user.xpub)) {
+                  console.warn('CORS: Invalid origin for xpub retrieval:', origin, 'siteId:', siteId)
+                  return NextResponse.json({ error: 'Origin not authorized' }, { status: 403 })
+                }
               }
             }
           }
@@ -226,56 +245,39 @@ export async function GET(request: NextRequest) {
     console.log('Verifying cryptographic signature...')
   }
   
+  console.log('Verifying signature for k1:', k1.substring(0, 20) + '...', 'k1_length:', k1.length, 'sig_length:', sig?.length, 'key_length:', key?.length)
   const isValid = verifySignature(k1, sig, key)
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('=== Signature verification result:', isValid ? '✓ VALID' : '✗ INVALID', '===')
-  }
-  
+  console.log('Signature verification result:', isValid ? 'VALID' : 'INVALID')
+
   if (!isValid) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('CRITICAL: Signature verification failed - authentication blocked')
-      console.error('This means the signature from Alby could not be cryptographically verified')
-    }
-    return NextResponse.json({ 
+    console.error('AUTH FAILED: Signature verification failed. k1_length:', k1.length, 'k1_first20:', k1.substring(0, 20), 'sig_length:', sig?.length, 'key_length:', key?.length)
+    return NextResponse.json({
       error: 'Invalid signature - cryptographic verification failed',
       details: 'The signature from your wallet could not be verified. Please try again.'
     }, { status: 401 })
   }
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('✓ Signature cryptographically verified - authentication is valid')
-  }
-  
+  // Always log signature verification success (critical for mobile auth debugging)
+  console.log('AUTH SUCCESS: Signature verified for k1:', k1.substring(0, 20) + '...')
+
   // NOTE: k1 is marked as used later by /api/auth/set-session after the browser retrieves the xpub.
   // We must NOT mark it here because the session hasn't been stored yet (storeAuthSession is below),
   // and on retries this would mark the existing session as used, preventing the browser from retrieving it.
 
   // Derive xpub from pubkey
   const xpub = deriveXpub(key)
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Derived xpub:', xpub.substring(0, 20) + '...')
-  }
-  
+
   // Store k1 -> xpub mapping for client to retrieve
   // Clean k1 first to ensure consistent storage
   const cleanK1 = k1.split('&')[0].split('?')[0]
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Original k1:', k1.substring(0, 20) + '...')
-    console.log('Cleaned k1 for storage:', cleanK1.substring(0, 20) + '...')
-  }
-  
+
+  console.log('Storing auth session:', { k1_prefix: cleanK1.substring(0, 20), k1_length: cleanK1.length, xpub_prefix: xpub.substring(0, 16) })
+
   // Store in both in-memory (for immediate access) and in a cookie (for persistence)
   const { storeAuthSession } = await import('@/lib/storage')
   await storeAuthSession(cleanK1, xpub)
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Stored auth session: k1 -> xpub mapping saved')
-    console.log('k1 stored:', cleanK1.substring(0, 20) + '...')
-    console.log('xpub stored:', xpub.substring(0, 20) + '...')
-  }
+
+  console.log('AUTH SESSION STORED successfully for k1:', cleanK1.substring(0, 20) + '...')
   
   // Also store in a cookie for persistence across requests/workers
   // Format: k1_xpub mapping as a cookie value
@@ -336,16 +338,25 @@ export async function GET(request: NextRequest) {
 
     // Record login
     await recordLogin(siteId, key)
-    
+
     // LUD-04 spec: wallet expects { status: "OK" } after successful auth
-    const response = NextResponse.json({ status: 'OK', xpub })
-    
+    // Include a return URL so wallets that support it can redirect back to the browser
+    const returnToQrUrl = `${request.nextUrl.origin}/embed/qr?siteId=${encodeURIComponent(siteId)}&k1=${encodeURIComponent(cleanK1)}&redirect=true&authenticated=true`
+    const response = NextResponse.json({
+      status: 'OK',
+      xpub,
+      // Return URL for wallets that support redirect-after-auth
+      url: returnToQrUrl,
+      // successAction format (from LUD-09) - some wallets check this for LNURL-auth too
+      successAction: { tag: 'url', description: 'Return to browser', url: returnToQrUrl },
+    })
+
     // Set CORS headers for embed login
     const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
     Object.entries(corsHeaders).forEach(([key, value]) => {
       response.headers.set(key, value)
     })
-    
+
     return response
   }
   
@@ -377,10 +388,13 @@ export async function GET(request: NextRequest) {
   
   // Return JSON response (LNURL-auth spec) - WebLN expects { status: 'OK' }
   // Also include the xpub in the response so the browser can set the cookie
-  // IMPORTANT: Alby expects exactly { status: 'OK' } - any other format may cause issues
-  const response = NextResponse.json({ 
+  // Include return URL for wallets that support redirect-after-auth
+  const returnToDashboardUrl = `${request.nextUrl.origin}/embed/qr?k1=${encodeURIComponent(cleanK1)}&authenticated=true`
+  const response = NextResponse.json({
     status: 'OK',
-    xpub: xpub, // Include xpub so browser can set cookie (for our client-side code)
+    xpub: xpub,
+    url: returnToDashboardUrl,
+    successAction: { tag: 'url', description: 'Return to browser', url: returnToDashboardUrl },
   })
   
   // Set CORS headers for dashboard login (Key-Rex domain)

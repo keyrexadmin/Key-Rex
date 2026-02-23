@@ -155,64 +155,38 @@ export function jsonToSet<T>(json: any): Set<T> {
  * Converts all Maps to objects and Sets to arrays for JSON storage
  */
 export function serializeUsageStats(stats: any) {
+  // Helper to convert Map<string, Set> to a plain object with arrays
+  const mapOfSetsToJson = (map: Map<string, Set<any>> | undefined) => {
+    const obj: Record<string, any[]> = {}
+    if (map) {
+      for (const [k, v] of map.entries()) {
+        obj[k] = setToJson(v)
+      }
+    }
+    return obj
+  }
+
+  // IMPORTANT: Only include fields that exist in the Prisma schema (UsageStats model).
+  // Extra fields cause Prisma to reject the entire update, silently breaking analytics.
   return {
+    // Simple counters (in schema)
     currentMonth: stats.currentMonth || 0,
     yearToDate: stats.yearToDate || 0,
     allTime: stats.allTime || 0,
     returningUserLogins: stats.returningUserLogins || 0,
 
-    // Convert Sets to arrays
+    // Sets → arrays (in schema)
     uniquePubkeys: setToJson(stats.uniquePubkeys || new Set()),
-    firstTimeLogins: setToJson(stats.firstTimeLogins || new Set()),
 
-    // Convert Map<string, Set<string>> to object with arrays
-    monthlyPubkeys: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.monthlyPubkeys || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
-    dailyUniqueUsers: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.dailyUniqueUsers || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
-    domainUniqueUsers: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.domainUniqueUsers || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
-    walletUniqueUsers: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.walletUniqueUsers || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
-    dayOfWeekUniqueUsers: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.dayOfWeekUniqueUsers || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
-    browserUniqueUsers: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.browserUniqueUsers || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
-    deviceTypeUniqueUsers: mapToJson(
-      new Map<string, any>(
-        Array.from<[string, any]>(stats.deviceTypeUniqueUsers || new Map()).map(([k, v]) => [k, setToJson(v as Set<any>)])
-      )
-    ),
+    // Map<string, Set<string>> → object with arrays (in schema)
+    monthlyPubkeys: mapOfSetsToJson(stats.monthlyPubkeys),
+    dailyUniqueUsers: mapOfSetsToJson(stats.dailyUniqueUsers),
 
-    // Convert simple Maps to objects
+    // Simple Maps → objects (in schema)
     dailyLogins: mapToJson(stats.dailyLogins || new Map()),
     domainLogins: mapToJson(stats.domainLogins || new Map()),
     hourlyLogins: mapToJson(stats.hourlyLogins || new Map()),
     walletLogins: mapToJson(stats.walletLogins || new Map()),
-    dayOfWeekLogins: mapToJson(stats.dayOfWeekLogins || new Map()),
-    browserLogins: mapToJson(stats.browserLogins || new Map()),
-    deviceTypeLogins: mapToJson(stats.deviceTypeLogins || new Map()),
-    userFirstLoginDate: mapToJson(stats.userFirstLoginDate || new Map()),
-    userLastLoginDate: mapToJson(stats.userLastLoginDate || new Map()),
-    userLoginCount: mapToJson(stats.userLoginCount || new Map()),
     geographicData: mapToJson(stats.geographicData || new Map()),
     deviceTypes: mapToJson(stats.deviceTypes || new Map()),
     referrers: mapToJson(stats.referrers || new Map()),
@@ -222,7 +196,7 @@ export function serializeUsageStats(stats: any) {
     averageSessionLength: mapToJson(stats.averageSessionLength || new Map()),
     bounceRate: mapToJson(stats.bounceRate || new Map()),
 
-    // Convert array of objects (loginHistory stays as array)
+    // Array (in schema)
     loginHistory: Array.isArray(stats.loginHistory) ? stats.loginHistory : [],
   }
 }
@@ -232,6 +206,18 @@ export function serializeUsageStats(stats: any) {
  * Converts all objects to Maps and arrays to Sets
  */
 export function deserializeUsageStats(dbStats: any) {
+  // Helper to convert a JSON object with arrays to Map<string, Set<string>>
+  // Fix: Object.entries(Map) returns [] — must use plain object directly from DB
+  const jsonObjToMapOfSets = (json: any): Map<string, Set<string>> => {
+    const map = new Map<string, Set<string>>()
+    if (json && typeof json === 'object' && !Array.isArray(json)) {
+      for (const [k, v] of Object.entries(json)) {
+        map.set(k, jsonToSet(v))
+      }
+    }
+    return map
+  }
+
   return {
     currentMonth: dbStats.currentMonth || 0,
     yearToDate: dbStats.yearToDate || 0,
@@ -243,27 +229,14 @@ export function deserializeUsageStats(dbStats: any) {
     firstTimeLogins: jsonToSet(dbStats.firstTimeLogins || []),
 
     // Convert object with arrays to Map<string, Set<string>>
-    monthlyPubkeys: new Map(
-      Object.entries(jsonToMap(dbStats.monthlyPubkeys)).map(([k, v]) => [k, jsonToSet(v)])
-    ),
-    dailyUniqueUsers: new Map(
-      Object.entries(jsonToMap(dbStats.dailyUniqueUsers)).map(([k, v]) => [k, jsonToSet(v)])
-    ),
-    domainUniqueUsers: new Map(
-      Object.entries(jsonToMap(dbStats.domainUniqueUsers || {})).map(([k, v]) => [k, jsonToSet(v)])
-    ),
-    walletUniqueUsers: new Map(
-      Object.entries(jsonToMap(dbStats.walletUniqueUsers || {})).map(([k, v]) => [k, jsonToSet(v)])
-    ),
-    dayOfWeekUniqueUsers: new Map(
-      Object.entries(jsonToMap(dbStats.dayOfWeekUniqueUsers || {})).map(([k, v]) => [k, jsonToSet(v)])
-    ),
-    browserUniqueUsers: new Map(
-      Object.entries(jsonToMap(dbStats.browserUniqueUsers || {})).map(([k, v]) => [k, jsonToSet(v)])
-    ),
-    deviceTypeUniqueUsers: new Map(
-      Object.entries(jsonToMap(dbStats.deviceTypeUniqueUsers || {})).map(([k, v]) => [k, jsonToSet(v)])
-    ),
+    // Use plain Object.entries on the raw DB JSON (NOT on a Map)
+    monthlyPubkeys: jsonObjToMapOfSets(dbStats.monthlyPubkeys),
+    dailyUniqueUsers: jsonObjToMapOfSets(dbStats.dailyUniqueUsers),
+    domainUniqueUsers: jsonObjToMapOfSets(dbStats.domainUniqueUsers),
+    walletUniqueUsers: jsonObjToMapOfSets(dbStats.walletUniqueUsers),
+    dayOfWeekUniqueUsers: jsonObjToMapOfSets(dbStats.dayOfWeekUniqueUsers),
+    browserUniqueUsers: jsonObjToMapOfSets(dbStats.browserUniqueUsers),
+    deviceTypeUniqueUsers: jsonObjToMapOfSets(dbStats.deviceTypeUniqueUsers),
 
     // Convert objects to Maps
     dailyLogins: jsonToMap(dbStats.dailyLogins),

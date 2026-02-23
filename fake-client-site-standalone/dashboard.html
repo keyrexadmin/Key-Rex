@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="overflow-x: hidden;">
   <head>
     <meta charset="UTF-8" />
-    <title>API Dashboard - NeuralAPI</title>
+    <title>Developer Dashboard - GoneFullscreen</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
-        --primary: #6366f1;
-        --primary-dark: #4f46e5;
-        --secondary: #8b5cf6;
-        --accent: #f59e0b;
-        --success: #10b981;
+        --primary: #f7931a;
+        --primary-dark: #e2820e;
+        --secondary: #ff6b00;
+        --success: #00d4aa;
         --danger: #ef4444;
-        --bg-main: #0f172a;
-        --bg-card: #1e293b;
-        --text-main: #f1f5f9;
-        --text-muted: #94a3b8;
-        --border: #334155;
+        --bg-main: #0a0a0a;
+        --bg-card: #141414;
+        --bg-elevated: #1a1a1a;
+        --text-main: #e8e8e8;
+        --text-muted: #777777;
+        --border: #222222;
       }
 
       * {
@@ -30,15 +30,17 @@
         min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        background: var(--bg-main);
         color: var(--text-main);
         line-height: 1.6;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
       }
 
       /* Header */
       header {
         padding: 1.25rem 2rem;
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(10, 10, 10, 0.95);
         backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--border);
         position: sticky;
@@ -75,6 +77,15 @@
         justify-content: center;
         font-weight: bold;
         font-size: 1.1rem;
+        color: #0a0a0a;
+        flex-shrink: 0;
+      }
+
+      .logo-text {
+        background: linear-gradient(135deg, #ffffff, #999999);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .user-info {
@@ -87,8 +98,8 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        background: rgba(0, 212, 170, 0.08);
+        border: 1px solid rgba(0, 212, 170, 0.25);
         color: var(--success);
         padding: 0.5rem 1rem;
         border-radius: 8px;
@@ -97,7 +108,7 @@
       }
 
       .auth-badge::before {
-        content: "✓";
+        content: "\2713";
         font-weight: bold;
         font-size: 1rem;
       }
@@ -105,6 +116,7 @@
       /* Main Container */
       .container {
         max-width: 1400px;
+        width: 100%;
         margin: 0 auto;
         padding: 3rem 2rem;
       }
@@ -115,9 +127,10 @@
         border-radius: 20px;
         padding: 3rem;
         margin-bottom: 3rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         position: relative;
         overflow: hidden;
+        color: #0a0a0a;
       }
 
       .welcome-section::before {
@@ -127,7 +140,7 @@
         right: 0;
         width: 300px;
         height: 300px;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
         border-radius: 50%;
         transform: translate(50%, -50%);
       }
@@ -136,18 +149,20 @@
         font-size: 2.5rem;
         margin-bottom: 0.75rem;
         position: relative;
+        color: #0a0a0a;
       }
 
       .welcome-section p {
         font-size: 1.1rem;
-        opacity: 0.9;
+        opacity: 0.85;
         margin-bottom: 2rem;
         position: relative;
+        color: #1a1a1a;
       }
 
       .stats-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: 2rem;
         position: relative;
       }
@@ -161,17 +176,19 @@
         font-weight: 800;
         display: block;
         margin-bottom: 0.25rem;
+        color: #0a0a0a;
       }
 
       .stat-label {
         font-size: 0.9rem;
-        opacity: 0.8;
+        opacity: 0.75;
+        color: #1a1a1a;
       }
 
       /* Grid Layout */
       .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
         gap: 2rem;
         margin-bottom: 2rem;
       }
@@ -181,7 +198,7 @@
         border-radius: 16px;
         padding: 2rem;
         border: 1px solid var(--border);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
       .card h2 {
@@ -201,6 +218,7 @@
         align-items: center;
         justify-content: center;
         font-size: 1.25rem;
+        flex-shrink: 0;
       }
 
       /* API Key Section */
@@ -209,21 +227,28 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         padding: 1rem;
-        font-family: 'Monaco', 'Menlo', monospace;
+        font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
         font-size: 0.85rem;
         color: var(--text-muted);
         word-break: break-all;
         margin-bottom: 1rem;
         position: relative;
+        transition: background 0.2s;
       }
 
       .api-key-display:hover {
         background: rgba(0, 0, 0, 0.4);
       }
 
+      .button-row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
       .button {
         background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-        color: white;
+        color: #0a0a0a;
         padding: 0.75rem 1.5rem;
         border-radius: 8px;
         border: none;
@@ -231,7 +256,7 @@
         font-size: 0.9rem;
         cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 4px 12px rgba(247, 147, 26, 0.25);
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
@@ -239,24 +264,34 @@
 
       .button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        box-shadow: 0 6px 20px rgba(247, 147, 26, 0.35);
       }
 
       .button-outline {
         background: transparent;
         border: 1px solid var(--border);
         box-shadow: none;
+        color: var(--text-main);
       }
 
       .button-outline:hover {
         background: rgba(255, 255, 255, 0.05);
         box-shadow: none;
+        transform: none;
       }
 
       /* Usage Table */
+      .usage-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -0.5rem;
+        padding: 0 0.5rem;
+      }
+
       .usage-table {
         width: 100%;
         border-collapse: collapse;
+        min-width: 280px;
       }
 
       .usage-table th,
@@ -268,14 +303,16 @@
 
       .usage-table th {
         color: var(--text-muted);
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        white-space: nowrap;
       }
 
       .usage-table td {
         color: var(--text-main);
+        font-size: 0.9rem;
       }
 
       .usage-table tr:last-child td {
@@ -303,6 +340,22 @@
         transition: width 0.3s ease;
       }
 
+      .usage-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+
+      .usage-meta-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .usage-meta-value {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
       /* Quick Actions */
       .quick-actions {
         display: grid;
@@ -314,22 +367,23 @@
         align-items: center;
         justify-content: space-between;
         padding: 1rem;
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(255, 255, 255, 0.02);
         border-radius: 10px;
         border: 1px solid var(--border);
         transition: all 0.2s;
+        cursor: pointer;
       }
 
       .action-item:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: var(--primary);
-        cursor: pointer;
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(247, 147, 26, 0.3);
       }
 
       .action-info {
         display: flex;
         align-items: center;
         gap: 1rem;
+        min-width: 0;
       }
 
       .action-icon {
@@ -341,6 +395,7 @@
         align-items: center;
         justify-content: center;
         font-size: 1rem;
+        flex-shrink: 0;
       }
 
       .action-text h3 {
@@ -357,6 +412,84 @@
       .action-arrow {
         font-size: 1.25rem;
         color: var(--text-muted);
+        flex-shrink: 0;
+        margin-left: 0.5rem;
+      }
+
+      /* Identity Card */
+      .identity-box {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        margin-bottom: 1rem;
+      }
+
+      .identity-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+      }
+
+      .identity-value {
+        font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+        font-size: 0.75rem;
+        color: var(--text-main);
+        word-break: break-all;
+      }
+
+      .identity-status {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 1rem;
+        background: rgba(0, 212, 170, 0.08);
+        border-radius: 8px;
+        border: 1px solid rgba(0, 212, 170, 0.2);
+      }
+
+      .identity-status-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .identity-status-text {
+        font-size: 0.85rem;
+        color: var(--success);
+      }
+
+      .identity-status-text strong {
+        display: block;
+        margin-bottom: 0.15rem;
+      }
+
+      /* Why Section */
+      .why-card {
+        background: linear-gradient(135deg, rgba(247, 147, 26, 0.06) 0%, rgba(255, 107, 0, 0.06) 100%);
+        border-color: rgba(247, 147, 26, 0.2);
+      }
+
+      .why-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .why-item-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .why-item h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .why-item p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin: 0;
       }
 
       /* Footer */
@@ -378,22 +511,197 @@
         text-decoration: underline;
       }
 
-      /* Responsive */
-      @media (max-width: 768px) {
+      /* Card description helper */
+      .card-desc {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+      }
+
+      /* ===================== */
+      /* Responsive Breakpoints */
+      /* ===================== */
+
+      /* Tablet */
+      @media (max-width: 968px) {
+        .container {
+          padding: 2rem 1.5rem;
+        }
         .welcome-section {
           padding: 2rem;
         }
-
         .welcome-section h1 {
           font-size: 2rem;
         }
-
+        .stats-row {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1.25rem;
+        }
         .dashboard-grid {
           grid-template-columns: 1fr;
         }
+        .why-grid {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+      }
 
+      /* Mobile */
+      @media (max-width: 600px) {
+        header {
+          padding: 1rem;
+        }
+        .logo {
+          font-size: 1.15rem;
+          gap: 0.5rem;
+        }
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 0.85rem;
+          border-radius: 7px;
+        }
+        .auth-badge {
+          font-size: 0.78rem;
+          padding: 0.4rem 0.75rem;
+        }
         .container {
-          padding: 2rem 1rem;
+          padding: 1.5rem 1rem;
+        }
+        .welcome-section {
+          padding: 1.5rem;
+          border-radius: 14px;
+          margin-bottom: 1.5rem;
+        }
+        .welcome-section h1 {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .welcome-section p {
+          font-size: 0.92rem;
+          margin-bottom: 1.25rem;
+        }
+        .stats-row {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+        }
+        .stat-value {
+          font-size: 1.5rem;
+        }
+        .stat-label {
+          font-size: 0.8rem;
+        }
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
+          margin-bottom: 1.25rem;
+        }
+        .card {
+          padding: 1.5rem;
+          border-radius: 12px;
+        }
+        .card h2 {
+          font-size: 1.1rem;
+          margin-bottom: 1rem;
+          gap: 0.6rem;
+        }
+        .card-icon {
+          width: 34px;
+          height: 34px;
+          font-size: 1.1rem;
+          border-radius: 8px;
+        }
+        .card-desc {
+          font-size: 0.85rem;
+        }
+        .api-key-display {
+          font-size: 0.75rem;
+          padding: 0.85rem;
+        }
+        .button {
+          padding: 0.65rem 1.1rem;
+          font-size: 0.82rem;
+        }
+        .button-outline {
+          padding: 0.65rem 1.1rem;
+          font-size: 0.82rem;
+        }
+        .usage-meta-label {
+          font-size: 0.82rem;
+        }
+        .usage-table th {
+          font-size: 0.72rem;
+          padding: 0.6rem 0.5rem;
+        }
+        .usage-table td {
+          font-size: 0.82rem;
+          padding: 0.6rem 0.5rem;
+        }
+        .action-item {
+          padding: 0.85rem;
+        }
+        .action-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 0.9rem;
+        }
+        .action-text h3 {
+          font-size: 0.9rem;
+        }
+        .action-text p {
+          font-size: 0.78rem;
+        }
+        .action-item:hover {
+          transform: none;
+        }
+        .identity-box {
+          padding: 0.85rem;
+        }
+        .identity-value {
+          font-size: 0.68rem;
+        }
+        .identity-status {
+          padding: 0.85rem;
+        }
+        .identity-status-text {
+          font-size: 0.8rem;
+        }
+        .why-grid {
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
+        }
+        .why-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+        }
+        .why-item-icon {
+          margin-bottom: 0;
+          flex-shrink: 0;
+        }
+        footer {
+          padding: 1.5rem 1rem;
+          margin-top: 2.5rem;
+          font-size: 0.8rem;
+        }
+      }
+
+      /* Small phones */
+      @media (max-width: 380px) {
+        .welcome-section h1 {
+          font-size: 1.3rem;
+        }
+        .stat-value {
+          font-size: 1.3rem;
+        }
+        .logo-text {
+          font-size: 1rem;
+        }
+        .api-key-display {
+          font-size: 0.68rem;
+        }
+        .identity-value {
+          font-size: 0.62rem;
         }
       }
     </style>
@@ -402,8 +710,8 @@
     <header>
       <div class="header-content">
         <a href="index.html" class="logo">
-          <div class="logo-icon">N</div>
-          <span>NeuralAPI</span>
+          <div class="logo-icon">GF</div>
+          <span class="logo-text">GoneFullscreen</span>
         </a>
         <div class="user-info">
           <div class="auth-badge">Authenticated</div>
@@ -413,8 +721,8 @@
 
     <main class="container">
       <section class="welcome-section">
-        <h1>Welcome to your Dashboard</h1>
-        <p>You're authenticated and ready to start making API calls. Monitor usage, manage API keys, and access documentation.</p>
+        <h1>Developer Dashboard</h1>
+        <p>You're authenticated and ready to build. Monitor usage, manage API keys, and access Bitcoin infrastructure.</p>
         <div class="stats-row">
           <div class="stat-item">
             <span class="stat-value">2.4K</span>
@@ -429,7 +737,7 @@
             <span class="stat-label">Success Rate</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">$12.43</span>
+            <span class="stat-value">12K sats</span>
             <span class="stat-label">This Month</span>
           </div>
         </div>
@@ -438,150 +746,158 @@
       <div class="dashboard-grid">
         <div class="card">
           <h2>
-            <span class="card-icon">🔑</span>
+            <span class="card-icon">&#x1F511;</span>
             Your API Key
           </h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          <p class="card-desc">
             Use this key to authenticate your API requests. Keep it secret and secure.
           </p>
           <div class="api-key-display" id="api-key-display">
-            sk_live_7f8d9e1a2b3c4d5e6f7g8h9i0j1k2l3m4n5
+            gfs_live_7f8d9e1a2b3c4d5e6f7g8h9i0j1k2l3m4n5
           </div>
-          <div style="display: flex; gap: 0.75rem;">
+          <div class="button-row">
             <button class="button" onclick="copyApiKey()">
-              📋 Copy Key
+              Copy Key
             </button>
             <button class="button button-outline" onclick="regenerateKey()">
-              🔄 Regenerate
+              Regenerate
             </button>
           </div>
         </div>
 
         <div class="card">
           <h2>
-            <span class="card-icon">📊</span>
+            <span class="card-icon">&#x1F4CA;</span>
             Usage This Month
           </h2>
           <div style="margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="color: var(--text-muted); font-size: 0.9rem;">24,567 / 50,000 calls</span>
-              <span style="color: var(--text-main); font-weight: 600;">49%</span>
+            <div class="usage-meta">
+              <span class="usage-meta-label">24,567 / 50,000 calls</span>
+              <span class="usage-meta-value">49%</span>
             </div>
             <div class="progress-bar">
               <div class="progress-fill" style="width: 49%"></div>
             </div>
           </div>
-          <table class="usage-table">
-            <thead>
-              <tr>
-                <th>Endpoint</th>
-                <th>Calls</th>
-                <th>Avg Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>/v1/chat</td>
-                <td>18,234</td>
-                <td>42ms</td>
-              </tr>
-              <tr>
-                <td>/v1/image</td>
-                <td>4,512</td>
-                <td>1.2s</td>
-              </tr>
-              <tr>
-                <td>/v1/embeddings</td>
-                <td>1,821</td>
-                <td>28ms</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="usage-table-wrapper">
+            <table class="usage-table">
+              <thead>
+                <tr>
+                  <th>Endpoint</th>
+                  <th>Calls</th>
+                  <th>Avg Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>/v1/utxos</td>
+                  <td>18,234</td>
+                  <td>42ms</td>
+                </tr>
+                <tr>
+                  <td>/v1/contracts</td>
+                  <td>4,512</td>
+                  <td>120ms</td>
+                </tr>
+                <tr>
+                  <td>/v1/blocks</td>
+                  <td>1,821</td>
+                  <td>28ms</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="card">
           <h2>
-            <span class="card-icon">⚙️</span>
+            <span class="card-icon">&#x2699;&#xFE0F;</span>
             Quick Actions
           </h2>
           <div class="quick-actions">
-            <div class="action-item" onclick="window.open('https://docs.example.com', '_blank')">
+            <div class="action-item" onclick="window.open('https://docs.gonefullscreen.com', '_blank')">
               <div class="action-info">
-                <div class="action-icon">📚</div>
+                <div class="action-icon">&#x1F4DA;</div>
                 <div class="action-text">
-                  <h3>Read Documentation</h3>
-                  <p>API reference and guides</p>
+                  <h3>API Documentation</h3>
+                  <p>Endpoints, schemas, and guides</p>
                 </div>
               </div>
-              <span class="action-arrow">→</span>
+              <span class="action-arrow">&#x2192;</span>
             </div>
-            <div class="action-item" onclick="alert('This would open usage analytics')">
+            <div class="action-item" onclick="alert('Usage analytics coming soon')">
               <div class="action-info">
-                <div class="action-icon">📈</div>
+                <div class="action-icon">&#x1F4C8;</div>
                 <div class="action-text">
                   <h3>View Analytics</h3>
                   <p>Detailed usage insights</p>
                 </div>
               </div>
-              <span class="action-arrow">→</span>
+              <span class="action-arrow">&#x2192;</span>
             </div>
-            <div class="action-item" onclick="alert('This would open billing section')">
+            <div class="action-item" onclick="alert('Lightning billing coming soon')">
               <div class="action-info">
-                <div class="action-icon">💳</div>
+                <div class="action-icon">&#x26A1;</div>
                 <div class="action-text">
-                  <h3>Billing Settings</h3>
-                  <p>Manage your plan</p>
+                  <h3>Lightning Billing</h3>
+                  <p>Top up balance with sats</p>
                 </div>
               </div>
-              <span class="action-arrow">→</span>
+              <span class="action-arrow">&#x2192;</span>
             </div>
           </div>
         </div>
 
         <div class="card">
           <h2>
-            <span class="card-icon">🔐</span>
+            <span class="card-icon">&#x1F510;</span>
             Your Identity
           </h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-            You're authenticated using Lightning Network (LNURL-auth). Your wallet identity is your account.
+          <p class="card-desc">
+            Authenticated via Lightning Network (LNURL-auth). Your wallet is your account.
           </p>
-          <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem;">
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Extended Public Key (xpub)</div>
-            <div id="xpub-display" style="font-family: 'Monaco', 'Menlo', monospace; font-size: 0.75rem; color: var(--text-main); word-break: break-all;">
+          <div class="identity-box">
+            <div class="identity-label">Extended Public Key (xpub)</div>
+            <div class="identity-value" id="xpub-display">
               Loading...
             </div>
           </div>
-          <div style="display: flex; gap: 0.75rem; align-items: center; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-            <span style="font-size: 1.5rem;">✓</span>
-            <div style="font-size: 0.85rem; color: var(--success);">
-              <strong>No password required</strong><br/>
+          <div class="identity-status">
+            <span class="identity-status-icon">&#x2713;</span>
+            <div class="identity-status-text">
+              <strong>No password required</strong>
               Your Lightning wallet is your identity
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); border-color: rgba(99, 102, 241, 0.3);">
+      <div class="card why-card">
         <h2 style="color: white;">
-          <span class="card-icon">⚡</span>
+          <span class="card-icon">&#x26A1;</span>
           Why Key-Rex Authentication?
         </h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-          <div>
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚀</div>
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Instant Setup</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">No registration forms, no email verification. Just click and authenticate.</p>
+        <div class="why-grid">
+          <div class="why-item">
+            <div class="why-item-icon">&#x1F680;</div>
+            <div>
+              <h3>Instant Setup</h3>
+              <p>No registration forms, no email verification. Just scan and authenticate.</p>
+            </div>
           </div>
-          <div>
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔒</div>
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Maximum Privacy</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Zero personal data required. Your wallet is your identity.</p>
+          <div class="why-item">
+            <div class="why-item-icon">&#x1F512;</div>
+            <div>
+              <h3>Maximum Privacy</h3>
+              <p>Zero personal data required. Your wallet is your identity.</p>
+            </div>
           </div>
-          <div>
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💎</div>
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Bitcoin Native</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Seamless integration with Lightning payments and Bitcoin ecosystem.</p>
+          <div class="why-item">
+            <div class="why-item-icon">&#x20BF;</div>
+            <div>
+              <h3>Bitcoin Native</h3>
+              <p>Seamless integration with Lightning payments and Bitcoin ecosystem.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -589,9 +905,9 @@
 
     <footer>
       <p>
-        This is a demo dashboard showing what Key-Rex authentication enables · Not a real service ·
-        <a href="index.html">Back to Home</a> ·
-        <a href="#" onclick="window.location.href = KEYREX_BASE_URL; return false;">Back to Key-Rex</a>
+        &copy; 2026 GoneFullscreen &middot;
+        <a href="index.html">Back to Home</a> &middot;
+        <a href="#" onclick="window.location.href = KEYREX_BASE_URL; return false;">Key-Rex</a>
       </p>
     </footer>
 
@@ -599,7 +915,7 @@
       // Configuration - should match index.html
       const KEYREX_BASE_URL = 'https://keyrex-preview.vercel.app'; // Your deployed Key-Rex instance
     </script>
-    
+
     <script>
       // Load xpub from URL or storage
       function getStoredXpub() {
@@ -623,18 +939,18 @@
         xpubDisplay.textContent = xpub.substring(0, 60) + '...';
         xpubDisplay.title = xpub;
       } else {
-        xpubDisplay.textContent = 'demo_xpub_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t (demo mode)';
-        xpubDisplay.style.color = '#94a3b8';
+        xpubDisplay.textContent = 'demo_xpub_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t';
+        xpubDisplay.style.color = '#777777';
       }
 
       // Copy API key function
       function copyApiKey() {
-        const apiKey = document.getElementById('api-key-display').textContent;
+        const apiKey = document.getElementById('api-key-display').textContent.trim();
         navigator.clipboard.writeText(apiKey).then(() => {
           const btn = event.target.closest('button');
           const originalText = btn.innerHTML;
-          btn.innerHTML = '✓ Copied!';
-          btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          btn.innerHTML = '\u2713 Copied!';
+          btn.style.background = 'linear-gradient(135deg, #00d4aa, #00b894)';
           setTimeout(() => {
             btn.innerHTML = originalText;
             btn.style.background = '';
@@ -645,7 +961,7 @@
       // Regenerate key function
       function regenerateKey() {
         if (confirm('Are you sure you want to regenerate your API key? Your old key will stop working.')) {
-          const newKey = 'sk_live_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          const newKey = 'gfs_live_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
           document.getElementById('api-key-display').textContent = newKey;
           alert('New API key generated! Make sure to update your applications.');
         }

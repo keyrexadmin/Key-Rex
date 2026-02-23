@@ -13,10 +13,14 @@ function QRContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const siteId = searchParams.get('siteId')
-  const k1 = searchParams.get('k1')
+  const rawK1 = searchParams.get('k1')
+  // Validate k1 - must be a 64-char hex string (32 bytes). Reject "undefined", "null", or other invalid values.
+  const k1 = rawK1 && /^[0-9a-fA-F]{64}$/.test(rawK1) ? rawK1 : null
   const isAdmin = searchParams.get('admin') === 'true'
   const isRedirect = searchParams.get('redirect') === 'true'
+  const isAuthenticated = searchParams.get('authenticated') === 'true' // Wallet redirect after auth
   const returnUrl = searchParams.get('returnUrl')
+  const parentOrigin = searchParams.get('parentOrigin') // Origin of the parent window (for cross-origin postMessage)
   const [qrCode, setQrCode] = useState<string>('')
   const [lnurl, setLnurl] = useState<string>('')
   const [lightningLnurl, setLightningLnurl] = useState<string>('')
@@ -40,6 +44,7 @@ function QRContent() {
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'mobile' | 'desktop'>('mobile')
   const [selectedWallet, setSelectedWallet] = useState<string>('') // Phase 2: Wallet selector
+  const [showWalletPicker, setShowWalletPicker] = useState(false) // Wallet picker for iOS
   const [showCopyModal, setShowCopyModal] = useState(false) // Enhanced copy feedback modal
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const expirationTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -48,6 +53,9 @@ function QRContent() {
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const redirectCancelledRef = useRef<boolean>(false)
   const urlUpdateRef = useRef<boolean>(false) // Track if we've updated the URL to prevent loops
+  const currentK1Ref = useRef<string | null>(k1) // Track active k1 (updates on QR refresh)
+  const pollFnRef = useRef<(() => Promise<void>) | null>(null) // Current poll function for immediate visibility-triggered checks
+  const authSucceededRef = useRef<boolean>(false) // Guard against concurrent doPoll race conditions
   const toast = useToast()
   
   // Detect if opened in popup (not redirect mode and has opener)
@@ -60,8 +68,7 @@ function QRContent() {
     const handleBeforeUnload = () => {
       try {
         if (!redirectMode && window.opener && !window.opener.closed) {
-          // SECURITY: Specify target origin instead of '*'
-          const targetOrigin = window.location.origin
+          const targetOrigin = parentOrigin || '*'
           window.opener.postMessage({
             type: 'keyrex-popup-closed',
             siteId: siteId
@@ -99,27 +106,90 @@ function QRContent() {
     }
   }, [isMobile, isAdmin])
 
-  // Page Visibility API - Detect when user returns to tab after deep link
+  // Handle wallet redirect back to browser (authenticated=true in URL)
+  // When the wallet supports redirect-after-auth, it opens this page with authenticated=true.
+  // Immediately trigger rapid polling to detect the auth and redirect the user.
   useEffect(() => {
-    if (!isMobile || !deepLinkAttempted || authStatus !== 'waiting' || isAdmin) return
+    if (!isAuthenticated || authSucceededRef.current) return
+    const activeK1 = k1 || currentK1Ref.current
+    if (!activeK1) return
+
+    console.log('[QR Page] Wallet redirected back with authenticated=true, triggering rapid auth checks')
+
+    // Rapid polling: check immediately, then at short intervals
+    const checkAuth = async () => {
+      if (authSucceededRef.current) return
+      if (pollFnRef.current) {
+        pollFnRef.current()
+      }
+    }
+
+    checkAuth()
+    const t1 = setTimeout(checkAuth, 500)
+    const t2 = setTimeout(checkAuth, 1500)
+    const t3 = setTimeout(checkAuth, 3000)
+    const t4 = setTimeout(checkAuth, 5000)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      clearTimeout(t4)
+    }
+  }, [isAuthenticated, k1])
+
+  // Page Visibility API - Detect when user returns to tab after deep link
+  // Enhanced: triggers immediate auth check on return to fix mobile browser timer throttling
+  // Mobile browsers (iOS Safari, Chrome Android) pause/throttle setInterval when tabs are
+  // in the background. Without this, users returning from wallet apps experience delays
+  // or missed auth detection.
+  useEffect(() => {
+    if (authStatus !== 'waiting') return
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setTabWasHidden(true)
-        setShowReturnReminder(true)
-      } else if (document.visibilityState === 'visible' && tabWasHidden) {
-        // User returned to tab - show persistent reminder
-        setShowPersistentReminder(true)
-        // Hide after 10 seconds
-        setTimeout(() => {
-          setShowPersistentReminder(false)
-        }, 10000)
+        if (isMobile && deepLinkAttempted) {
+          setTabWasHidden(true)
+          setShowReturnReminder(true)
+        }
+      } else if (document.visibilityState === 'visible') {
+        // Show UI reminder if applicable
+        if (isMobile && deepLinkAttempted && tabWasHidden) {
+          setShowPersistentReminder(true)
+          setTimeout(() => {
+            setShowPersistentReminder(false)
+          }, 10000)
+        }
+
+        // Trigger rapid auth checks when returning - mobile browsers throttle/pause
+        // setInterval when tabs are in the background. The wallet callback may
+        // still be in-flight, so retry a few times with short delays.
+        if (pollFnRef.current && !authSucceededRef.current) {
+          console.log('[QR Page] Tab became visible, triggering rapid auth checks')
+          pollFnRef.current()
+          // Retry after short delays in case wallet callback is still completing
+          setTimeout(() => { if (pollFnRef.current && !authSucceededRef.current) pollFnRef.current() }, 1500)
+          setTimeout(() => { if (pollFnRef.current && !authSucceededRef.current) pollFnRef.current() }, 4000)
+        }
+      }
+    }
+
+    // iOS Safari: pageshow fires more reliably than visibilitychange when
+    // returning from deep links (e.g., lightning: wallet app)
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && pollFnRef.current && !authSucceededRef.current) {
+        console.log('[QR Page] pageshow (bfcache restore) - triggering immediate auth check')
+        pollFnRef.current()
       }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [isMobile, deepLinkAttempted, tabWasHidden, authStatus, isAdmin])
+    window.addEventListener('pageshow', handlePageShow)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pageshow', handlePageShow)
+    }
+  }, [isMobile, deepLinkAttempted, tabWasHidden, authStatus])
 
   // Refresh QR code function
   const refreshQRCode = useCallback(async () => {
@@ -137,6 +207,9 @@ function QRContent() {
       }
 
       const { k1: newK1, lnurl: lnurlBech32 } = await lnurlRes.json()
+
+      // Update the active k1 ref so polling uses the new k1
+      currentK1Ref.current = newK1
 
       // DON'T update URL - just update state internally
       // Updating the URL causes re-renders and infinite loops
@@ -232,7 +305,8 @@ function QRContent() {
     const checkNetwork = async () => {
       try {
         const startTime = Date.now()
-        const response = await fetch(`/api/auth/callback?k1=${encodeURIComponent(k1 || '')}&siteId=${encodeURIComponent(siteId || '')}`, {
+        const activeK1 = currentK1Ref.current || k1
+        const response = await fetch(`/api/auth/callback?k1=${encodeURIComponent(activeK1 || '')}&siteId=${encodeURIComponent(siteId || '')}`, {
           method: 'GET',
           credentials: 'include',
           signal: AbortSignal.timeout(3000) // 3 second timeout
@@ -338,26 +412,35 @@ function QRContent() {
   const initialK1Ref = useRef<string | null>(null)
 
   useEffect(() => {
-    // Only run once on mount if k1 is provided, or if k1 changes
-    if (!k1 || qrFetchRef.current) return
+    // Prevent multiple simultaneous fetches
+    if (qrFetchRef.current) return
 
-    // If we've already processed this k1, skip
-    if (initialK1Ref.current === k1) return
+    // If we've already processed this k1, skip (but allow null→null for first run with missing k1)
+    if (k1 && initialK1Ref.current === k1) return
+    if (!k1 && initialK1Ref.current === 'generated') return
 
     qrFetchRef.current = true
-    initialK1Ref.current = k1
+    initialK1Ref.current = k1 || 'generated'
     setLoading(true)
-    const domain = window.location.origin
 
-    console.log('[QR Page] Starting QR code generation for k1:', k1)
-
-    // Build the API URL to fetch/encode LNURL with our k1 and siteId
-    // IMPORTANT: Pass k1 and siteId so server encodes the correct callback URL
-    let lnurlApiUrl = `/api/auth/lnurl?k1=${encodeURIComponent(k1)}`
-    if (siteId) {
-      lnurlApiUrl += `&siteId=${encodeURIComponent(siteId)}`
+    if (rawK1 && rawK1 !== k1) {
+      console.warn('[QR Page] Invalid k1 in URL params:', JSON.stringify(rawK1), '- generating fresh challenge')
     }
 
+    // If k1 is valid, pass it to the server. Otherwise let the server generate a new one.
+    let lnurlApiUrl = '/api/auth/lnurl'
+    const params: string[] = []
+    if (k1) {
+      params.push(`k1=${encodeURIComponent(k1)}`)
+    }
+    if (siteId) {
+      params.push(`siteId=${encodeURIComponent(siteId)}`)
+    }
+    if (params.length > 0) {
+      lnurlApiUrl += '?' + params.join('&')
+    }
+
+    console.log('[QR Page] Starting QR code generation, k1:', k1 ? k1.substring(0, 16) + '...' : '(server will generate)')
     console.log('[QR Page] Fetching LNURL from:', lnurlApiUrl)
 
     // Fetch bech32-encoded LNURL from server
@@ -396,6 +479,13 @@ function QRContent() {
         if (!data) {
           console.log('[QR Page] No data returned (rate limited), aborting')
           return
+        }
+
+        // If the server generated a new k1 (because URL param was missing/invalid),
+        // update our tracking ref so polling uses the correct k1
+        if (data.k1 && data.k1 !== k1) {
+          console.log('[QR Page] Server generated new k1:', data.k1.substring(0, 16) + '...')
+          currentK1Ref.current = data.k1
         }
 
         const lnurlBech32 = data.lnurl
@@ -450,69 +540,74 @@ function QRContent() {
         setLoading(false)
         qrFetchRef.current = false
       })
-  }, [k1, siteId, isMobile, isAdmin, toast])
+  }, [k1, rawK1, siteId, isMobile, isAdmin, toast])
 
   // Poll for admin authentication status
   useEffect(() => {
-    if (!isAdmin || !k1 || loading || !qrCode) return
+    const activeK1 = k1 || currentK1Ref.current
+    if (!isAdmin || !activeK1 || loading || !qrCode) return
 
-    // Start polling after QR code is generated
-    const startPolling = () => {
-      let pollCount = 0
-      const maxPolls = 40 // Poll for up to 80 seconds (40 * 2 second intervals)
+    let pollCount = 0
+    const maxPolls = 40 // Poll for up to 80 seconds (40 * 2 second intervals)
 
-      pollingIntervalRef.current = setInterval(async () => {
-        pollCount++
-        
-        try {
-          const verifyRes = await fetch('/api/admin/auth/verify', {
-            credentials: 'include',
-          })
-          
-          if (verifyRes.ok) {
-            const verifyData = await verifyRes.json()
-            if (verifyData.isAdmin) {
-              // Authentication successful
-              setAuthStatus('success')
-              setAuthMessage('Authentication successful! Redirecting...')
-              
-              // Clear polling interval
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current)
-                pollingIntervalRef.current = null
-              }
-              
-              // Redirect to admin dashboard after short delay
-              setTimeout(() => {
-                router.push('/admin/dashboard')
-              }, 1500)
-              return
-            }
-          }
-          
-          // If we've polled too many times, stop and show error
-          if (pollCount >= maxPolls) {
+    const doPoll = async () => {
+      // Guard: prevent concurrent polls from racing
+      if (authSucceededRef.current) return
+      pollCount++
+
+      try {
+        const verifyRes = await fetch('/api/admin/auth/verify', {
+          credentials: 'include',
+        })
+
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json()
+          if (verifyData.isAdmin) {
+            authSucceededRef.current = true
+            // Authentication successful
+            setAuthStatus('success')
+            setAuthMessage('Authentication successful! Redirecting...')
+
+            // Clear polling interval
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current)
               pollingIntervalRef.current = null
             }
-            setAuthStatus('error')
-            setAuthMessage('Authentication timed out. Please try again or scan the QR code again.')
+
+            // Redirect to admin dashboard after short delay
+            setTimeout(() => {
+              router.push('/admin/dashboard')
+            }, 1500)
+            return
           }
-        } catch (error) {
-          console.error('Error polling admin auth status:', error)
-          // Don't stop polling on network errors, just log them
         }
-      }, 2000) // Poll every 2 seconds (reduced frequency to avoid rate limiting)
+
+        // If we've polled too many times, stop and show error
+        if (pollCount >= maxPolls) {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current)
+            pollingIntervalRef.current = null
+          }
+          setAuthStatus('error')
+          setAuthMessage('Authentication timed out. Please try again or scan the QR code again.')
+        }
+      } catch (error) {
+        console.error('Error polling admin auth status:', error)
+        // Don't stop polling on network errors, just log them
+      }
     }
+
+    // Expose poll function for immediate visibility-triggered checks
+    pollFnRef.current = doPoll
 
     // Start polling after a short delay to allow QR code to be scanned
     const delay = setTimeout(() => {
-      startPolling()
+      pollingIntervalRef.current = setInterval(doPoll, 2000)
     }, 2000) // Wait 2 seconds before starting to poll
-    
+
     // Cleanup function
     return () => {
+      pollFnRef.current = null
       clearTimeout(delay)
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
@@ -523,124 +618,132 @@ function QRContent() {
 
   // Poll for dashboard login (no siteId, not admin)
   useEffect(() => {
-    if (isAdmin || siteId || !k1 || loading || !qrCode || isRefreshing) return
+    if (isAdmin || siteId || !(k1 || currentK1Ref.current) || loading || !qrCode || isRefreshing) return
 
     // This is a dashboard login (no siteId) - poll for xpub and redirect to dashboard
-    const startPolling = () => {
-      let pollCount = 0
-      const maxPolls = 40 // Poll for up to 80 seconds
+    let pollCount = 0
+    const maxPolls = 40 // Poll for up to 80 seconds
 
-      pollingIntervalRef.current = setInterval(async () => {
-        pollCount++
+    const doPoll = async () => {
+      // Guard: prevent concurrent polls from racing (visibilitychange + setInterval can fire together)
+      if (authSucceededRef.current) return
+      pollCount++
 
-        try {
-          // Poll the callback endpoint to retrieve stored xpub (no siteId parameter)
-          const callbackUrl = `/api/auth/callback?k1=${encodeURIComponent(k1)}&tag=login`
-          const retrieveRes = await fetch(callbackUrl, {
-            credentials: 'include',
-          })
+      try {
+        // Use currentK1Ref to handle QR refresh (new k1) correctly
+        const activeK1 = currentK1Ref.current || k1
+        if (!activeK1) return // Safety check - shouldn't happen due to useEffect guard
+        // Poll the callback endpoint to retrieve stored xpub (no siteId parameter)
+        const callbackUrl = `/api/auth/callback?k1=${encodeURIComponent(activeK1)}&tag=login`
+        const retrieveRes = await fetch(callbackUrl, {
+          credentials: 'include',
+        })
 
-          if (retrieveRes.ok) {
-            const retrieveData = await retrieveRes.json()
+        if (retrieveRes.ok) {
+          const retrieveData = await retrieveRes.json()
 
-            // Check if we got the xpub
-            if (retrieveData.status === 'OK' && retrieveData.xpub) {
-              const xpub = retrieveData.xpub
+          // Check if we got the xpub
+          if (retrieveData.status === 'OK' && retrieveData.xpub) {
+            // Double-check guard: another concurrent poll may have succeeded while we awaited
+            if (authSucceededRef.current) return
+            authSucceededRef.current = true
 
-              console.log('Dashboard login successful, xpub:', xpub.substring(0, 20) + '...')
+            const xpub = retrieveData.xpub
 
-              // Set session cookie
-              const sessionRes = await fetch('/api/auth/set-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ xpub, k1 }),
-              })
+            console.log('Dashboard login successful, xpub:', xpub.substring(0, 20) + '...')
 
-              if (!sessionRes.ok) {
-                console.error('Failed to set session')
-                setAuthStatus('error')
-                setAuthMessage('Failed to set session. Please try again.')
-                return
-              }
+            // Set session cookie - use activeK1 (not URL param k1) to match the signed challenge
+            const sessionRes = await fetch('/api/auth/set-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ xpub, k1: activeK1 }),
+            })
 
-              // Authentication successful
-              setAuthStatus('success')
-              setRetrievedXpub(xpub)
-              setShowSuccessAnimation(true)
-
-              if (soundEnabled) {
-                playSuccessSound()
-              }
-
-              // Clear polling interval
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current)
-                pollingIntervalRef.current = null
-              }
-
-              // Wait for cookie to propagate, then check wizard status and redirect
-              setTimeout(async () => {
-                try {
-                  // Check if user has completed the wizard
-                  const userRes = await fetch('/api/user', {
-                    credentials: 'include',
-                    cache: 'no-store',
-                  })
-
-                  if (userRes.ok) {
-                    const userData = await userRes.json()
-
-                    // Check if wizard is complete
-                    if (!userData.freeDisclaimerAccepted) {
-                      console.log('Dashboard login: User has not completed wizard - redirecting to home with wizard=true')
-                      window.location.href = '/?wizard=true'
-                      return
-                    }
-
-                    console.log('Dashboard login: User has completed wizard')
-                  }
-
-                  // Wizard is complete (or we couldn't verify) - redirect to returnUrl or dashboard
-                  if (returnUrl) {
-                    console.log('Dashboard login: Redirecting to returnUrl:', decodeURIComponent(returnUrl))
-                    window.location.href = decodeURIComponent(returnUrl)
-                  } else {
-                    console.log('Dashboard login: Redirecting to dashboard')
-                    router.push('/dashboard')
-                  }
-                } catch (error) {
-                  console.error('Error checking wizard status:', error)
-                  // On error, redirect to home with wizard
-                  window.location.href = '/?wizard=true'
-                }
-              }, 1500)
+            if (!sessionRes.ok) {
+              console.error('Failed to set session')
+              authSucceededRef.current = false // Allow retry
+              setAuthStatus('error')
+              setAuthMessage('Failed to set session. Please try again.')
               return
             }
-          }
 
-          // If we've polled too many times, stop and show error
-          if (pollCount >= maxPolls) {
+            // Authentication successful
+            setAuthStatus('success')
+            setRetrievedXpub(xpub)
+            setShowSuccessAnimation(true)
+
+            if (soundEnabled) {
+              playSuccessSound()
+            }
+
+            // Clear polling interval
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current)
               pollingIntervalRef.current = null
             }
-            setAuthStatus('error')
-            setAuthMessage('Authentication timed out. Please try again or scan the QR code again.')
+
+            // Wait for cookie to propagate, then check wizard status and redirect
+            setTimeout(async () => {
+              try {
+                // Check if user has completed the wizard
+                const userRes = await fetch('/api/user', {
+                  credentials: 'include',
+                  cache: 'no-store',
+                })
+
+                if (userRes.ok) {
+                  const userData = await userRes.json()
+
+                  // Check if wizard is complete
+                  if (!userData.freeDisclaimerAccepted) {
+                    console.log('Dashboard login: User has not completed wizard - redirecting to home with wizard=true')
+                    window.location.href = '/?wizard=true'
+                    return
+                  }
+
+                  console.log('Dashboard login: User has completed wizard')
+                }
+
+                // Wizard is complete - always redirect to dashboard for dashboard logins
+                // (returnUrl is only used in the embed/siteId flow for client website redirects)
+                console.log('Dashboard login: Redirecting to dashboard')
+                router.push('/dashboard')
+              } catch (error) {
+                console.error('Error checking wizard status:', error)
+                // On error, redirect to home with wizard
+                window.location.href = '/?wizard=true'
+              }
+            }, 1500)
+            return
           }
-        } catch (error) {
-          console.error('Error polling dashboard auth status:', error)
         }
-      }, 2000) // Poll every 2 seconds
+
+        // If we've polled too many times, stop and show error
+        if (pollCount >= maxPolls) {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current)
+            pollingIntervalRef.current = null
+          }
+          setAuthStatus('error')
+          setAuthMessage('Authentication timed out. Please try again or scan the QR code again.')
+        }
+      } catch (error) {
+        console.error('Error polling dashboard auth status:', error)
+      }
     }
+
+    // Expose poll function for immediate visibility-triggered checks
+    pollFnRef.current = doPoll
 
     // Start polling after a short delay
     const delay = setTimeout(() => {
-      startPolling()
+      pollingIntervalRef.current = setInterval(doPoll, 2000)
     }, 2000)
 
     // Cleanup function
     return () => {
+      pollFnRef.current = null
       clearTimeout(delay)
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
@@ -651,232 +754,242 @@ function QRContent() {
 
   // Poll for regular user authentication status (retrieve xpub from callback)
   useEffect(() => {
-    if (isAdmin || !k1 || loading || !qrCode || !siteId || isRefreshing) return
+    if (isAdmin || !(k1 || currentK1Ref.current) || loading || !qrCode || !siteId || isRefreshing) return
 
-    // Start polling after QR code is generated
-    const startPolling = () => {
-      let pollCount = 0
-      const maxPolls = 40 // Poll for up to 80 seconds (40 * 2 second intervals)
+    let pollCount = 0
+    const maxPolls = 40 // Poll for up to 80 seconds (40 * 2 second intervals)
 
-      pollingIntervalRef.current = setInterval(async () => {
-        pollCount++
-        
-        try {
-          // Poll the callback endpoint to retrieve stored xpub
-          const callbackUrl = `/api/auth/callback?k1=${encodeURIComponent(k1)}&siteId=${encodeURIComponent(siteId)}`
-          const retrieveRes = await fetch(callbackUrl, {
-            credentials: 'include',
-          })
-          
-          if (retrieveRes.ok) {
-            const retrieveData = await retrieveRes.json()
-            
-            // Check if we got the xpub (status: 'OK' means xpub is available)
-            if (retrieveData.status === 'OK' && retrieveData.xpub) {
-              const xpub = retrieveData.xpub
-              
-              // Authentication successful
-              setAuthStatus('success')
-              setRetrievedXpub(xpub)
-              
-              // Show success animation
-              setShowSuccessAnimation(true)
-              
-              // Play success sound (if enabled)
-              if (soundEnabled) {
-                playSuccessSound()
-              }
-              
-              // Clear polling interval
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current)
-                pollingIntervalRef.current = null
-              }
-              
-              // Try to communicate with parent window if available (for popup scenarios)
-              try {
-                if (window.opener && !window.opener.closed) {
-                  // SECURITY: Get the origin to send postMessage to correct target
-                  const targetOrigin = window.location.origin
-                  
-                  // If opened in popup, send message to parent
-                  window.opener.postMessage({
-                    type: 'keyrex-auth-success',
-                    xpub: xpub,
-                    siteId: siteId,
-                    k1: k1
-                  }, targetOrigin) // SECURITY: Specify target origin instead of '*'
-                  
-                  // Update success message for popup context
-                  setAuthMessage('Authentication successful! This window will close automatically.')
-                  
-                  // Close popup after delay (increased for better visibility)
-                  setTimeout(() => {
-                    if (window.opener && !window.opener.closed) {
-                      window.close()
-                    }
-                  }, 3000) // Increased from 2000 to 3000
-                  return
-                }
-              } catch (e) {
-                // postMessage might fail due to cross-origin, that's okay
-                console.log('Could not communicate with parent window:', e)
-              }
-              
-              // If in redirect mode (not popup), xpub is passed via URL parameter
-              // (No need to store in cookie - it's passed in the redirect URL)
-              if (isRedirect && !isPopup && xpub) {
-                console.log('Redirect mode: xpub will be passed via URL parameter')
-                setRetrievedXpub(xpub)
-                setAuthStatus('success')
-                setAuthMessage('Authentication successful!')
-                
-                // Show success animation
-                setShowSuccessAnimation(true)
-                if (soundEnabled) {
-                  playSuccessSound()
-                }
-                
-                // Auto-redirect back to return URL if available (after showing success)
-                // SECURITY: Validate returnUrl against allowed domains to prevent open redirect attacks
-                // Priority: 1. returnUrl parameter, 2. httpOnly cookie (via API), 3. document.referrer
-                let redirectTo: string | null = null;
-                if (returnUrl) {
-                  redirectTo = decodeURIComponent(returnUrl);
-                  console.log('Key-Rex QR: Using returnUrl parameter:', redirectTo);
-                } else {
-                  // Check httpOnly cookie via API as backup
-                  try {
-                    const cookieRes = await fetch('/api/auth/get-k1', {
-                      credentials: 'include',
-                    });
-                    if (cookieRes.ok) {
-                      const cookieData = await cookieRes.json();
-                      if (cookieData.returnUrl) {
-                        redirectTo = cookieData.returnUrl;
-                        console.log('Key-Rex QR: Using returnUrl from httpOnly cookie:', redirectTo);
-                      }
-                    }
-                  } catch (e) {
-                    console.warn('Key-Rex QR: Failed to read returnUrl from cookie:', e);
-                  }
-                }
-                
-                // Fallback to document.referrer (only if it's from an allowed domain)
-                if (!redirectTo && document.referrer && document.referrer !== window.location.href) {
-                  redirectTo = document.referrer;
-                  console.log('Key-Rex QR: Using document.referrer:', redirectTo);
-                }
-                
-                // SECURITY: Validate returnUrl against allowed domains before redirecting
-                if (redirectTo && siteId) {
-                  try {
-                    const validateRes = await fetch('/api/auth/validate-return-url', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      credentials: 'include',
-                      body: JSON.stringify({ returnUrl: redirectTo, siteId }),
-                    });
-                    
-                    if (validateRes.ok) {
-                      const validateData = await validateRes.json();
-                      if (validateData.isValid && validateData.validatedUrl) {
-                        redirectTo = validateData.validatedUrl;
-                        console.log('Key-Rex QR: returnUrl validated:', redirectTo);
-                      } else {
-                        console.error('Key-Rex QR: returnUrl validation failed - redirect blocked for security');
-                        console.error('Key-Rex QR: Invalid returnUrl:', redirectTo);
-                        redirectTo = null; // Block redirect to unauthorized domain
-                      }
-                    } else {
-                      console.error('Key-Rex QR: Failed to validate returnUrl - redirect blocked for security');
-                      redirectTo = null; // Block redirect if validation fails
-                    }
-                  } catch (e) {
-                    console.error('Key-Rex QR: Error validating returnUrl - redirect blocked for security:', e);
-                    redirectTo = null; // Block redirect if validation errors
-                  }
-                }
-                
-                if (redirectTo) {
-                  // Append xpub to returnUrl so client site can detect authentication
-                  try {
-                    const returnUrlObj = new URL(redirectTo);
-                    returnUrlObj.searchParams.set('xpub', xpub);
-                    redirectTo = returnUrlObj.toString();
-                    console.log('Key-Rex QR: Added xpub to returnUrl');
-                  } catch (e) {
-                    // If returnUrl is relative, append as query param
-                    const separator = redirectTo.includes('?') ? '&' : '?';
-                    redirectTo = redirectTo + separator + 'xpub=' + encodeURIComponent(xpub);
-                    console.log('Key-Rex QR: Added xpub to returnUrl (relative path)');
-                  }
-                  
-                  // Reset cancellation flag
-                  redirectCancelledRef.current = false
-                  
-                  // Start countdown from 3
-                  setRedirectCountdown(3)
-                  
-                  // Redirect after 3.5 seconds (gives time to see countdown and success)
-                  redirectTimeoutRef.current = setTimeout(() => {
-                    if (!redirectCancelledRef.current && redirectTo) { // Only redirect if user didn't click "Return Now" and redirectTo is set
-                      console.log('Key-Rex QR: Redirecting to:', redirectTo);
-                      window.location.href = redirectTo;
-                    }
-                  }, 3500) // Increased from 2000ms to 3500ms
-                } else {
-                  console.warn('Key-Rex QR: No valid return URL available for redirect (blocked for security or not provided)');
-                  setAuthMessage('Authentication successful! However, redirect was blocked for security. Please return to the website manually.');
-                }
-                return
-              }
-              
-              // If not in popup and not redirect (edge case), update message
-              setAuthMessage('Authentication successful! Return to the website to complete sign-in.')
-              
-              return
+    const doPoll = async () => {
+      // Guard: prevent concurrent polls from racing (visibilitychange + setInterval can fire together)
+      if (authSucceededRef.current) return
+      pollCount++
+
+      try {
+        // Use currentK1Ref to handle QR refresh (new k1) correctly
+        const activeK1 = currentK1Ref.current || k1
+        if (!activeK1) return // Safety check - shouldn't happen due to useEffect guard
+        // Poll the callback endpoint to retrieve stored xpub
+        const callbackUrl = `/api/auth/callback?k1=${encodeURIComponent(activeK1)}&siteId=${encodeURIComponent(siteId)}`
+        const retrieveRes = await fetch(callbackUrl, {
+          credentials: 'include',
+        })
+
+        if (retrieveRes.ok) {
+          const retrieveData = await retrieveRes.json()
+
+          // Check if we got the xpub (status: 'OK' means xpub is available)
+          if (retrieveData.status === 'OK' && retrieveData.xpub) {
+            // Double-check guard: another concurrent poll may have succeeded while we awaited
+            if (authSucceededRef.current) return
+            authSucceededRef.current = true
+
+            const xpub = retrieveData.xpub
+
+            // Authentication successful
+            setAuthStatus('success')
+            setRetrievedXpub(xpub)
+
+            // Show success animation
+            setShowSuccessAnimation(true)
+
+            // Play success sound (if enabled)
+            if (soundEnabled) {
+              playSuccessSound()
             }
-          }
-          
-          // If we've polled too many times, stop and show error
-          if (pollCount >= maxPolls) {
+
+            // Clear polling interval
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current)
               pollingIntervalRef.current = null
             }
-            setAuthStatus('error')
-            setAuthMessage('Authentication timed out. The QR code has expired. Please generate a new one and try again.')
-            
-            // If in popup, notify parent of error
+
+            // Try to communicate with parent window if available (for popup scenarios)
             try {
               if (window.opener && !window.opener.closed) {
-                // SECURITY: Specify target origin instead of '*'
-                const targetOrigin = window.location.origin
+                // Use the parent's origin for postMessage (passed via URL param from embed script)
+                // The popup is on the Key-Rex domain, but the parent is the client site (different origin)
+                const targetOrigin = parentOrigin || '*'
+
+                // If opened in popup, send message to parent
                 window.opener.postMessage({
-                  type: 'keyrex-auth-error',
-                  error: 'Authentication timed out',
-                  siteId: siteId
+                  type: 'keyrex-auth-success',
+                  xpub: xpub,
+                  siteId: siteId,
+                  k1: activeK1
                 }, targetOrigin)
+
+                console.log('[QR Page] Sent keyrex-auth-success postMessage to parent, targetOrigin:', targetOrigin)
+
+                // Update success message for popup context
+                setAuthMessage('Authentication successful! This window will close automatically.')
+
+                // Close popup after short delay
+                setTimeout(() => {
+                  try { window.close() } catch (e) { /* ignore */ }
+                }, 1500)
+                return
               }
             } catch (e) {
-              console.log('Could not communicate error to parent window:', e)
+              // postMessage might fail due to cross-origin, that's okay
+              console.log('Could not communicate with parent window:', e)
             }
+
+            // If in redirect mode (not popup), xpub is passed via URL parameter
+            // (No need to store in cookie - it's passed in the redirect URL)
+            if (isRedirect && !isPopup && xpub) {
+              console.log('Redirect mode: xpub will be passed via URL parameter')
+              setRetrievedXpub(xpub)
+              setAuthStatus('success')
+              setAuthMessage('Authentication successful!')
+
+              // Show success animation
+              setShowSuccessAnimation(true)
+              if (soundEnabled) {
+                playSuccessSound()
+              }
+
+              // Auto-redirect back to return URL if available (after showing success)
+              // SECURITY: Validate returnUrl against allowed domains to prevent open redirect attacks
+              // Priority: 1. returnUrl parameter, 2. httpOnly cookie (via API), 3. document.referrer
+              let redirectTo: string | null = null;
+              if (returnUrl) {
+                redirectTo = decodeURIComponent(returnUrl);
+                console.log('Key-Rex QR: Using returnUrl parameter:', redirectTo);
+              } else {
+                // Check httpOnly cookie via API as backup
+                try {
+                  const cookieRes = await fetch('/api/auth/get-k1', {
+                    credentials: 'include',
+                  });
+                  if (cookieRes.ok) {
+                    const cookieData = await cookieRes.json();
+                    if (cookieData.returnUrl) {
+                      redirectTo = cookieData.returnUrl;
+                      console.log('Key-Rex QR: Using returnUrl from httpOnly cookie:', redirectTo);
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Key-Rex QR: Failed to read returnUrl from cookie:', e);
+                }
+              }
+
+              // Fallback to document.referrer (only if it's from an allowed domain)
+              if (!redirectTo && document.referrer && document.referrer !== window.location.href) {
+                redirectTo = document.referrer;
+                console.log('Key-Rex QR: Using document.referrer:', redirectTo);
+              }
+
+              // SECURITY: Validate returnUrl against allowed domains before redirecting
+              if (redirectTo && siteId) {
+                try {
+                  const validateRes = await fetch('/api/auth/validate-return-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ returnUrl: redirectTo, siteId }),
+                  });
+
+                  if (validateRes.ok) {
+                    const validateData = await validateRes.json();
+                    if (validateData.isValid && validateData.validatedUrl) {
+                      redirectTo = validateData.validatedUrl;
+                      console.log('Key-Rex QR: returnUrl validated:', redirectTo);
+                    } else {
+                      console.error('Key-Rex QR: returnUrl validation failed - redirect blocked for security');
+                      console.error('Key-Rex QR: Invalid returnUrl:', redirectTo);
+                      redirectTo = null; // Block redirect to unauthorized domain
+                    }
+                  } else {
+                    console.error('Key-Rex QR: Failed to validate returnUrl - redirect blocked for security');
+                    redirectTo = null; // Block redirect if validation fails
+                  }
+                } catch (e) {
+                  console.error('Key-Rex QR: Error validating returnUrl - redirect blocked for security:', e);
+                  redirectTo = null; // Block redirect if validation errors
+                }
+              }
+
+              if (redirectTo) {
+                // Append xpub to returnUrl so client site can detect authentication
+                try {
+                  const returnUrlObj = new URL(redirectTo);
+                  returnUrlObj.searchParams.set('xpub', xpub);
+                  redirectTo = returnUrlObj.toString();
+                  console.log('Key-Rex QR: Added xpub to returnUrl');
+                } catch (e) {
+                  // If returnUrl is relative, append as query param
+                  const separator = redirectTo.includes('?') ? '&' : '?';
+                  redirectTo = redirectTo + separator + 'xpub=' + encodeURIComponent(xpub);
+                  console.log('Key-Rex QR: Added xpub to returnUrl (relative path)');
+                }
+
+                // Reset cancellation flag
+                redirectCancelledRef.current = false
+
+                // Start countdown from 3
+                setRedirectCountdown(3)
+
+                // Redirect after 3.5 seconds (gives time to see countdown and success)
+                redirectTimeoutRef.current = setTimeout(() => {
+                  if (!redirectCancelledRef.current && redirectTo) { // Only redirect if user didn't click "Return Now" and redirectTo is set
+                    console.log('Key-Rex QR: Redirecting to:', redirectTo);
+                    window.location.href = redirectTo;
+                  }
+                }, 3500) // Increased from 2000ms to 3500ms
+              } else {
+                console.warn('Key-Rex QR: No valid return URL available for redirect (blocked for security or not provided)');
+                setAuthMessage('Authentication successful! However, redirect was blocked for security. Please return to the website manually.');
+              }
+              return
+            }
+
+            // If not in popup and not redirect (edge case), update message
+            setAuthMessage('Authentication successful! Return to the website to complete sign-in.')
+
+            return
           }
-        } catch (error) {
-          console.error('Error polling for xpub:', error)
-          // Don't stop polling on network errors, just log them
         }
-      }, 2000) // Poll every 2 seconds (reduced frequency to avoid rate limiting)
+
+        // If we've polled too many times, stop and show error
+        if (pollCount >= maxPolls) {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current)
+            pollingIntervalRef.current = null
+          }
+          setAuthStatus('error')
+          setAuthMessage('Authentication timed out. The QR code has expired. Please generate a new one and try again.')
+
+          // If in popup, notify parent of error
+          try {
+            if (window.opener && !window.opener.closed) {
+              const targetOrigin = parentOrigin || '*'
+              window.opener.postMessage({
+                type: 'keyrex-auth-error',
+                error: 'Authentication timed out',
+                siteId: siteId
+              }, targetOrigin)
+            }
+          } catch (e) {
+            console.log('Could not communicate error to parent window:', e)
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for xpub:', error)
+        // Don't stop polling on network errors, just log them
+      }
     }
-    
+
+    // Expose poll function for immediate visibility-triggered checks
+    pollFnRef.current = doPoll
+
     // Start polling after a short delay to allow QR code to be scanned
     const delay = setTimeout(() => {
-      startPolling()
+      pollingIntervalRef.current = setInterval(doPoll, 2000)
     }, 2000) // Wait 2 seconds before starting to poll
-    
+
     // Cleanup function
     return () => {
+      pollFnRef.current = null
       clearTimeout(delay)
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
@@ -1428,20 +1541,20 @@ function QRContent() {
 
           {/* Persistent Return Reminder - Shown when user returns to tab after deep link */}
           {showPersistentReminder && isMobile && !isAdmin && deepLinkAttempted && authStatus === 'waiting' && (
-            <div className="mb-4 bg-gradient-to-r from-orange-500/30 to-orange-600/30 border-2 border-orange-400 rounded-lg p-4 animate-pulse">
+            <div className="mb-4 bg-gradient-to-r from-green-500/20 to-green-600/20 border-2 border-green-400/60 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <div className="text-2xl">⚠️</div>
+                <div className="text-2xl animate-spin" style={{ animationDuration: '2s' }}>&#9203;</div>
                 <div className="flex-1">
-                  <p className="text-orange-200 font-bold text-sm mb-1">
-                    Welcome back! Did you approve in your wallet?
+                  <p className="text-green-200 font-bold text-sm mb-1">
+                    Checking for authentication...
                   </p>
-                  <p className="text-orange-300 text-xs">
-                    Authentication is waiting for your approval. If you already approved in your wallet, this page will automatically detect it and complete sign-in.
+                  <p className="text-green-300 text-xs">
+                    If you approved in your wallet, sign-in will complete automatically in a moment. If not, tap &ldquo;Open in Wallet&rdquo; to try again.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowPersistentReminder(false)}
-                  className="text-orange-300 hover:text-orange-200 text-lg font-bold"
+                  className="text-green-300 hover:text-green-200 text-lg font-bold"
                   aria-label="Dismiss reminder"
                 >
                   ×
@@ -1453,37 +1566,101 @@ function QRContent() {
           {/* Mobile: Open in Wallet Button (Primary Action) - Only for end users, not admin */}
           {isMobile && !isAdmin && lightningLnurl && qrCode && !loading && authStatus === 'waiting' && (
             <div className="mb-3 space-y-1.5">
-              <a
-                href={lightningLnurl}
-                className="block w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-center"
-                onClick={(e) => {
-                  setDeepLinkAttempted(true)
-                  setShowReturnReminder(true)
-                  
-                  // Check if deep link worked after a delay
-                  deepLinkTimeoutRef.current = setTimeout(() => {
-                    // If page still has focus after 1 second, deep link might have failed
-                    if (document.hasFocus() && document.visibilityState === 'visible') {
-                      // Deep link likely didn't work - wallet app didn't open
-                      console.log('Deep link may not have worked')
-                      // Don't show error immediately - user might be slow to respond
-                    }
-                  }, 1000)
-                }}
-              >
-                📱 Open in Wallet
-              </a>
-              <p className="text-white/400 text-xs text-center">
-                {deepLinkAttempted 
-                  ? 'If you have multiple wallets, choose one from the list that appears'
-                  : 'This will open your Lightning wallet app directly'}
-              </p>
-              {deepLinkAttempted && (
-                <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3 mt-2">
-                  <p className="text-blue-300 text-xs text-center">
-                    <strong className="text-blue-200">Important:</strong> After approving in your wallet, return to this browser tab to complete authentication.
+              {!showWalletPicker ? (
+                <>
+                  <button
+                    onClick={() => setShowWalletPicker(true)}
+                    className="block w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-center"
+                  >
+                    📱 Open in Wallet
+                  </button>
+                  <p className="text-white/40 text-xs text-center">
+                    Choose which Lightning wallet to authenticate with
+                  </p>
+                </>
+              ) : (
+                <div className="bg-dark-800/90 border border-orange-500/30 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-white text-sm font-semibold">Choose your wallet</p>
+                    <button
+                      onClick={() => setShowWalletPicker(false)}
+                      className="text-white/40 hover:text-white/60 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {[
+                    { name: 'Zeus', scheme: 'zeusln:lightning:', icon: '⚡' },
+                    { name: 'Phoenix', scheme: 'phoenix:lightning:', icon: '🔥' },
+                    { name: 'Breez', scheme: 'breez:lightning:', icon: '🌊' },
+                    { name: 'BlueWallet', scheme: 'bluewallet:lightning:', icon: '🔵' },
+                    { name: 'Blixt', scheme: 'blixt:lightning:', icon: '💜' },
+                  ].map((wallet) => {
+                    // Extract the bare LNURL (without lightning: prefix) from lightningLnurl
+                    const bareLnurl = lightningLnurl.replace(/^lightning:/i, '')
+                    const walletDeepLink = `${wallet.scheme}${bareLnurl}`
+                    return (
+                      <a
+                        key={wallet.name}
+                        href={walletDeepLink}
+                        className="flex items-center gap-3 w-full bg-dark-700/60 hover:bg-dark-700 border border-dark-600/50 hover:border-orange-500/40 text-white py-2.5 px-3 rounded-lg transition-all text-left"
+                        onClick={() => {
+                          setDeepLinkAttempted(true)
+                          setShowReturnReminder(true)
+                          setShowWalletPicker(false)
+                          deepLinkTimeoutRef.current = setTimeout(() => {
+                            if (document.hasFocus() && document.visibilityState === 'visible') {
+                              console.log('Deep link may not have worked for', wallet.name)
+                            }
+                          }, 1000)
+                        }}
+                      >
+                        <span className="text-lg">{wallet.icon}</span>
+                        <span className="text-sm font-medium">{wallet.name}</span>
+                      </a>
+                    )
+                  })}
+                  {/* Generic option using lightning: scheme */}
+                  <a
+                    href={lightningLnurl}
+                    className="flex items-center gap-3 w-full bg-dark-700/60 hover:bg-dark-700 border border-dark-600/50 hover:border-orange-500/40 text-white py-2.5 px-3 rounded-lg transition-all text-left"
+                    onClick={() => {
+                      setDeepLinkAttempted(true)
+                      setShowReturnReminder(true)
+                      setShowWalletPicker(false)
+                      deepLinkTimeoutRef.current = setTimeout(() => {
+                        if (document.hasFocus() && document.visibilityState === 'visible') {
+                          console.log('Deep link may not have worked (generic)')
+                        }
+                      }, 1000)
+                    }}
+                  >
+                    <span className="text-lg">📱</span>
+                    <span className="text-sm font-medium">Other Wallet</span>
+                    <span className="text-white/30 text-xs ml-auto">Default</span>
+                  </a>
+                  <p className="text-white/30 text-xs text-center pt-1">
+                    Select your wallet, then approve the login request
                   </p>
                 </div>
+              )}
+              {deepLinkAttempted && !showWalletPicker && (
+                <>
+                  <div className="bg-blue-500/20 border border-blue-400/50 rounded-lg p-3 mt-2 animate-pulse">
+                    <p className="text-blue-200 text-xs text-center font-semibold mb-1">
+                      After approving in your wallet:
+                    </p>
+                    <p className="text-blue-300 text-xs text-center">
+                      Tap <strong>&ldquo;{'<'} Safari&rdquo;</strong> in the top-left corner of your screen, or switch back using your app switcher. Authentication will complete automatically.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowWalletPicker(true)}
+                    className="w-full text-orange-400/80 hover:text-orange-400 text-xs text-center py-1 underline underline-offset-2"
+                  >
+                    Try a different wallet
+                  </button>
+                </>
               )}
             </div>
           )}

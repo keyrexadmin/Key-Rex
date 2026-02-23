@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="overflow-x: hidden;">
   <head>
     <meta charset="UTF-8" />
-    <title>NeuralAPI - Premium AI APIs for Developers</title>
+    <title>GoneFullscreen - Bitcoin-Native APIs for Smart Contract Developers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="GoneFullscreen provides Bitcoin-native APIs for smart contract developers. Lightning authentication, on-chain data, and programmable money infrastructure." />
     <style>
       :root {
-        --primary: #6366f1;
-        --primary-dark: #
-
-46e5;
-        --secondary: #8b5cf6;
-        --accent: #f59e0b;
-        --success: #10b981;
-        --bg-main: #0f172a;
-        --bg-card: #1e293b;
-        --text-main: #f1f5f9;
-        --text-muted: #94a3b8;
-        --border: #334155;
+        --primary: #f7931a;
+        --primary-dark: #e2820e;
+        --secondary: #ff6b00;
+        --accent: #f7931a;
+        --success: #00d4aa;
+        --bg-main: #0a0a0a;
+        --bg-card: #141414;
+        --bg-elevated: #1a1a1a;
+        --text-main: #e8e8e8;
+        --text-muted: #777777;
+        --border: #222222;
       }
 
       * {
@@ -31,15 +31,17 @@
         min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        background: var(--bg-main);
         color: var(--text-main);
         line-height: 1.6;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
       }
 
       /* Header */
       header {
         padding: 1.25rem 2rem;
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(10, 10, 10, 0.95);
         backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--border);
         position: sticky;
@@ -76,6 +78,14 @@
         justify-content: center;
         font-weight: bold;
         font-size: 1.1rem;
+        color: #0a0a0a;
+      }
+
+      .logo-text {
+        background: linear-gradient(135deg, #ffffff, #999999);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       nav {
@@ -98,24 +108,25 @@
 
       .cta-button {
         background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-        color: white;
+        color: #0a0a0a;
         padding: 0.65rem 1.5rem;
         border-radius: 8px;
         text-decoration: none;
         font-weight: 600;
         font-size: 0.95rem;
         transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 4px 12px rgba(247, 147, 26, 0.25);
       }
 
       .cta-button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        box-shadow: 0 6px 20px rgba(247, 147, 26, 0.35);
       }
 
       /* Hero Section */
       .hero {
         max-width: 1400px;
+        width: 100%;
         margin: 0 auto;
         padding: 5rem 2rem 4rem;
         display: grid;
@@ -124,11 +135,175 @@
         align-items: center;
       }
 
+      /* Tablet */
       @media (max-width: 968px) {
         .hero {
           grid-template-columns: 1fr;
-          gap: 3rem;
-          padding: 3rem 2rem;
+          gap: 2.5rem;
+          padding: 2.5rem 1.5rem 3rem;
+        }
+        nav {
+          gap: 1rem;
+        }
+        nav a:not(.cta-button) {
+          display: none;
+        }
+        .stats-section {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+          padding: 0 1.5rem;
+        }
+        .code-section {
+          padding: 0 1.5rem;
+        }
+        .auth-panel {
+          padding: 2rem;
+        }
+      }
+
+      /* Mobile */
+      @media (max-width: 600px) {
+        header {
+          padding: 1rem 1rem;
+        }
+        .logo {
+          font-size: 1.15rem;
+          gap: 0.5rem;
+        }
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 0.85rem;
+          border-radius: 7px;
+        }
+        .cta-button {
+          padding: 0.55rem 1.1rem;
+          font-size: 0.85rem;
+        }
+        .hero {
+          padding: 2rem 1rem 2.5rem;
+          gap: 2rem;
+        }
+        .hero-content h1 {
+          font-size: clamp(1.75rem, 7vw, 2.5rem);
+          margin-bottom: 1rem;
+        }
+        .hero-content p.tagline {
+          font-size: 1rem;
+          margin-bottom: 1.5rem;
+        }
+        .badge {
+          font-size: 0.75rem;
+          padding: 0.35rem 0.75rem;
+          margin-bottom: 1.25rem;
+        }
+        .features-grid {
+          margin-top: 1.5rem;
+          gap: 0.75rem;
+        }
+        .feature-row {
+          padding: 0.85rem;
+          gap: 0.75rem;
+        }
+        .feature-row:hover {
+          transform: none;
+        }
+        .feature-icon {
+          width: 38px;
+          height: 38px;
+          font-size: 1.1rem;
+          border-radius: 8px;
+        }
+        .feature-text h3 {
+          font-size: 0.95rem;
+        }
+        .feature-text p {
+          font-size: 0.82rem;
+        }
+        .auth-panel {
+          padding: 1.5rem;
+          border-radius: 16px;
+        }
+        .auth-panel h2 {
+          font-size: 1.25rem;
+        }
+        .auth-panel p {
+          font-size: 0.9rem;
+          margin-bottom: 1.25rem;
+        }
+        .auth-badge {
+          font-size: 0.8rem;
+          padding: 0.4rem 0.75rem;
+        }
+        .keyrex-wrapper {
+          padding: 1rem;
+          margin-top: 1rem;
+          min-height: 160px;
+        }
+        .code-section {
+          margin: 2.5rem auto;
+          padding: 0 1rem;
+        }
+        .code-section h2 {
+          font-size: 1.35rem;
+        }
+        .code-section > p {
+          font-size: 0.9rem;
+          margin-bottom: 1.5rem;
+        }
+        .code-body {
+          padding: 1rem;
+          font-size: 0.72rem;
+          line-height: 1.6;
+          -webkit-overflow-scrolling: touch;
+        }
+        .code-header {
+          padding: 0.6rem 1rem;
+          font-size: 0.75rem;
+        }
+        .stats-section {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+          margin: 2.5rem auto;
+          padding: 0 1rem;
+        }
+        .stat-card {
+          padding: 1.25rem 1rem;
+          border-radius: 12px;
+        }
+        .stat-number {
+          font-size: 1.75rem;
+        }
+        .stat-label {
+          font-size: 0.8rem;
+        }
+        footer {
+          padding: 1.5rem 1rem;
+          margin-top: 2.5rem;
+          font-size: 0.8rem;
+        }
+      }
+
+      /* Small phones */
+      @media (max-width: 380px) {
+        .hero-content h1 {
+          font-size: 1.6rem;
+        }
+        .hero-content p.tagline {
+          font-size: 0.92rem;
+        }
+        .logo-text {
+          font-size: 1rem;
+        }
+        .code-body {
+          font-size: 0.65rem;
+          padding: 0.75rem;
+        }
+        .stat-number {
+          font-size: 1.5rem;
+        }
+        .stat-card {
+          padding: 1rem 0.75rem;
         }
       }
 
@@ -137,7 +312,14 @@
         font-weight: 800;
         line-height: 1.1;
         margin-bottom: 1.5rem;
-        background: linear-gradient(135deg, white, var(--text-muted));
+        background: linear-gradient(135deg, white, #888888);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-content h1 .highlight {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -154,8 +336,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(99, 102, 241, 0.1);
-        border: 1px solid rgba(99, 102, 241, 0.3);
+        background: rgba(247, 147, 26, 0.08);
+        border: 1px solid rgba(247, 147, 26, 0.25);
         color: var(--primary);
         padding: 0.4rem 1rem;
         border-radius: 999px;
@@ -174,7 +356,7 @@
 
       @keyframes pulse {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+        50% { opacity: 0.4; }
       }
 
       .features-grid {
@@ -188,15 +370,15 @@
         align-items: flex-start;
         gap: 1rem;
         padding: 1rem;
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(255, 255, 255, 0.02);
         border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.04);
         transition: all 0.3s;
       }
 
       .feature-row:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(99, 102, 241, 0.3);
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(247, 147, 26, 0.2);
         transform: translateX(8px);
       }
 
@@ -230,7 +412,7 @@
         border-radius: 20px;
         padding: 2.5rem;
         border: 1px solid var(--border);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
       }
 
       .auth-panel h2 {
@@ -249,8 +431,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        background: rgba(0, 212, 170, 0.08);
+        border: 1px solid rgba(0, 212, 170, 0.25);
         color: var(--success);
         padding: 0.5rem 1rem;
         border-radius: 8px;
@@ -262,7 +444,7 @@
       .keyrex-wrapper {
         margin-top: 1.5rem;
         padding: 1.5rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.3);
         border-radius: 12px;
         border: 1px solid var(--border);
         min-height: 200px;
@@ -284,14 +466,74 @@
         animation: pulse 1.5s ease-in-out infinite;
       }
 
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 0.5;
-        }
-        50% {
-          opacity: 1;
-        }
+      /* Code Preview Section */
+      .code-section {
+        max-width: 1400px;
+        margin: 4rem auto;
+        padding: 0 2rem;
       }
+
+      .code-section h2 {
+        text-align: center;
+        font-size: 1.75rem;
+        margin-bottom: 0.75rem;
+        color: white;
+      }
+
+      .code-section > p {
+        text-align: center;
+        color: var(--text-muted);
+        margin-bottom: 2.5rem;
+        font-size: 1.05rem;
+      }
+
+      .code-block {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        max-width: 700px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      .code-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--bg-elevated);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .code-header .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .code-header .dot:nth-child(1) { background: #ff5f57; }
+      .code-header .dot:nth-child(2) { background: #febc2e; }
+      .code-header .dot:nth-child(3) { background: #28c840; }
+      .code-header .filename { margin-left: 0.5rem; }
+
+      .code-body {
+        padding: 1.5rem;
+        font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+        font-size: 0.85rem;
+        line-height: 1.7;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+      }
+
+      .code-body .comment { color: #555555; }
+      .code-body .keyword { color: var(--primary); }
+      .code-body .string { color: var(--success); }
+      .code-body .method { color: #e8e8e8; }
+      .code-body .property { color: #999999; }
 
       /* Stats Section */
       .stats-section {
@@ -306,7 +548,7 @@
       .stat-card {
         text-align: center;
         padding: 2rem;
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--bg-card);
         border-radius: 16px;
         border: 1px solid var(--border);
       }
@@ -325,24 +567,6 @@
       .stat-label {
         color: var(--text-muted);
         font-size: 0.9rem;
-      }
-
-      /* Demo Notice */
-      .demo-notice {
-        max-width: 800px;
-        margin: 3rem auto;
-        padding: 1.5rem 2rem;
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        border-radius: 12px;
-        text-align: center;
-        color: var(--accent);
-      }
-
-      .demo-notice strong {
-        display: block;
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
       }
 
       /* Footer */
@@ -392,14 +616,13 @@
     <header>
       <div class="header-content">
         <a href="index.html" class="logo">
-          <div class="logo-icon">N</div>
-          <span>NeuralAPI</span>
+          <div class="logo-icon">GF</div>
+          <span class="logo-text">GoneFullscreen</span>
         </a>
         <nav>
           <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <a href="https://docs.example.com" target="_blank">Docs</a>
-          <a href="#auth" class="cta-button">Get Started</a>
+          <a href="#api">API</a>
+          <a href="#auth" class="cta-button">Get API Key</a>
         </nav>
       </div>
     </header>
@@ -409,58 +632,83 @@
         <div class="hero-content">
           <div class="badge">
             <span class="badge-dot"></span>
-            Demo Example Site
+            Bitcoin-Native Infrastructure
           </div>
-          <h1>Premium AI APIs for Modern Developers</h1>
+          <h1>Smart Contract APIs Built on <span class="highlight">Bitcoin</span></h1>
           <p class="tagline">
-            Access cutting-edge language models, image generation, and AI tools through
-            a simple, developer-friendly API. Instant authentication with Lightning.
+            On-chain data, programmable money, and smart contract tooling through
+            a developer-first API. Authenticate instantly with Lightning. Pay per call with sats.
           </p>
 
           <div class="features-grid" id="features">
             <div class="feature-row">
-              <div class="feature-icon">⚡</div>
+              <div class="feature-icon">&#x26A1;</div>
               <div class="feature-text">
-                <h3>Lightning Fast Auth</h3>
+                <h3>Lightning Auth</h3>
                 <p>No passwords, no emails. Authenticate instantly with your Lightning wallet.</p>
               </div>
             </div>
             <div class="feature-row">
-              <div class="feature-icon">🔒</div>
+              <div class="feature-icon">&#x1F517;</div>
               <div class="feature-text">
-                <h3>Privacy First</h3>
-                <p>Zero personal data collection. Your wallet is your identity.</p>
+                <h3>On-Chain Data APIs</h3>
+                <p>Query UTXO sets, transaction histories, and block data with sub-second latency.</p>
               </div>
             </div>
             <div class="feature-row">
-              <div class="feature-icon">🚀</div>
+              <div class="feature-icon">&#x1F4DC;</div>
               <div class="feature-text">
-                <h3>Instant Access</h3>
-                <p>Start making API calls within seconds of authentication.</p>
+                <h3>Smart Contract Tooling</h3>
+                <p>Deploy and interact with Bitcoin smart contracts via simple REST endpoints.</p>
               </div>
             </div>
             <div class="feature-row">
-              <div class="feature-icon">💎</div>
+              <div class="feature-icon">&#x20BF;</div>
               <div class="feature-text">
-                <h3>Bitcoin Native</h3>
-                <p>Pay-per-use billing through Lightning Network. No credit cards needed.</p>
+                <h3>Sat-Based Billing</h3>
+                <p>Pay-per-call through Lightning Network. No credit cards, no subscriptions.</p>
               </div>
             </div>
           </div>
         </div>
 
         <div class="auth-panel" id="auth">
-          <h2>Start Building Today</h2>
+          <h2>Get Your API Key</h2>
           <p>
-            Authenticate with your Lightning wallet to access your API dashboard,
-            manage keys, and start making API calls immediately.
+            Authenticate with your Lightning wallet to access your developer dashboard,
+            generate API keys, and start building on Bitcoin infrastructure.
           </p>
           <div class="auth-badge">
-            ✓ Powered by Key-Rex Authentication
+            &#x2713; Powered by Key-Rex Authentication
           </div>
 
           <div class="keyrex-wrapper">
             <div id="keyrex-container"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Code Preview -->
+      <section class="code-section" id="api">
+        <h2>Start Building in Minutes</h2>
+        <p>Simple, RESTful endpoints for Bitcoin infrastructure.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="filename">request.sh</span>
+          </div>
+          <div class="code-body">
+            <span class="comment"># Fetch UTXO set for an address</span><br>
+            <span class="keyword">curl</span> <span class="string">https://api.gonefullscreen.com/v1/utxos</span> \<br>
+            &nbsp;&nbsp;<span class="property">-H</span> <span class="string">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
+            &nbsp;&nbsp;<span class="property">-d</span> <span class="string">'{"address": "bc1q..."}'</span><br>
+            <br>
+            <span class="comment"># Deploy a smart contract</span><br>
+            <span class="keyword">curl</span> <span class="string">https://api.gonefullscreen.com/v1/contracts/deploy</span> \<br>
+            &nbsp;&nbsp;<span class="property">-H</span> <span class="string">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
+            &nbsp;&nbsp;<span class="property">-d</span> <span class="string">'{"script": "OP_DUP OP_HASH160..."}'</span>
           </div>
         </div>
       </section>
@@ -475,26 +723,21 @@
           <span class="stat-label">Avg Response Time</span>
         </div>
         <div class="stat-card">
-          <span class="stat-number">10K+</span>
-          <span class="stat-label">Active Developers</span>
+          <span class="stat-number">850K+</span>
+          <span class="stat-label">Blocks Indexed</span>
         </div>
         <div class="stat-card">
-          <span class="stat-number">24/7</span>
-          <span class="stat-label">Support Available</span>
+          <span class="stat-number">1 sat</span>
+          <span class="stat-label">Per API Call</span>
         </div>
       </section>
-
-      <div class="demo-notice">
-        <strong>🎭 Demo Site Notice</strong>
-        This is an example website showcasing Key-Rex authentication. All content is for demonstration purposes only.
-        Click the authentication button above to test the Lightning wallet login flow.
-      </div>
     </main>
 
     <footer>
       <p>
-        This is a demo site for testing Key-Rex authentication · Not a real service ·
-        <a href="https://keyrex-preview.vercel.app">Back to Key-Rex</a>
+        &copy; 2026 GoneFullscreen &middot;
+        Bitcoin-native APIs for developers &middot;
+        <a href="https://gonefullscreen.com">gonefullscreen.com</a>
       </p>
     </footer>
 
@@ -503,9 +746,9 @@
     <script>
       // Set your Key-Rex instance URL here
       const KEYREX_BASE_URL = 'https://keyrex-preview.vercel.app'; // Your deployed Key-Rex instance
-      const KEYREX_SITE_ID = '015c6dc4798968c996c816fe938243f2'; // Your site ID from Key-Rex dashboard
+      const KEYREX_SITE_ID = 'f3d3c4dfe73f71467355b939a7daa232'; // Your site ID from Key-Rex dashboard
     </script>
-    
+
     <script>
       // Dynamically load Key-Rex embed
       (function() {
@@ -517,7 +760,7 @@
           const container = document.getElementById('keyrex-container');
           if (container) {
             container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 2rem;">' +
-              '<div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>' +
+              '<div style="font-size: 2rem; margin-bottom: 0.5rem;">&#x26A0;&#xFE0F;</div>' +
               '<div style="font-weight: 600; margin-bottom: 0.5rem;">Key-Rex Not Available</div>' +
               '<div style="font-size: 0.85rem; color: var(--text-muted);">Could not load from <code style="background: rgba(0,0,0,0.3); padding: 0.2rem 0.5rem; border-radius: 4px;">' + KEYREX_BASE_URL + '</code></div>' +
               '<div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">Update KEYREX_BASE_URL in the page configuration.</div>' +
@@ -527,19 +770,19 @@
         document.head.appendChild(script);
       })();
     </script>
-    
+
     <script>
       // Check and initialize Key-Rex
       function checkAndInit() {
         const container = document.getElementById('keyrex-container');
         console.log('Key-Rex: Container check - Found:', !!container, 'Children:', container ? container.children.length : 0, 'KeyRex exists:', typeof window.KeyRex !== 'undefined');
-        
+
         if (window.KeyRex && window.KeyRex.init) {
           if (!container) {
             console.error('Key-Rex: Container not found!');
             return;
           }
-          
+
           if (container.children.length === 0) {
             console.log('Key-Rex: Card missing, attempting manual init...');
             try {
@@ -554,55 +797,55 @@
           console.warn('Key-Rex: window.KeyRex not found yet');
         }
       }
-      
+
       // Check at intervals
       checkAndInit();
       setTimeout(checkAndInit, 1000);
       setTimeout(checkAndInit, 2000);
       setTimeout(checkAndInit, 3000);
-      
+
       // Show error if Key-Rex doesn't load after 5 seconds
       setTimeout(function() {
         const container = document.getElementById('keyrex-container');
         if (!window.KeyRex && container && container.children.length === 0) {
           console.error('Key-Rex: Failed to load after 5 seconds. Is the Key-Rex server running?');
           container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 2rem;">' +
-            '<div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>' +
+            '<div style="font-size: 2rem; margin-bottom: 0.5rem;">&#x26A0;&#xFE0F;</div>' +
             '<div style="font-weight: 600; margin-bottom: 0.5rem;">Key-Rex Not Available</div>' +
             '<div style="font-size: 0.85rem; color: var(--text-muted);">Make sure Key-Rex is running at <code style="background: rgba(0,0,0,0.3); padding: 0.2rem 0.5rem; border-radius: 4px;">' + (typeof KEYREX_BASE_URL !== 'undefined' ? KEYREX_BASE_URL : 'http://localhost:3000') + '</code></div>' +
             '<div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">Update KEYREX_BASE_URL in the configuration section.</div>' +
             '</div>';
         }
       }, 5000);
-      
+
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkAndInit);
       }
-      
+
       // Set up success and error callbacks
       function setupKeyRexCallbacks() {
         if (window.KeyRex) {
           window.KeyRex.onSuccess = function(xpub) {
             console.log('Key-Rex: Authentication successful! xpub:', xpub);
-            
+
             const notification = document.createElement('div');
-            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
-            notification.innerHTML = '<span style="font-size: 18px;">✓</span> <span>Authentication successful! Redirecting to dashboard...</span>';
+            notification.style.cssText = 'position: fixed; top: 12px; right: 12px; left: 12px; max-width: 420px; margin-left: auto; background: #00d4aa; color: #0a0a0a; padding: 14px 18px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out; font-weight: 600;';
+            notification.innerHTML = '<span style="font-size: 18px;">&#x2713;</span> <span>Authenticated! Redirecting to dashboard...</span>';
             document.body.appendChild(notification);
-            
+
             setTimeout(function() {
               window.location.href = 'dashboard.html?xpub=' + encodeURIComponent(xpub);
             }, 1500);
           };
-          
+
           window.KeyRex.onError = function(error) {
             console.error('Key-Rex: Authentication error:', error);
-            
+
             const notification = document.createElement('div');
-            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
-            notification.innerHTML = '<span style="font-size: 18px;">✗</span> <span>Authentication failed: ' + (error.message || error) + '</span>';
+            notification.style.cssText = 'position: fixed; top: 12px; right: 12px; left: 12px; max-width: 420px; margin-left: auto; background: #ef4444; color: white; padding: 14px 18px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
+            notification.innerHTML = '<span style="font-size: 18px;">&#x2717;</span> <span>Authentication failed: ' + (error.message || error) + '</span>';
             document.body.appendChild(notification);
-            
+
             setTimeout(function() {
               notification.style.animation = 'slideOut 0.3s ease-out';
               setTimeout(function() {
@@ -612,13 +855,13 @@
               }, 300);
             }, 5000);
           };
-          
+
           console.log('Key-Rex: Success and error callbacks set up');
         } else {
           setTimeout(setupKeyRexCallbacks, 500);
         }
       }
-      
+
       // Add animation styles
       if (!document.getElementById('keyrex-notification-styles')) {
         const style = document.createElement('style');
@@ -626,10 +869,8 @@
         style.textContent = '@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }';
         document.head.appendChild(style);
       }
-      
+
       setupKeyRexCallbacks();
     </script>
   </body>
 </html>
-
-

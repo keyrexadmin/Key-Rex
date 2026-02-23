@@ -776,8 +776,9 @@ export async function recordLogin(
         updatedAt: BigInt(Date.now()),
       } as any,
     })
+    console.log('recordLogin: Successfully saved stats for siteId:', siteId, 'currentMonth:', stats.currentMonth, 'allTime:', stats.allTime)
   } catch (error) {
-    console.error('Error recording login:', error)
+    console.error('recordLogin: FAILED to save stats for siteId:', siteId, 'Error:', error)
   }
 }
 

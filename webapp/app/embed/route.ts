@@ -122,16 +122,30 @@ export async function GET(request: NextRequest) {
       }
       
       // Get bech32-encoded LNURL from server
-      const lnurlRes = await fetch(baseUrl + '/api/auth/lnurl');
-      const { k1: challenge, lnurl: lnurlBech32 } = await lnurlRes.json();
+      let challenge = null;
+      let lnurlBech32 = null;
+      try {
+        const lnurlRes = await fetch(baseUrl + '/api/auth/lnurl');
+        if (lnurlRes.ok) {
+          const lnurlData = await lnurlRes.json();
+          challenge = lnurlData.k1 || null;
+          lnurlBech32 = lnurlData.lnurl || null;
+        } else {
+          console.warn('Key-Rex: LNURL fetch failed with status', lnurlRes.status, '- QR page will generate its own challenge');
+        }
+      } catch (lnurlErr) {
+        console.warn('Key-Rex: LNURL fetch error (QR page will generate its own challenge):', lnurlErr);
+      }
 
       console.log('Key-Rex: Checking for WebLN. window.webln exists:', !!window.webln);
       console.log('Key-Rex: window.webln type:', typeof window.webln);
       console.log('Key-Rex: window.webln keys:', window.webln ? Object.keys(window.webln) : 'N/A');
       
       // Check for WebLN with retry (sometimes extensions inject it late)
-      let webln = window.webln;
-      if (!webln) {
+      // Only attempt WebLN if we have a valid LNURL (requires successful server fetch)
+      let webln = lnurlBech32 ? window.webln : null;
+      if (webln === undefined) webln = null;
+      if (!webln && lnurlBech32) {
         // Wait a bit and check again (extensions might inject late)
         console.log('Key-Rex: WebLN not found immediately, waiting 200ms and retrying...');
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -229,7 +243,10 @@ export async function GET(request: NextRequest) {
       // Fallback to QR code - use full redirect on mobile, popup on desktop
       // Store return URL so QR page knows where to redirect back
       const returnUrl = encodeURIComponent(window.location.href);
-      const qrUrl = baseUrl + '/embed/qr?siteId=' + siteId + '&k1=' + challenge + '&returnUrl=' + returnUrl;
+      // Pass parent origin so popup can postMessage back to this window (cross-origin)
+      const parentOrigin = encodeURIComponent(window.location.origin);
+      // Only include k1 param if we have a valid challenge (QR page will generate its own if missing)
+      const qrUrl = baseUrl + '/embed/qr?siteId=' + siteId + (challenge ? '&k1=' + challenge : '') + '&returnUrl=' + returnUrl + '&parentOrigin=' + parentOrigin;
       
       // Mobile: Use full redirect (more reliable, better UX)
       if (isMobileDevice()) {
