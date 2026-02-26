@@ -118,13 +118,19 @@ export default function ForWallets() {
                     </div>
                   </div>
 
-                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700/50">
+                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700/50 relative">
+                    <div className="absolute top-3 right-3 bg-orange-500/20 border border-orange-500/50 rounded-full px-3 py-1">
+                      <span className="text-orange-400 text-xs font-semibold">Coming Soon</span>
+                    </div>
                     <div className="flex items-start gap-3">
                       <span className="text-3xl">📊</span>
                       <div>
-                        <h3 className="text-white font-semibold text-lg mb-2">Analytics Dashboard</h3>
-                        <p className="text-white/300 text-sm leading-relaxed">
-                          Access real-time usage statistics, see how many users choose your wallet, track growth trends, and understand your market share.
+                        <h3 className="text-white font-semibold text-lg mb-2">Analytics & Insights Dashboard</h3>
+                        <p className="text-white/300 text-sm leading-relaxed mb-2">
+                          We're building a comprehensive analytics dashboard that will provide real-time usage statistics, competitive insights, and data-driven growth metrics.
+                        </p>
+                        <p className="text-white/400 text-xs leading-relaxed">
+                          <strong>Planned features:</strong> Track how many users choose your wallet, see market share comparisons, analyze growth trends, receive anonymized competitive data, and make informed decisions based on actual user behavior.
                         </p>
                       </div>
                     </div>
@@ -137,18 +143,6 @@ export default function ForWallets() {
                         <h3 className="text-white font-semibold text-lg mb-2">Priority Placement</h3>
                         <p className="text-white/300 text-sm leading-relaxed">
                           Featured wallets appear above generic wallet options, ensuring maximum visibility and user engagement with your brand.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700/50">
-                    <div className="flex items-start gap-3">
-                      <span className="text-3xl">📈</span>
-                      <div>
-                        <h3 className="text-white font-semibold text-lg mb-2">Competitive Insights</h3>
-                        <p className="text-white/300 text-sm leading-relaxed">
-                          Receive anonymized comparison data showing how your wallet performs relative to others, helping you understand market positioning.
                         </p>
                       </div>
                     </div>
@@ -203,16 +197,6 @@ export default function ForWallets() {
                     </h3>
                     <p className="text-white/300 text-sm leading-relaxed">
                       From the authentication button on a customer's website, users can click directly to your wallet. There's no friction, no extra steps—just a direct path from "I need a wallet" to "downloading your wallet."
-                    </p>
-                  </div>
-
-                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700/50">
-                    <h3 className="text-white font-semibold text-xl mb-3 flex items-center gap-2">
-                      <span className="text-2xl">📊</span>
-                      Data-Driven Growth
-                    </h3>
-                    <p className="text-white/300 text-sm leading-relaxed">
-                      Track your performance with real analytics. See usage trends, understand which websites drive the most wallet downloads, and make informed decisions about your marketing and product development based on actual user behavior.
                     </p>
                   </div>
                 </div>

@@ -48,8 +48,6 @@ export interface ContactSubmission {
   urgent?: boolean
   timestamp: number
   status: 'unread' | 'read' | 'replied' | 'archived'
-  ipAddress?: string
-  userAgent?: string
 }
 
 export interface UsageStats {

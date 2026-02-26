@@ -10,10 +10,6 @@ export default function FAQ() {
       category: 'Getting Started',
       questions: [
         {
-          q: 'Is Key-Rex really free?',
-          a: 'Yes! Key-Rex has no cost with no hidden fees, no usage limits, and no credit card required.',
-        },
-        {
           q: 'How long does it take to set up?',
           a: 'Setup takes just a few minutes. You\'ll need a Lightning wallet, sign in to create your account, add and verify your domain (requires adding a DNS TXT record), and copy the integration code to your website. Domain verification can take 5-10 minutes for DNS propagation. Test domains work immediately without verification. The entire process typically takes less than 15 minutes including verification.',
         },
@@ -111,7 +107,7 @@ export default function FAQ() {
       questions: [
         {
           q: 'How do I switch from my current sign-in system?',
-          a: 'You don\'t have to switch—you can add Key-Rex alongside your existing sign-in methods. This way, visitors can choose whether to use Key-Rex, email/password, or whatever other options you offer. Over time, if you want, you can encourage visitors to use Key-Rex while still keeping your old methods available for those who prefer them.',
+          a: 'Key-Rex can be used as a complete replacement for your existing sign-in system if you choose, but you don\'t have to switch—you can add Key-Rex alongside your existing sign-in methods. This way, visitors can choose whether to use Key-Rex, email/password, or whatever other options you offer. Over time, if you want, you can encourage visitors to use Key-Rex while still keeping your old methods available for those who prefer them.',
         },
         {
           q: 'How do I connect Key-Rex sign-ins to my existing user accounts?',

@@ -102,7 +102,7 @@ export default function Support() {
                       Key-Rex relies on the Lightning Network to work. We don't control the Lightning Network (it's a decentralized network), so if it has problems, sign-ins might be temporarily unavailable until it recovers.
                     </p>
                     <p className="text-white/400 text-xs">
-                      <strong>What this means for you:</strong> If the Lightning Network is having issues, your visitors may not be able to sign in with Key-Rex during that time. This is why we recommend offering Key-Rex as an option alongside other sign-in methods, so visitors typically have a way to sign in.
+                      <strong>What this means for you:</strong> If the Lightning Network is having issues, your visitors may not be able to sign in with Key-Rex during that time.
                     </p>
                   </div>
 
@@ -111,11 +111,8 @@ export default function Support() {
                       <span className="text-xl">⚡</span>
                       Our Commitment to Service Stability
                     </h3>
-                    <p className="text-white/200 text-base leading-relaxed mb-2">
+                    <p className="text-white/200 text-base leading-relaxed">
                       We aim to maintain high service availability and monitor the Lightning Network status. Our infrastructure is designed to handle authentication requests reliably and efficiently.
-                    </p>
-                    <p className="text-white/400 text-xs">
-                      <strong>Note:</strong> Key-Rex can work as a standalone sign-in option, and we recognize that many websites already have existing login processes. In these cases, Key-Rex works great as an alternative authentication method, allowing you to offer both options simultaneously so visitors can choose what works best for them.
                     </p>
                   </div>
 
@@ -262,18 +259,38 @@ export default function Support() {
                 
                 <div className="space-y-4">
                   <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50">
-                    <h3 className="text-white font-semibold mb-2">Data Retention</h3>
-                    <p className="text-white/200 text-base leading-relaxed mb-2">
-                      We retain your account data for as long as your account is active. This includes:
+                    <h3 className="text-white font-semibold mb-3 text-lg">What Data We Collect & Store</h3>
+                    <p className="text-white/200 text-base leading-relaxed mb-3">
+                      We retain your account data for as long as your account is active. All data is stored in our PostgreSQL database. Key-Rex collects minimal operational data necessary for service functionality.
                     </p>
-                    <ul className="text-white/300 text-sm space-y-1 ml-4 mb-2">
-                      <li>• Account information (xpub, site ID, domains, settings)</li>
-                      <li>• Usage statistics (login counts, analytics, unique users)</li>
-                      <li>• Activity logs (last 1000 activities per user)</li>
-                      <li>• Disclaimer acceptance metadata (timestamp, IP address, user agent)</li>
-                    </ul>
-                    <p className="text-white/400 text-xs">
-                      <strong>Usage statistics:</strong> Login counts and analytics data are retained to provide you with usage insights in your dashboard. Analytics include daily/hourly patterns, domain breakdowns, wallet usage, browser/device types, and user retention metrics.
+                    
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-3">
+                      <p className="text-green-400 font-semibold text-sm mb-2">✓ What We DO Store:</p>
+                      <ul className="text-white/300 text-sm space-y-1 ml-4">
+                        <li>• <strong>Account Information:</strong> xpub, site ID, subscription status, integration settings</li>
+                        <li>• <strong>Domain Data:</strong> registered domains, verification status, verification tokens</li>
+                        <li>• <strong>Usage Statistics:</strong> login counts (monthly, yearly, all-time), returning user counts, unique pubkeys, daily/hourly login patterns, domain breakdowns, wallet type login usage, device types (parsed only), referrers</li>
+                        <li>• <strong>Activity Logs:</strong> account actions with descriptions and timestamps</li>
+                        <li>• <strong>Disclaimer Acceptance:</strong> timestamp only</li>
+                        <li>• <strong>Contact Form Submissions:</strong> name (optional), email, subject, message, urgent flag, timestamp</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                      <p className="text-red-400 font-semibold text-sm mb-2">✗ What We Do NOT Collect or Store:</p>
+                      <ul className="text-white/300 text-sm space-y-1 ml-4">
+                        <li>• IP addresses (for account owners or end users)</li>
+                        <li>• User agent strings (only parsed device/browser types are stored, not raw strings)</li>
+                        <li>• Email addresses (except for optional contact form submissions)</li>
+                        <li>• Names or personal information (except optional name in contact form)</li>
+                        <li>• Tracking data, analytics pixels, or cookies for tracking</li>
+                        <li>• Browser fingerprints or device IDs</li>
+                        <li>• Location data or geolocation information</li>
+                      </ul>
+                    </div>
+
+                    <p className="text-white/400 text-xs mt-3">
+                      See our <Link href="/open-source" className="text-orange-400 hover:text-orange-300 underline">Open Source page</Link> for complete transparency. You can review the PostgreSQL schema in the codebase to verify exactly what data is stored.
                     </p>
                   </div>
 
@@ -283,12 +300,13 @@ export default function Support() {
                       You can export your account data at any time from the <strong>Settings tab</strong> in your dashboard. Available exports include:
                     </p>
                     <ul className="text-white/300 text-sm space-y-1 ml-4 mb-2">
-                      <li>• <strong>Account Data:</strong> xpub, site ID, creation date, domains, settings</li>
-                      <li>• <strong>Usage Statistics:</strong> All analytics data (login counts, unique users, daily/hourly patterns, domain/wallet/browser/device breakdowns)</li>
-                      <li>• <strong>Activity Logs:</strong> Your account activity history (exported separately)</li>
+                      <li>• <strong>Account Data:</strong> xpub, site ID, creation date, subscription details, integration settings</li>
+                      <li>• <strong>Domain Data:</strong> all registered domains with verification status and timestamps</li>
+                      <li>• <strong>Usage Statistics:</strong> complete analytics data including login counts, unique users, daily/hourly patterns, domain/wallet/device breakdowns</li>
+                      <li>• <strong>Activity Logs:</strong> your complete account activity history</li>
                     </ul>
                     <p className="text-white/400 text-xs mt-2">
-                      <strong>Note:</strong> Disclaimer acceptance metadata (IP address, user agent) and contact form submissions are not included in user data exports. Data is exported in JSON format for easy integration with other systems.
+                      <strong>Note:</strong> Contact form submissions are not included in user data exports. All data is exported in JSON format for easy integration with other systems.
                     </p>
                   </div>
 
@@ -312,36 +330,6 @@ export default function Support() {
                     </div>
                     <p className="text-white/300 text-sm">
                       <strong>Recommendation:</strong> Keep your Lightning wallet secure and backed up. Consider using a hardware wallet or secure backup method for your wallet keys. Export your data regularly from the Settings tab in your dashboard for backup purposes.
-                    </p>
-                  </div>
-
-                  <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50">
-                    <h3 className="text-white font-semibold mb-2">Privacy & Data Collection</h3>
-                    <p className="text-white/200 text-base leading-relaxed mb-2">
-                      Key-Rex collects minimal operational data. We do NOT collect:
-                    </p>
-                    <ul className="text-white/300 text-sm space-y-1 ml-4 mb-3">
-                      <li>• Email addresses (except for contact form submissions, which are optional)</li>
-                      <li>• Names or personal information (except optional name in contact form)</li>
-                      <li>• IP addresses for end users (your website's visitors)</li>
-                      <li>• Tracking data or analytics pixels</li>
-                      <li>• Browser fingerprints or device IDs</li>
-                    </ul>
-                    <p className="text-white/200 text-base leading-relaxed mb-2">
-                      <strong>What we DO collect (for account owners):</strong>
-                    </p>
-                    <ul className="text-white/300 text-sm space-y-1 ml-4 mb-2">
-                      <li>• <strong>IP address and user agent</strong> - Collected when you accept the disclaimer (for audit trail)</li>
-                      <li>• <strong>IP address and user agent</strong> - Collected with contact form submissions (for support purposes)</li>
-                    </ul>
-                    <p className="text-white/300 text-sm leading-relaxed mb-2 mt-3">
-                      <strong>What we collect (for end users - your website visitors):</strong>
-                    </p>
-                    <ul className="text-white/300 text-sm space-y-1 ml-4 mb-2">
-                      <li>• <strong>User-Agent parsing</strong> - Raw User-Agent strings are NOT stored. Only parsed results (browser type, device type, wallet type) are stored in analytics for your dashboard insights.</li>
-                    </ul>
-                    <p className="text-white/400 text-xs">
-                      See our <Link href="/open-source" className="text-orange-400 hover:text-orange-300 underline">Open Source page</Link> for complete details on data collection.
                     </p>
                   </div>
                 </div>

@@ -56,19 +56,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // SECURITY: Get IP address correctly (handles proxies)
-    const ipAddress = getClientIP(request)
-    const userAgent = request.headers.get('user-agent') || 'unknown'
-
-    // Create contact submission
+    // Create contact submission (we do NOT store IP addresses or user agents per privacy policy)
     const submission = await createContactSubmission({
       name: name ? name.trim().substring(0, 100) : undefined,
       email: email.trim().substring(0, 254),
       subject: subject.trim().substring(0, 200),
       message: message.trim().substring(0, 10000),
       urgent: urgent === true,
-      ipAddress,
-      userAgent,
     })
 
     if (process.env.NODE_ENV === 'development') {
