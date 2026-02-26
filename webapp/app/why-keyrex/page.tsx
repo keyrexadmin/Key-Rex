@@ -8,9 +8,9 @@ import PageNavigation from '@/components/PageNavigation'
 export default function WhyKeyRex() {
   const navItems = [
     { id: 'overview', label: 'Overview' },
+    { id: 'comparison', label: 'Comparison' },
     { id: 'key-benefits', label: 'Key Benefits' },
     { id: 'use-cases', label: 'Use Cases' },
-    { id: 'comparison', label: 'Comparison' },
     { id: 'key-takeaways', label: 'Key Takeaways' },
   ]
 
@@ -29,9 +29,98 @@ export default function WhyKeyRex() {
             <div className="text-center space-y-4" id="overview">
               <h1 className="text-3xl sm:text-4xl font-bold text-white">Why Key-Rex?</h1>
               <p className="text-xl text-white/200 leading-relaxed">
-                Here's why website owners are choosing Key-Rex for their authentication needs
+                Here's how Key-Rex stacks up against the traditional ways people sign in to websites
               </p>
             </div>
+
+            {/* Comparison - Main Focal Point */}
+            <section id="comparison">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
+                <h2 className="text-2xl font-bold text-white mb-6">How Does Key-Rex Compare to Other Sign-In Methods?</h2>
+                <p className="text-white/300 mb-6">
+                  Here's how Key-Rex stacks up against the traditional ways people sign in to websites:
+                </p>
+
+                <div className="overflow-x-auto">
+                  <Card className="p-0 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-dark-800/50 border-b border-dark-700">
+                            <th className="px-6 py-4 text-left text-white font-semibold">Feature</th>
+                            <th className="px-6 py-4 text-center text-orange-400 font-semibold">Key-Rex</th>
+                            <th className="px-6 py-4 text-center text-white/400 font-semibold">Email/Password</th>
+                            <th className="px-6 py-4 text-center text-white/400 font-semibold">OAuth (Google/Facebook)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                          <tr>
+                            <td className="px-6 py-4 text-white/300 font-medium">Setup Time</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Minutes</td>
+                            <td className="px-6 py-4 text-center text-white/400">Hours/Days</td>
+                            <td className="px-6 py-4 text-center text-white/400">Hours</td>
+                          </tr>
+                          <tr className="bg-dark-800/30">
+                            <td className="px-6 py-4 text-white/300 font-medium">Cost</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ No Cost</td>
+                            <td className="px-6 py-4 text-center text-white/400">Email service costs</td>
+                            <td className="px-6 py-4 text-center text-white/400">Free (with data sharing)</td>
+                          </tr>
+                          <tr>
+                            <td className="px-6 py-4 text-white/300 font-medium">Password Breaches</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Impossible</td>
+                            <td className="px-6 py-4 text-center text-red-400">✗ High Risk</td>
+                            <td className="px-6 py-4 text-center text-white/400">No passwords</td>
+                          </tr>
+                          <tr className="bg-dark-800/30">
+                            <td className="px-6 py-4 text-white/300 font-medium">User Data Collection</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ None</td>
+                            <td className="px-6 py-4 text-center text-white/400">Emails required</td>
+                            <td className="px-6 py-4 text-center text-red-400">✗ Extensive</td>
+                          </tr>
+                          <tr>
+                            <td className="px-6 py-4 text-white/300 font-medium">Privacy Compliance</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Minimal burden</td>
+                            <td className="px-6 py-4 text-center text-white/400">GDPR/CCPA applies</td>
+                            <td className="px-6 py-4 text-center text-white/400">GDPR/CCPA applies</td>
+                          </tr>
+                          <tr className="bg-dark-800/30">
+                            <td className="px-6 py-4 text-white/300 font-medium">Email Verification</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Not needed</td>
+                            <td className="px-6 py-4 text-center text-red-400">✗ Required</td>
+                            <td className="px-6 py-4 text-center text-white/400">Not needed</td>
+                          </tr>
+                          <tr>
+                            <td className="px-6 py-4 text-white/300 font-medium">User Friction</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ One click</td>
+                            <td className="px-6 py-4 text-center text-white/400">Registration + email</td>
+                            <td className="px-6 py-4 text-center text-white/400">OAuth popup</td>
+                          </tr>
+                          <tr className="bg-dark-800/30">
+                            <td className="px-6 py-4 text-white/300 font-medium">Dependency on Third Party</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Decentralized</td>
+                            <td className="px-6 py-4 text-center text-white/400">Email provider</td>
+                            <td className="px-6 py-4 text-center text-red-400">✗ Google/Facebook</td>
+                          </tr>
+                          <tr>
+                            <td className="px-6 py-4 text-white/300 font-medium">Open Source</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Yes</td>
+                            <td className="px-6 py-4 text-center text-white/400">Varies</td>
+                            <td className="px-6 py-4 text-center text-red-400">✗ Proprietary</td>
+                          </tr>
+                          <tr className="bg-dark-800/30">
+                            <td className="px-6 py-4 text-white/300 font-medium">Infrastructure Required</td>
+                            <td className="px-6 py-4 text-center text-orange-400">✓ Minimal</td>
+                            <td className="px-6 py-4 text-center text-white/400">Email service, DB</td>
+                            <td className="px-6 py-4 text-center text-white/400">OAuth integration</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </div>
+              </Card>
+            </section>
 
             {/* Mission & Values */}
             <section id="mission">
@@ -227,94 +316,7 @@ export default function WhyKeyRex() {
               </Card>
             </section>
 
-            {/* Comparison */}
-            <section id="comparison">
-              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
-                <h2 className="text-2xl font-bold text-white mb-6">How Does Key-Rex Compare to Other Sign-In Methods?</h2>
-                <p className="text-white/300 mb-6">
-                  Here's how Key-Rex stacks up against the traditional ways people sign in to websites:
-                </p>
 
-                <div className="overflow-x-auto">
-                  <Card className="p-0 overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-dark-800/50 border-b border-dark-700">
-                            <th className="px-6 py-4 text-left text-white font-semibold">Feature</th>
-                            <th className="px-6 py-4 text-center text-orange-400 font-semibold">Key-Rex</th>
-                            <th className="px-6 py-4 text-center text-white/400 font-semibold">Email/Password</th>
-                            <th className="px-6 py-4 text-center text-white/400 font-semibold">OAuth (Google/Facebook)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700">
-                          <tr>
-                            <td className="px-6 py-4 text-white/300 font-medium">Setup Time</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Minutes</td>
-                            <td className="px-6 py-4 text-center text-white/400">Hours/Days</td>
-                            <td className="px-6 py-4 text-center text-white/400">Hours</td>
-                          </tr>
-                          <tr className="bg-dark-800/30">
-                            <td className="px-6 py-4 text-white/300 font-medium">Cost</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ No Cost</td>
-                            <td className="px-6 py-4 text-center text-white/400">Email service costs</td>
-                            <td className="px-6 py-4 text-center text-white/400">Free (with data sharing)</td>
-                          </tr>
-                          <tr>
-                            <td className="px-6 py-4 text-white/300 font-medium">Password Breaches</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Impossible</td>
-                            <td className="px-6 py-4 text-center text-red-400">✗ High Risk</td>
-                            <td className="px-6 py-4 text-center text-white/400">No passwords</td>
-                          </tr>
-                          <tr className="bg-dark-800/30">
-                            <td className="px-6 py-4 text-white/300 font-medium">User Data Collection</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ None</td>
-                            <td className="px-6 py-4 text-center text-white/400">Emails required</td>
-                            <td className="px-6 py-4 text-center text-red-400">✗ Extensive</td>
-                          </tr>
-                          <tr>
-                            <td className="px-6 py-4 text-white/300 font-medium">Privacy Compliance</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Minimal burden</td>
-                            <td className="px-6 py-4 text-center text-white/400">GDPR/CCPA applies</td>
-                            <td className="px-6 py-4 text-center text-white/400">GDPR/CCPA applies</td>
-                          </tr>
-                          <tr className="bg-dark-800/30">
-                            <td className="px-6 py-4 text-white/300 font-medium">Email Verification</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Not needed</td>
-                            <td className="px-6 py-4 text-center text-red-400">✗ Required</td>
-                            <td className="px-6 py-4 text-center text-white/400">Not needed</td>
-                          </tr>
-                          <tr>
-                            <td className="px-6 py-4 text-white/300 font-medium">User Friction</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ One click</td>
-                            <td className="px-6 py-4 text-center text-white/400">Registration + email</td>
-                            <td className="px-6 py-4 text-center text-white/400">OAuth popup</td>
-                          </tr>
-                          <tr className="bg-dark-800/30">
-                            <td className="px-6 py-4 text-white/300 font-medium">Dependency on Third Party</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Decentralized</td>
-                            <td className="px-6 py-4 text-center text-white/400">Email provider</td>
-                            <td className="px-6 py-4 text-center text-red-400">✗ Google/Facebook</td>
-                          </tr>
-                          <tr>
-                            <td className="px-6 py-4 text-white/300 font-medium">Open Source</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Yes</td>
-                            <td className="px-6 py-4 text-center text-white/400">Varies</td>
-                            <td className="px-6 py-4 text-center text-red-400">✗ Proprietary</td>
-                          </tr>
-                          <tr className="bg-dark-800/30">
-                            <td className="px-6 py-4 text-white/300 font-medium">Infrastructure Required</td>
-                            <td className="px-6 py-4 text-center text-orange-400">✓ Minimal</td>
-                            <td className="px-6 py-4 text-center text-white/400">Email service, DB</td>
-                            <td className="px-6 py-4 text-center text-white/400">OAuth integration</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                </div>
-              </Card>
-            </section>
 
             {/* Key Takeaways */}
             <section id="key-takeaways">
