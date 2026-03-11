@@ -242,15 +242,12 @@ export default function AdminLoginPage() {
       setAuthStatus('waiting')
       setAuthMessage('Waiting for authentication...')
       
-      // Generate new QR code
-      const domain = window.location.origin
-      const callbackUrl = `${domain}/api/admin/auth/login?k1=${k1}`
-      const lightningProtocol = `lightning:${callbackUrl}`
-      
-      setLightningLnurl(lightningProtocol)
-      setPlainLnurl(callbackUrl)
-      
-      QRCode.toDataURL(lightningProtocol, {
+      // Generate new QR code with bare bech32 LNURL (no lightning: prefix)
+      // Wallets scanning QR codes expect just lnurl1... and will decode it to get callback URL
+      setLightningLnurl(`lightning:${lnurlBech32}`)
+      setPlainLnurl(lnurlBech32)
+
+      QRCode.toDataURL(lnurlBech32, {
         width: 300,
         margin: 2,
         color: {
@@ -278,41 +275,39 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (!showQRCode || !qrK1 || !qrCodeDataUrl || authStatus !== 'waiting') return
 
-    // Start polling after QR code is generated
+    // Start polling - check if wallet has completed auth for this k1
     const startPolling = () => {
       let pollCount = 0
-      const maxPolls = 60 // Poll for up to 60 seconds
-      
+      const maxPolls = 150 // Poll for up to 5 minutes (matches QR expiry)
+
       pollingIntervalRef.current = setInterval(async () => {
         pollCount++
-        
+
         try {
-          const verifyRes = await fetch('/api/admin/auth/verify', {
+          // Poll the login endpoint with the k1 to check if wallet has authenticated
+          const pollRes = await fetch(`/api/admin/auth/login?k1=${encodeURIComponent(qrK1!)}&poll=true`, {
             credentials: 'include',
           })
-          
-          if (verifyRes.ok) {
-            const verifyData = await verifyRes.json()
-            if (verifyData.isAdmin) {
-              // Authentication successful
+
+          if (pollRes.ok) {
+            const pollData = await pollRes.json()
+            if (pollData.isAdmin || pollData.status === 'OK') {
+              // Authentication successful - cookie was set by the response
               setAuthStatus('success')
               setAuthMessage('Authentication successful! Redirecting...')
-              
-              // Clear polling interval
+
               if (pollingIntervalRef.current) {
                 clearInterval(pollingIntervalRef.current)
                 pollingIntervalRef.current = null
               }
-              
-              // Redirect to admin dashboard after short delay
+
               setTimeout(() => {
                 router.push('/admin/dashboard')
               }, 1500)
               return
             }
           }
-          
-          // If we've polled too many times, stop and show error
+
           if (pollCount >= maxPolls) {
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current)
@@ -323,15 +318,14 @@ export default function AdminLoginPage() {
           }
         } catch (error) {
           console.error('Error polling admin auth status:', error)
-          // Don't stop polling on network errors, just log them
         }
-      }, 1000) // Poll every 1 second
+      }, 2000) // Poll every 2 seconds
     }
-    
-    // Start polling after a short delay to allow QR code to be scanned
+
+    // Start polling after a short delay
     const delay = setTimeout(() => {
       startPolling()
-    }, 2000) // Wait 2 seconds before starting to poll
+    }, 2000)
     
     // Cleanup function
     return () => {
@@ -540,16 +534,13 @@ export default function AdminLoginPage() {
           setAuthMessage('Waiting for authentication...')
           setError(null) // Clear any previous errors
           
-          // Generate QR code
-          const domain = window.location.origin
-          const callbackUrl = `${domain}/api/admin/auth/login?k1=${k1}`
-          const lightningProtocol = `lightning:${callbackUrl}`
-          
-          setLightningLnurl(lightningProtocol)
-          setPlainLnurl(callbackUrl)
+          // Generate QR code with bare bech32 LNURL (no lightning: prefix)
+          // Wallets scanning QR codes expect just lnurl1... and will decode it to get callback URL
+          setLightningLnurl(`lightning:${lnurlBech32}`)
+          setPlainLnurl(lnurlBech32)
           setTimeRemaining(300) // Reset to 5 minutes
-          
-          QRCode.toDataURL(lightningProtocol, {
+
+          QRCode.toDataURL(lnurlBech32, {
             width: 300,
             margin: 2,
             color: {
@@ -575,15 +566,12 @@ export default function AdminLoginPage() {
         setAuthMessage('Waiting for authentication...')
         setTimeRemaining(300) // Reset to 5 minutes
         
-        // Generate QR code
-        const domain = window.location.origin
-        const callbackUrl = `${domain}/api/admin/auth/login?k1=${k1}`
-        const lightningProtocol = `lightning:${callbackUrl}`
-        
-        setLightningLnurl(lightningProtocol)
-        setPlainLnurl(callbackUrl)
-        
-        QRCode.toDataURL(lightningProtocol, {
+        // Generate QR code with bare bech32 LNURL (no lightning: prefix)
+        // Wallets scanning QR codes expect just lnurl1... and will decode it to get callback URL
+        setLightningLnurl(`lightning:${lnurlBech32}`)
+        setPlainLnurl(lnurlBech32)
+
+        QRCode.toDataURL(lnurlBech32, {
           width: 300,
           margin: 2,
           color: {

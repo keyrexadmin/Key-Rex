@@ -5,7 +5,9 @@ import { rateLimitMiddleware } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limiting - prevent session fixation attacks and cost abuse
-  const rateLimit = rateLimitMiddleware(request, 10, 60000) // 10 requests per minute (allows retries for auth flow)
+  // Allow 30 requests per minute to accommodate retries and multiple login attempts
+  // (serverless instances have separate in-memory stores, so effective limit is higher)
+  const rateLimit = rateLimitMiddleware(request, 30, 60000)
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }

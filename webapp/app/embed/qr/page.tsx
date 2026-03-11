@@ -653,15 +653,23 @@ function QRContent() {
             console.log('Dashboard login successful, xpub:', xpub.substring(0, 20) + '...')
 
             // Set session cookie - use activeK1 (not URL param k1) to match the signed challenge
-            const sessionRes = await fetch('/api/auth/set-session', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ xpub, k1: activeK1 }),
-            })
+            // Retry with backoff if rate limited (429)
+            let sessionRes: Response | null = null
+            for (let attempt = 0; attempt < 3; attempt++) {
+              sessionRes = await fetch('/api/auth/set-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ xpub, k1: activeK1 }),
+              })
 
-            if (!sessionRes.ok) {
-              console.error('Failed to set session')
+              if (sessionRes.ok || sessionRes.status !== 429) break
+              // Wait before retrying: 1s, 2s, 4s
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)))
+            }
+
+            if (!sessionRes || !sessionRes.ok) {
+              console.error('Failed to set session', sessionRes?.status)
               authSucceededRef.current = false // Allow retry
               setAuthStatus('error')
               setAuthMessage('Failed to set session. Please try again.')

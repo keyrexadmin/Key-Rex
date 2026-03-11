@@ -184,17 +184,22 @@ export default function LoginButton({ buttonText, buttonClassName, compact = fal
                 throw new Error('Failed to retrieve xpub after WebLN authentication. Please try again.')
               }
               
-              // Set the session cookie
+              // Set the session cookie (retry with backoff if rate limited)
               console.log('Setting session cookie...')
-              const sessionRes = await fetch('/api/auth/set-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ xpub: retrievedXpub, k1: challenge }),
-              })
-              
-              if (!sessionRes.ok) {
-                const errorData = await sessionRes.json().catch(() => ({}))
+              let sessionRes: Response | null = null
+              for (let attempt = 0; attempt < 3; attempt++) {
+                sessionRes = await fetch('/api/auth/set-session', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ xpub: retrievedXpub, k1: challenge }),
+                })
+                if (sessionRes.ok || sessionRes.status !== 429) break
+                await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)))
+              }
+
+              if (!sessionRes || !sessionRes.ok) {
+                const errorData = await sessionRes?.json().catch(() => ({})) || {}
                 console.error('Failed to set session:', errorData)
                 throw new Error('Failed to set session: ' + (errorData.error || 'Unknown error'))
               }

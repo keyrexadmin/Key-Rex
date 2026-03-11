@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   
   const k1 = generateChallenge()
   const domain = request.nextUrl.origin
-  const callbackUrl = `${domain}/api/admin/auth/login?k1=${encodeURIComponent(k1)}`
+  const callbackUrl = `${domain}/api/admin/auth/login?tag=login&k1=${encodeURIComponent(k1)}`
   const lnurlBech32 = encodeLNURL(callbackUrl)
   
   console.log('=== /api/admin/auth/lnurl called ===')
