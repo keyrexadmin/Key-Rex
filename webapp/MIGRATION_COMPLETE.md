@@ -275,9 +275,9 @@ contact_submissions (8 columns, 3 indexes)
 
 Set these in Vercel project settings:
 ```bash
-DATABASE_URL="postgresql://neondb_owner:npg_Rqaxe3nS5Dgr@ep-solitary-leaf-ae2tpydp-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&connection_limit=5&pool_timeout=20"
+DATABASE_URL="postgresql://[REDACTED]/neondb?sslmode=require&connection_limit=5&pool_timeout=20"
 
-DATABASE_URL_UNPOOLED="postgresql://neondb_owner:npg_Rqaxe3nS5Dgr@ep-solitary-leaf-ae2tpydp.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL_UNPOOLED="postgresql://[REDACTED]/neondb?sslmode=require"
 ```
 
 ---

@@ -2,6 +2,27 @@
 
 This guide helps Copilot work effectively in the Key-Rex monorepo.
 
+## ⚠️ Security: Never Commit Secrets
+
+**Critical:** The repository uses `.env.local` and `.env` files that are properly gitignored. These contain:
+- Database credentials (Neon PostgreSQL)
+- Admin wallet xpubs
+- JWT tokens
+- Vercel OIDC tokens
+
+**Rules:**
+- ❌ **NEVER** include real credentials in markdown files or code
+- ❌ **NEVER** commit `.env` files with real secrets
+- ✅ Use `.env.example` as a template showing only placeholders
+- ✅ Use environment variable syntax in documentation (e.g., `${DATABASE_URL}`)
+- ✅ Document HOW to obtain values, not the values themselves
+- ✅ Always refer to `.env.example` when showing config examples
+
+**If you accidentally see credentials:**
+1. Never mention them in code or documentation
+2. Treat them as compromised and request they be rotated
+3. Remove them from any markdown files immediately
+
 ## Build, Test, and Lint Commands
 
 ### Monorepo Root

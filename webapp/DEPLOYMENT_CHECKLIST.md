@@ -18,10 +18,10 @@ Set these in the Vercel project dashboard:
 
 ```bash
 # Pooled connection (for queries)
-DATABASE_URL="postgresql://neondb_owner:npg_Rqaxe3nS5Dgr@ep-solitary-leaf-ae2tpydp-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&connection_limit=5&pool_timeout=20"
+DATABASE_URL="postgresql://[REDACTED]/neondb?sslmode=require&connection_limit=5&pool_timeout=20"
 
 # Direct connection (for migrations)
-DATABASE_URL_UNPOOLED="postgresql://neondb_owner:npg_Rqaxe3nS5Dgr@ep-solitary-leaf-ae2tpydp.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL_UNPOOLED="postgresql://[REDACTED]/neondb?sslmode=require"
 ```
 
 ### Optional Variables
