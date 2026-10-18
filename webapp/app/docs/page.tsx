@@ -78,6 +78,9 @@ export default function Docs() {
                 <p className="text-sm text-orange-200">
                   <strong>New to Key-Rex?</strong> <Link href="/" className="underline hover:text-orange-300">Sign in with your Lightning wallet and complete the setup wizard</Link> to get your integration code and access your personalized dashboard with account-specific examples.
                 </p>
+                <p className="text-sm text-orange-200 mt-2">
+                  <strong>Already integrated?</strong> Your backend needs a required update. See the <Link href="/docs/migration" className="underline hover:text-orange-300">existing customer migration guide</Link>.
+                </p>
               </div>
             </div>
 
@@ -146,7 +149,7 @@ export default function Docs() {
                       <strong>Never create a session from the raw xpub.</strong> It is not a secret.
                     </p>
                     <p className="text-white/300 mt-4">
-                      See <a href="#security-update" className="text-orange-400 hover:text-orange-300">Verify Login Tokens</a> and the <a href="#backend-integration" className="text-orange-400 hover:text-orange-300">Backend Integration</a> section.
+                      See the <a href="#backend-integration" className="text-orange-400 hover:text-orange-300">Backend Integration</a> section for the full example. Already a customer? See the <Link href="/docs/migration" className="underline hover:text-orange-300">migration guide</Link>.
                     </p>
                   </div>
 
@@ -336,13 +339,18 @@ export default function Docs() {
 {`<!-- Set up callbacks BEFORE loading the script -->
 <script>
   window.KeyRex = window.KeyRex || {};
-  window.KeyRex.onSuccess = function(xpub) {
-    console.log('User authenticated:', xpub);
-    // Send xpub to your backend
-    fetch('/api/auth/callback', {
+
+  // Ask YOUR backend for a one-time nonce for this login attempt
+  fetch('/api/keyrex/nonce', { method: 'POST' })
+    .then(r => r.json())
+    .then(({ nonce }) => { window.KeyRex.nonce = nonce; });
+
+  window.KeyRex.onSuccess = function(xpub, token) {
+    // Send only the signed token to your backend (never the xpub)
+    fetch('/api/auth/keyrex', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ xpub: xpub })
+      body: JSON.stringify({ token: token })
     })
     .then(response => response.json())
     .then(data => {
@@ -394,7 +402,7 @@ export default function Docs() {
               <Card className="p-8 bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Framework Examples</h2>
                 <p className="text-white/300 leading-relaxed">
-                  Choose your framework below to see a complete integration example. All examples follow the same pattern: set up callbacks, load the script, and handle the xpub in your backend.
+                  Choose your framework below to see a complete integration example. All examples follow the same pattern: create a nonce, set up callbacks, load the script, and verify the signed login token in your backend (see Backend Integration).
                 </p>
               </Card>
             </div>
@@ -414,13 +422,18 @@ function LoginPage() {
   useEffect(() => {
     // Set up callbacks
     window.KeyRex = window.KeyRex || {};
-    window.KeyRex.onSuccess = function(xpub) {
-      console.log('User authenticated:', xpub);
-      // Handle authentication
-      fetch('/api/auth/callback', {
+
+    // Ask YOUR backend for a one-time nonce for this login attempt
+    fetch('/api/keyrex/nonce', { method: 'POST' })
+      .then(r => r.json())
+      .then(({ nonce }) => { window.KeyRex.nonce = nonce; });
+
+    window.KeyRex.onSuccess = function(xpub, token) {
+      // Send only the signed token to your backend (never the xpub)
+      fetch('/api/auth/keyrex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ xpub: xpub })
+        body: JSON.stringify({ token: token })
       })
       .then(response => response.json())
       .then(data => {
@@ -483,13 +496,18 @@ import { onMounted, onUnmounted } from 'vue';
 onMounted(() => {
   // Set up callbacks
   window.KeyRex = window.KeyRex || {};
-  window.KeyRex.onSuccess = function(xpub) {
-    console.log('User authenticated:', xpub);
-    // Handle authentication
-    fetch('/api/auth/callback', {
+
+  // Ask YOUR backend for a one-time nonce for this login attempt
+  fetch('/api/keyrex/nonce', { method: 'POST' })
+    .then(r => r.json())
+    .then(({ nonce }) => { window.KeyRex.nonce = nonce; });
+
+  window.KeyRex.onSuccess = function(xpub, token) {
+    // Send only the signed token to your backend (never the xpub)
+    fetch('/api/auth/keyrex', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ xpub: xpub })
+      body: JSON.stringify({ token: token })
     })
     .then(response => response.json())
     .then(data => {
@@ -537,13 +555,18 @@ export default function LoginPage() {
   useEffect(() => {
     // Set up callbacks
     window.KeyRex = window.KeyRex || {};
-    window.KeyRex.onSuccess = function(xpub) {
-      console.log('User authenticated:', xpub);
-      // Handle authentication
-      fetch('/api/auth/callback', {
+
+    // Ask YOUR backend for a one-time nonce for this login attempt
+    fetch('/api/keyrex/nonce', { method: 'POST' })
+      .then(r => r.json())
+      .then(({ nonce }) => { window.KeyRex.nonce = nonce; });
+
+    window.KeyRex.onSuccess = function(xpub, token) {
+      // Send only the signed token to your backend (never the xpub)
+      fetch('/api/auth/keyrex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ xpub: xpub })
+        body: JSON.stringify({ token: token })
       })
       .then(response => response.json())
       .then(data => {
@@ -602,13 +625,18 @@ export default function LoginPage() {
   <!-- Set up callbacks BEFORE loading script -->
   <script>
     window.KeyRex = window.KeyRex || {};
-    window.KeyRex.onSuccess = function(xpub) {
-      console.log('User authenticated:', xpub);
-      // Send to your backend
-      fetch('/api/auth/callback', {
+
+    // Ask YOUR backend for a one-time nonce for this login attempt
+    fetch('/api/keyrex/nonce', { method: 'POST' })
+      .then(r => r.json())
+      .then(({ nonce }) => { window.KeyRex.nonce = nonce; });
+
+    window.KeyRex.onSuccess = function(xpub, token) {
+      // Send only the signed token to your backend (never the xpub)
+      fetch('/api/auth/keyrex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ xpub: xpub })
+        body: JSON.stringify({ token: token })
       })
       .then(response => response.json())
       .then(data => {
@@ -636,26 +664,22 @@ export default function LoginPage() {
               </Card>
             </section>
 
-            {/* Required Security Update */}
-            <section id="security-update">
-              <Card className="p-8 bg-dark-200/90 border-2 border-red-500/50">
-                <h2 className="text-2xl font-bold text-white mb-4">Required: Verify Login Tokens (Security Update)</h2>
+            {/* Backend Integration */}
+            <section id="backend-integration">
+              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
+                <h2 className="text-2xl font-bold text-white mb-4">Backend Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-4">
-                  The identifier (xpub) is derived from a public key and is <strong>not a secret</strong>. It is the same on every Key-Rex site, so anyone who knows it could present it to your backend and be treated as that user.
-                  <strong> Your backend must stop trusting the raw identifier</strong> and verify the signed login token Key-Rex now provides.
-                  The raw identifier will stop being delivered after the sunset date announced in your dashboard.
+                  Key-Rex gives your site a short-lived <strong>signed login token</strong> for every login. Your backend verifies it, then creates the session. The identifier (xpub) is not a secret, so never create a session from it alone.
                 </p>
 
                 <div className="space-y-6">
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-4">What you need to do</h3>
+                    <h3 className="text-xl font-semibold text-white mb-4">How it works</h3>
                     <ol className="list-decimal list-inside space-y-3 text-white/200 text-base leading-relaxed">
-                      <li><strong>Stop trusting the raw xpub.</strong> Never create a session from an xpub sent by the browser, a URL parameter or a request body. Remove any endpoint that does this.</li>
                       <li><strong>Create a nonce per login attempt</strong> on your backend (at least 128 bits of randomness, characters <code className="bg-dark-900 px-1 rounded">A-Z a-z 0-9 _ -</code>, 16 to 128 long). Store it in the visitor's pre-login session and set <code className="bg-dark-900 px-1 rounded">window.KeyRex.nonce</code> before the user clicks login.</li>
-                      <li><strong>Receive the token.</strong> <code className="bg-dark-900 px-1 rounded">onSuccess(xpub, token)</code> now passes a signed JWT as the second argument. Send only the <code className="bg-dark-900 px-1 rounded">token</code> to your backend.</li>
+                      <li><strong>Receive the token.</strong> <code className="bg-dark-900 px-1 rounded">onSuccess(xpub, token)</code> provides a signed JWT as the second argument. Send only the <code className="bg-dark-900 px-1 rounded">token</code> to your backend.</li>
                       <li><strong>Verify the token on your backend</strong> using Key-Rex's public keys at <code className="bg-dark-900 px-1 rounded">/.well-known/jwks.json</code> (cache them). Check: algorithm is ES256 only; <code className="bg-dark-900 px-1 rounded">iss</code> is the Key-Rex base URL; <code className="bg-dark-900 px-1 rounded">aud</code> is <strong>your own siteId</strong>; not expired; <code className="bg-dark-900 px-1 rounded">nonce</code> matches the one you stored (then discard it); <code className="bg-dark-900 px-1 rounded">jti</code> not seen before.</li>
-                      <li><strong>Then create the session</strong> using the token's <code className="bg-dark-900 px-1 rounded">sub</code> claim as the user ID. It is unique per user per site, so it differs from the xpub other sites see.</li>
-                      <li><strong>Migrate existing accounts.</strong> While the transition lasts, the token also carries <code className="bg-dark-900 px-1 rounded">legacy_sub</code> (the old xpub). Look up existing users by it, then store <code className="bg-dark-900 px-1 rounded">sub</code> on the account so future logins match by <code className="bg-dark-900 px-1 rounded">sub</code>.</li>
+                      <li><strong>Create the session</strong> using the token's <code className="bg-dark-900 px-1 rounded">sub</code> claim as the user ID. It is unique per user per site.</li>
                       <li><strong>Test</strong> that a bare identifier, a token for another site, an expired token, a wrong nonce and a replayed token are all rejected.</li>
                     </ol>
                   </div>
@@ -684,11 +708,17 @@ window.KeyRex.onSuccess = function(xpub, token) {
                     <h3 className="text-xl font-semibold text-white mb-4">Backend (Node.js, using jose)</h3>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`import { createRemoteJWKSet, jwtVerify } from 'jose';
+{`import crypto from 'crypto';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 const KEYREX = process.env.KEYREX_BASE_URL;   // e.g. https://key-rex.com
 const SITE_ID = process.env.KEYREX_SITE_ID;   // your own siteId
 const jwks = createRemoteJWKSet(new URL(KEYREX + '/.well-known/jwks.json'));
+
+app.post('/api/keyrex/nonce', (req, res) => {
+  req.session.keyrexNonce = crypto.randomBytes(24).toString('base64url');
+  res.json({ nonce: req.session.keyrexNonce });
+});
 
 async function verifyKeyRexToken(token, expectedNonce) {
   const { payload } = await jwtVerify(token, jwks, {
@@ -710,8 +740,7 @@ app.post('/api/auth/keyrex', async (req, res) => {
     const expected = req.session.keyrexNonce;
     req.session.keyrexNonce = null;           // single use
     const claims = await verifyKeyRexToken(req.body.token, expected);
-    // Existing users: match by claims.legacy_sub once, then save claims.sub
-    const user = await findOrCreateUserBySub(claims.sub, claims.legacy_sub);
+    const user = await findOrCreateUserBySub(claims.sub);
     req.session.userId = user.id;
     res.json({ success: true });
   } catch (e) {
@@ -724,137 +753,21 @@ app.post('/api/auth/keyrex', async (req, res) => {
 
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded p-4">
                     <p className="text-sm text-orange-200">
-                      <strong>Also:</strong> review your logs for logins that do not match real Key-Rex wallet activity, never log tokens, and keep tokens out of URLs where possible. The examples further below that read a bare <code className="bg-orange-600/30 px-1 rounded">xpub</code> show the legacy flow and must not be used for new integrations.
+                      <strong>Security:</strong> never log tokens, and keep tokens out of URLs where possible. Existing customer? See the <Link href="/docs/migration" className="underline hover:text-orange-300">migration guide</Link>.
                     </p>
-                  </div>
-                </div>
-              </Card>
-            </section>
-
-            {/* Backend Integration */}
-            <section id="backend-integration">
-              <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
-                <h2 className="text-2xl font-bold text-white mb-4">Backend Integration</h2>
-                <p className="text-white/300 leading-relaxed mb-6">
-                  <strong className="text-orange-300">Legacy examples.</strong> The examples below show the old flow that trusts a bare xpub. This is insecure; use the token verification shown in <a href="#security-update" className="text-orange-400 hover:text-orange-300">Verify Login Tokens</a>. Only the session-handling structure is still relevant.
-                </p>
-
-                <div className="space-y-6">
-                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-4">Node.js/Express Example</h3>
-                    <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
-                      <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`const express = require('express');
-const session = require('express-session');
-const app = express();
-
-app.use(express.json());
-app.use(session({
-  secret: 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: true, httpOnly: true }
-}));
-
-// Handle Key-Rex authentication callback
-app.post('/api/auth/callback', (req, res) => {
-  const { xpub } = req.body;
-  
-  if (!xpub) {
-    return res.status(400).json({ error: 'Missing xpub' });
-  }
-  
-  // Find or create user by xpub
-  // In a real app, you'd query your database
-  let user = findUserByXpub(xpub);
-  
-  if (!user) {
-    // Create new user
-    user = createUser(xpub);
-  }
-  
-  // Create session
-  req.session.userId = user.id;
-  req.session.xpub = xpub;
-  
-  res.json({ 
-    success: true, 
-    user: { id: user.id, xpub: xpub } 
-  });
-});
-
-function findUserByXpub(xpub) {
-  // Query your database
-  // Return user object or null
-}
-
-function createUser(xpub) {
-  // Create new user in database
-  // Return user object
-}`}
-                      </pre>
-                    </div>
-                  </div>
-
-                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-4">Python/Flask Example</h3>
-                    <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
-                      <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`from flask import Flask, request, jsonify, session
-from flask_session import Session
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key'
-app.config['SESSION_TYPE'] = 'filesystem'
-Session(app)
-
-@app.route('/api/auth/callback', methods=['POST'])
-def auth_callback():
-    data = request.json
-    xpub = data.get('xpub')
-    
-    if not xpub:
-        return jsonify({'error': 'Missing xpub'}), 400
-    
-    # Find or create user by xpub
-    user = find_user_by_xpub(xpub)
-    
-    if not user:
-        user = create_user(xpub)
-    
-    # Create session
-    session['user_id'] = user['id']
-    session['xpub'] = xpub
-    
-    return jsonify({
-        'success': True,
-        'user': {'id': user['id'], 'xpub': xpub}
-    })
-
-def find_user_by_xpub(xpub):
-    # Query your database
-    # Return user dict or None
-    pass
-
-def create_user(xpub):
-    # Create new user in database
-    # Return user dict
-    pass`}
-                      </pre>
-                    </div>
                   </div>
 
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
                     <h3 className="text-xl font-semibold text-white mb-4">Database Schema Example</h3>
                     <p className="text-white/300 mb-4">
-                      Here's a simple database schema for storing users:
+                      Store the token's <code className="bg-dark-900 px-1 rounded">sub</code> claim as the user's Key-Rex identifier:
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
 {`-- Users table
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-  xpub VARCHAR(255) UNIQUE NOT NULL,
+  keyrex_sub VARCHAR(255) UNIQUE NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login TIMESTAMP
 );
@@ -890,8 +803,8 @@ CREATE TABLE sessions (
                       <li>Extension prompts user to approve sign-in request</li>
                       <li>User approves in extension</li>
                       <li>Extension returns signature directly to script</li>
-                      <li>Script calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub)</code> callback</li>
-                      <li>Your code receives xpub and creates user session</li>
+                      <li>Script calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub, token)</code> callback</li>
+                      <li>Your backend verifies the token and creates the user session</li>
                     </ol>
                     <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 mt-4">
                       <p className="text-xs text-blue-200">
@@ -908,9 +821,9 @@ CREATE TABLE sessions (
                       <li>User scans QR code with mobile Lightning wallet</li>
                       <li>Wallet authenticates and calls Key-Rex callback server</li>
                       <li>Popup detects authentication via polling</li>
-                      <li>Popup sends xpub to main window via postMessage</li>
-                      <li>Script calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub)</code> callback</li>
-                      <li>Your code receives xpub and creates user session</li>
+                      <li>Popup sends the login token to main window via postMessage</li>
+                      <li>Script calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub, token)</code> callback</li>
+                      <li>Your backend verifies the token and creates the user session</li>
                     </ol>
                     <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 mt-4">
                       <p className="text-xs text-yellow-200">
@@ -928,10 +841,10 @@ CREATE TABLE sessions (
                       <li>User scans QR code with another device or switches to wallet app</li>
                       <li>Wallet authenticates and calls Key-Rex callback server</li>
                       <li>QR page detects authentication and redirects back to your site</li>
-                      <li>Redirect includes xpub in URL parameter: <code className="bg-dark-900 px-1 rounded">?xpub=...</code></li>
-                      <li>Script detects xpub in URL and calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub)</code> callback</li>
+                      <li>Redirect includes the login token in a URL parameter: <code className="bg-dark-900 px-1 rounded">?keyrex_token=...</code></li>
+                      <li>Script detects the token in the URL and calls your <code className="bg-dark-900 px-1 rounded">Key-Rex.onSuccess(xpub, token)</code> callback</li>
                       <li>URL parameter is automatically cleaned up</li>
-                      <li>Your code receives xpub and creates user session</li>
+                      <li>Your backend verifies the token and creates the user session</li>
                     </ol>
                   </div>
                 </div>
@@ -970,17 +883,16 @@ KeyRex.init();`}
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
                     <h3 className="text-xl font-semibold text-white mb-4">Key-Rex.onSuccess(xpub, token)</h3>
                     <p className="text-white/300 mb-4">
-                      <strong>Description:</strong> Callback function called when authentication succeeds. Receives the user's xpub (a non-secret identifier, deprecated for authentication) and a signed login <code className="bg-dark-900 px-1 rounded">token</code> (JWT). Send only the token to your backend and verify it; see Verify Login Tokens.
+                      <strong>Description:</strong> Callback function called when authentication succeeds. Receives the user's xpub (a non-secret identifier, deprecated for authentication) and a signed login <code className="bg-dark-900 px-1 rounded">token</code> (JWT).                       send only the token to your backend and verify it; see <a href="#backend-integration" className="text-orange-400 hover:text-orange-300">Backend Integration</a>.
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.KeyRex.onSuccess = function(xpub) {
-  console.log('User authenticated:', xpub);
-  // Send xpub to your backend
-  fetch('/api/auth/callback', {
+{`window.KeyRex.onSuccess = function(xpub, token) {
+  // Send only the signed token to your backend (never the xpub)
+  fetch('/api/auth/keyrex', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ xpub: xpub })
+    body: JSON.stringify({ token: token })
   })
   .then(response => response.json())
   .then(data => {
@@ -1073,7 +985,7 @@ KeyRex.init();`}
                       <li>Never create a session from a bare xpub. Always verify the signed login token (and its nonce) on your backend</li>
                       <li>Use HTTPS for all authentication requests</li>
                       <li>Implement proper session management with secure, HTTP-only cookies</li>
-                      <li>Never store sensitive data using only xpub as identifier - use proper user IDs</li>
+                      <li>Never rely on the identifier alone - use your own user IDs mapped to the token's sub claim</li>
                     </ul>
                   </div>
 
@@ -1119,8 +1031,8 @@ KeyRex
 // Check if button exists
 document.getElementById('keyrex-button')
 
-// Check for xpub in URL
-new URLSearchParams(window.location.search).get('xpub')
+// Check for a login token in URL (mobile redirect)
+new URLSearchParams(window.location.search).get('keyrex_token')
 
 // Check for cookies (Note: Key-Rex cookies are httpOnly and won't appear here)
 // Use DevTools → Application → Cookies to view httpOnly cookies
@@ -1149,8 +1061,8 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                       <li>Test on desktop browser without WebLN (should show QR popup)</li>
                       <li>Test on mobile device (should redirect to QR page)</li>
                       <li>Test with popup blocker enabled (should fallback to redirect)</li>
-                      <li>Verify xpub is received in onSuccess callback</li>
-                      <li>Verify backend receives xpub and creates session</li>
+                      <li>Verify the token is received in the onSuccess callback</li>
+                      <li>Verify your backend verifies the token and creates a session</li>
                       <li>Test session persistence across page reloads</li>
                     </ol>
                   </div>
@@ -1274,7 +1186,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
 {`window.addEventListener('message', function(event) {
   if (event.data && event.data.type === 'keyrex-auth-success') {
-    const xpub = event.data.xpub;
+    const token = event.data.token; // verify on your backend
     // Handle authentication
   } else if (event.data && event.data.type === 'keyrex-auth-error') {
     const error = event.data.error;
@@ -1288,17 +1200,17 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                   </div>
 
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-4">xpub Retrieval Methods</h3>
+                    <h3 className="text-xl font-semibold text-white mb-4">Login Token Retrieval Methods</h3>
                     <p className="text-white/300 mb-4">
-                      The xpub can be delivered in multiple ways:
+                      The signed login token can be delivered in multiple ways:
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
-                      <li><strong>URL Parameters:</strong> Mobile/redirect flow includes <code className="bg-dark-900 px-1 rounded">?xpub=...</code> in URL</li>
-                      <li><strong>postMessage:</strong> Desktop popup sends xpub via postMessage</li>
+                      <li><strong>URL Parameters:</strong> Mobile/redirect flow includes <code className="bg-dark-900 px-1 rounded">?keyrex_token=...</code> in URL (removed from the address bar automatically)</li>
+                      <li><strong>postMessage:</strong> Desktop popup sends the token via postMessage</li>
                       <li><strong>Cookies:</strong> Fallback method using cookies (automatically cleaned up)</li>
                     </ul>
                     <p className="text-white/300 mt-4">
-                      The Key-Rex script handles all these methods automatically and calls your <code className="bg-dark-900 px-1 rounded">onSuccess</code> callback with the xpub.
+                      The Key-Rex script handles all these methods automatically and calls your <code className="bg-dark-900 px-1 rounded">onSuccess</code> callback with the token. Always verify it on your backend.
                     </p>
                   </div>
                 </div>
@@ -1323,7 +1235,7 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                       <li>User signs in with existing method (email/password, etc.)</li>
                       <li>User clicks "Link Lightning Wallet" button</li>
                       <li>User authenticates with Key-Rex</li>
-                      <li>Store xpub in user's account record</li>
+                      <li>Store the token's <code className="bg-dark-900 px-1 rounded">sub</code> in the user's account record</li>
                       <li>Future sign-ins can use either method</li>
                     </ol>
                   </div>
@@ -1335,9 +1247,9 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-white/300 ml-4">
                       <li>User clicks Key-Rex button and authenticates</li>
-                      <li>Your backend receives xpub</li>
-                      <li>Check if user exists by xpub</li>
-                      <li>If not, create new user account with xpub</li>
+                      <li>Your backend receives the login token and verifies it</li>
+                      <li>Check if a user exists with the token's <code className="bg-dark-900 px-1 rounded">sub</code></li>
+                      <li>If not, create a new user account with that <code className="bg-dark-900 px-1 rounded">sub</code></li>
                       <li>Create session and redirect to dashboard</li>
                     </ol>
                   </div>
@@ -1409,9 +1321,9 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                   </div>
 
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-3">Is the xpub unique per user?</h3>
+                    <h3 className="text-xl font-semibold text-white mb-3">Is the user identifier unique per user?</h3>
                     <p className="text-white/300">
-                      Yes, each Lightning wallet has a unique xpub. You can use it as a user identifier, but it's recommended to create your own user IDs and store the xpub as a linked identifier.
+                      Yes. The token's <code className="bg-dark-900 px-1 rounded">sub</code> claim is unique per wallet and per site, so the same wallet has a different <code className="bg-dark-900 px-1 rounded">sub</code> on every site. Use it as a linked identifier on your own user record. Never treat it as a secret or as proof of login by itself; always verify the token.
                     </p>
                   </div>
                 </div>
@@ -1441,8 +1353,9 @@ window.open('about:blank', 'test', 'width=100,height=100')`}
                     <h3 className="text-lg font-semibold text-white mb-3">With Callbacks</h3>
                     <div className="bg-dark-950 rounded-lg p-3 border border-dark-700 overflow-x-auto">
                       <pre className="text-xs text-white/200 font-mono whitespace-pre-wrap break-words">
-{`window.KeyRex.onSuccess = (xpub) => {
-  // Handle success
+{`window.KeyRex.nonce = nonceFromYourBackend;
+window.KeyRex.onSuccess = (xpub, token) => {
+  // Send token to your backend for verification
 };
 window.KeyRex.onError = (error) => {
   // Handle error
@@ -1464,8 +1377,8 @@ window.KeyRex.onError = (error) => {
                     <h3 className="text-lg font-semibold text-white mb-3">Backend Endpoint</h3>
                     <div className="bg-dark-950 rounded-lg p-3 border border-dark-700 overflow-x-auto">
                       <pre className="text-xs text-white/200 font-mono whitespace-pre-wrap break-words">
-{`POST /api/auth/callback
-Body: { xpub: "xpub_..." }`}
+{`POST /api/auth/keyrex
+Body: { token: "<signed JWT>" }`}
                       </pre>
                     </div>
                   </div>
