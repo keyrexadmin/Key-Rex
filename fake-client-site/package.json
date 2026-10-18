@@ -4,7 +4,11 @@
   "description": "Example client site for testing Key-Rex authentication locally",
   "private": true,
   "scripts": {
-    "dev": "node ../webapp/scripts/serve-fake-client.js",
-    "start": "node ../webapp/scripts/serve-fake-client.js"
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node test-verify.js"
+  },
+  "dependencies": {
+    "jose": "^6.2.12"
   }
 }

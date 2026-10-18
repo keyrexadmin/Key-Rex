@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "dev:client": "node scripts/serve-fake-client.js",
+    "dev:client": "node ../fake-client-site/server.js",
     "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",

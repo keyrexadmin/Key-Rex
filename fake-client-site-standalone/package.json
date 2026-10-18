@@ -4,6 +4,10 @@
   "description": "Standalone example client site for testing Key-Rex authentication - can be deployed independently",
   "private": true,
   "scripts": {
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "test": "node test-api.js"
+  },
+  "dependencies": {
+    "jose": "^6.2.12"
   }
 }
