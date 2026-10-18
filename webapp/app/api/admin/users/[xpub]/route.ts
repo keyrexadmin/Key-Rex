@@ -1,3 +1,4 @@
+import { getAdminSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie } from '@/lib/admin-auth'
 import { getUserByXpub, getUsageStats, getActivityLogs } from '@/lib/storage'
@@ -13,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ xpub: string }> }
 ) {
   // SECURITY: Rate limiting - prevent cost abuse (per-admin)
-  const adminSession = request.cookies.get('admin_session')?.value
+  const adminSession = getAdminSession(request)
   const identifier = adminSession || 'anonymous'
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
   if (!rateLimit.allowed) {

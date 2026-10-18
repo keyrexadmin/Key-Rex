@@ -368,6 +368,10 @@ export default function EmbedCode({ siteId, hasCustomStyling = false, customCSS,
           <li>Add a container element where you want the login button to appear: <code className="bg-dark-900 px-1 rounded text-orange-400">&lt;div id="keyrex-container"&gt;&lt;/div&gt;</code></li>
           <li>Save your website and the Key-Rex login button will appear automatically</li>
         </ol>
+        <p className="mt-3 text-sm text-yellow-300">
+          Important: the identifier Key-Rex returns is not a secret. Your server must verify the signed login token before starting a session.{' '}
+          <a href="/docs" className="underline">See the integration guide</a>
+        </p>
       </div>
 
       {/* Your Integration Code - Moved to second position */}

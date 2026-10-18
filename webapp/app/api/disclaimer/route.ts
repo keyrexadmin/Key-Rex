@@ -1,9 +1,10 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, updateUser } from '@/lib/storage'
 import { signCookieData, verifyCookieData } from '@/lib/cookie-signing'
 
 export async function POST(request: NextRequest) {
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   
   console.log('=== Disclaimer Acceptance API called ===')
   console.log('Cookie xpub:', xpub ? xpub.substring(0, 20) + '...' : 'NOT FOUND')

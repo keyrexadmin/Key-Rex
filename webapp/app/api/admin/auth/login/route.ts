@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { signSession } from '@/lib/session'
 import { verifySignature, deriveXpub } from '@/lib/auth'
 import { isAdminXpub } from '@/lib/admin-auth'
 import { validateDashboardOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
-import { storeAuthSession, getAuthSession } from '@/lib/storage'
+import { storeAuthSession, getAuthSession, consumeAuthChallenge } from '@/lib/storage'
 
 /**
  * Admin Login API Route
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
     if (process.env.NODE_ENV === 'production') {
       cookieOptions.secure = true
     }
-    response.cookies.set('admin_session', xpub, cookieOptions)
+    response.cookies.set('admin_session', signSession('admin', xpub), cookieOptions)
 
     const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
     Object.entries(corsHeaders).forEach(([k, v]) => {
@@ -136,6 +137,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       error: 'Invalid signature - cryptographic verification failed'
     }, { status: 401 })
+  }
+
+  // SECURITY: k1 must be an issued, unexpired, unused challenge (single use)
+  if (!(await consumeAuthChallenge(k1))) {
+    return NextResponse.json({ error: 'Invalid or expired challenge' }, { status: 401 })
   }
 
   // Derive xpub from pubkey

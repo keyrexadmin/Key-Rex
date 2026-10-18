@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   getAllFeaturedWallets,
@@ -22,7 +23,7 @@ function isAdmin(xpub: string | undefined): boolean {
 
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-admin)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
   if (!rateLimit.allowed) {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
   if (!rateLimit.allowed) {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
   if (!rateLimit.allowed) {
@@ -137,7 +138,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for delete operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
   if (!rateLimit.allowed) {
@@ -173,7 +174,7 @@ export async function DELETE(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
   if (!rateLimit.allowed) {

@@ -19,6 +19,73 @@ import {
 // Auth Session Functions
 // ============================================================================
 
+const AUTH_CHALLENGE_TTL_MS = 5 * 60 * 1000
+
+function cleanK1Value(k1: string): string {
+  return k1.split('&')[0].split('?')[0]
+}
+
+export const AUTH_NONCE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/
+
+/**
+ * Register an issued k1 challenge. Create-only: re-registering an existing k1
+ * never resets its consumed flag, expiry, site binding or nonce.
+ */
+export async function issueAuthChallenge(
+  k1: string,
+  siteId?: string | null,
+  nonce?: string | null
+): Promise<void> {
+  const now = Date.now()
+  await withRetry(async () => {
+    return await prisma.authChallenge.upsert({
+      where: { k1: cleanK1Value(k1) },
+      update: {},
+      create: {
+        k1: cleanK1Value(k1),
+        siteId: siteId || null,
+        nonce: nonce && AUTH_NONCE_PATTERN.test(nonce) ? nonce : null,
+        consumed: false,
+        createdAt: BigInt(now),
+        expiresAt: BigInt(now + AUTH_CHALLENGE_TTL_MS),
+      },
+    })
+  })
+  await maybeCleanupAuthSessions()
+}
+
+export async function getAuthChallenge(k1: string): Promise<{ siteId: string | null; nonce: string | null } | null> {
+  const row = await withRetry(async () => {
+    return await prisma.authChallenge.findUnique({ where: { k1: cleanK1Value(k1) } })
+  })
+  return row ? { siteId: row.siteId, nonce: row.nonce } : null
+}
+
+/**
+ * Atomically consume an issued challenge. Returns true for exactly one caller;
+ * false if the k1 was never issued, already consumed, expired, or bound to a
+ * different siteId. Fails closed on database errors.
+ */
+export async function consumeAuthChallenge(k1: string, siteId?: string | null): Promise<boolean> {
+  try {
+    const result = await withRetry(async () => {
+      return await prisma.authChallenge.updateMany({
+        where: {
+          k1: cleanK1Value(k1),
+          consumed: false,
+          expiresAt: { gt: BigInt(Date.now()) },
+          ...(siteId ? { OR: [{ siteId: null }, { siteId }] } : { siteId: null }),
+        },
+        data: { consumed: true },
+      })
+    })
+    return result.count === 1
+  } catch (error) {
+    console.error('Error consuming auth challenge:', error)
+    return false
+  }
+}
+
 export async function storeAuthSession(k1: string, xpub: string): Promise<void> {
   // Clean k1 of any extra query params
   const cleanK1 = k1.split('&')[0].split('?')[0]
@@ -33,12 +100,8 @@ export async function storeAuthSession(k1: string, xpub: string): Promise<void> 
     await withRetry(async () => {
       return await prisma.authSession.upsert({
         where: { k1: cleanK1 },
-        update: {
-          xpub,
-          used: false,
-          timestamp: BigInt(now),
-          expiresAt: BigInt(expiresAt),
-        },
+        // Never overwrite an existing session: that would reset `used` and enable replay
+        update: {},
         create: {
           k1: cleanK1,
           xpub,
@@ -104,15 +167,14 @@ export async function getAuthSession(k1: string): Promise<string | undefined> {
 export async function markAuthSessionAsUsed(k1: string): Promise<void> {
   const cleanK1 = k1.split('&')[0].split('?')[0]
 
-  try {
-    await prisma.authSession.update({
-      where: { k1: cleanK1 },
-      data: { used: true },
-    })
-    console.log('SECURITY: Marked k1 as used to prevent reuse:', cleanK1.substring(0, 20) + '...')
-  } catch (error) {
-    console.error('Error marking auth session as used:', error)
+  const result = await prisma.authSession.updateMany({
+    where: { k1: cleanK1 },
+    data: { used: true },
+  })
+  if (result.count === 0) {
+    throw new Error('Auth session not found when marking as used')
   }
+  console.log('SECURITY: Marked k1 as used to prevent reuse:', cleanK1.substring(0, 20) + '...')
 }
 
 // ============================================================================

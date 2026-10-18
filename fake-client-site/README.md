@@ -27,6 +27,19 @@ npm run dev:client
 
 Then visit http://localhost:3001
 
+## How login works here (reference integration)
+
+`server.js` is a small backend that follows the secure flow. It never trusts a bare `xpub`:
+
+1. The page calls `POST /api/keyrex/nonce`; the backend stores a one-time nonce in the visitor's session and the page sets `window.KeyRex.nonce`.
+2. `onSuccess(xpub, token)` posts **only the token** to `POST /api/auth/keyrex`.
+3. The backend verifies the token against Key-Rex's `/.well-known/jwks.json` (ES256, issuer, `aud` = this site's ID, expiry, nonce, one-time `jti`), then starts a session keyed by the token's `sub`.
+4. `GET /api/me` returns the signed-in user for the dashboard.
+
+Configuration (environment variables): `KEYREX_BASE_URL` (default `http://localhost:3000`), `KEYREX_SITE_ID` (must match the siteId in `index.html`), `PORT`.
+
+Run `npm test --workspace fake-client-site` to check that bare identifiers, replayed tokens, wrong nonces, other-site tokens, expired tokens and `alg: none` are all rejected.
+
 ## What's Inside
 
 - **`index.html`** - Professional landing page with feature highlights and auth integration

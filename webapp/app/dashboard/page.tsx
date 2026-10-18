@@ -636,6 +636,14 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<'overview' | 'login-code' | 'domains' | 'analytics' | 'documentation' | 'troubleshooting' | 'settings'>('overview')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   // Removed: Disclaimer modal - disclaimer is now only shown in OnboardingWizard Step 4
+  const [legacyFlow, setLegacyFlow] = useState<{ needsMigration: boolean; sunset: string | null } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/integration/status', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d) setLegacyFlow({ needsMigration: !!d.needsMigration, sunset: d.sunset }) })
+      .catch(() => {})
+  }, [])
   
   // Load domains with verification status
   useEffect(() => {
@@ -972,6 +980,18 @@ function DashboardContent() {
             </h1>
                 <p className="text-white/90 text-lg leading-relaxed">Manage your Key-Rex integration</p>
           </div>
+
+          {legacyFlow?.needsMigration && (
+            <div className="rounded-lg border-2 border-yellow-500/60 bg-yellow-500/10 p-4 text-white">
+              <p className="font-semibold">Action required: update your site&apos;s login verification</p>
+              <p className="text-sm text-white/80 mt-1">
+                Your site is still trusting the raw identifier returned at login, which is not a secret and can be reused by anyone who has seen it.
+                Verify the signed login token instead
+                {legacyFlow.sunset ? ` before ${new Date(legacyFlow.sunset).toLocaleDateString()}` : ''}.{' '}
+                <a href="/docs/migration" className="underline text-orange-300">Read the migration guide</a>
+              </p>
+            </div>
+          )}
 
           {/* Tab Navigation */}
           {user && (() => {

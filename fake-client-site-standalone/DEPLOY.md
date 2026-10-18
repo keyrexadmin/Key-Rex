@@ -1,5 +1,9 @@
 # Deployment Instructions
 
+> **Required:** this site now verifies Key-Rex login tokens server-side. Set a `SESSION_SECRET`
+> environment variable (long random string) in Vercel before deploying. "BitPass" below refers to
+> the Key-Rex instance. See `README.md`.
+
 ## Quick Deploy to Vercel
 
 ### Option 1: Using Vercel Dashboard (Easiest)

@@ -554,17 +554,26 @@
       // Set up success and error callbacks
       function setupKeyRexCallbacks() {
         if (window.KeyRex) {
-          window.KeyRex.onSuccess = function(xpub) {
-            console.log('Key-Rex: Authentication successful! xpub:', xpub);
-            
-            const notification = document.createElement('div');
-            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
-            notification.innerHTML = '<span style="font-size: 18px;">✓</span> <span>Authentication successful! Redirecting to dashboard...</span>';
-            document.body.appendChild(notification);
-            
-            setTimeout(function() {
-              window.location.href = 'dashboard.html?xpub=' + encodeURIComponent(xpub);
-            }, 1500);
+          // Ask OUR backend for a one-time nonce; Key-Rex binds it into the signed token
+          fetch('/api/keyrex/nonce', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { window.KeyRex.nonce = d.nonce; });
+          window.KeyRex.onSuccess = function(xpub, token) {
+            // Send only the signed token to our backend; it verifies it before creating a session
+            fetch('/api/auth/keyrex', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: token })
+            }).then(function(r) {
+              if (!r.ok) throw new Error('Login verification failed');
+              const notification = document.createElement('div');
+              notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 10000; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease-out;';
+              notification.innerHTML = '<span style="font-size: 18px;">✓</span> <span>Authentication successful! Redirecting to dashboard...</span>';
+              document.body.appendChild(notification);
+              setTimeout(function() { window.location.href = 'dashboard.html'; }, 1500);
+            }).catch(function(e) {
+              window.KeyRex.onError(e);
+            });
           };
           
           window.KeyRex.onError = function(error) {

@@ -21,6 +21,8 @@ function QRContent() {
   const isAuthenticated = searchParams.get('authenticated') === 'true' // Wallet redirect after auth
   const returnUrl = searchParams.get('returnUrl')
   const parentOrigin = searchParams.get('parentOrigin') // Origin of the parent window (for cross-origin postMessage)
+  const rawNonce = searchParams.get('nonce')
+  const loginNonce = rawNonce && /^[A-Za-z0-9_-]{16,128}$/.test(rawNonce) ? rawNonce : null // Client-supplied per-login nonce, bound into the signed token
   const [qrCode, setQrCode] = useState<string>('')
   const [lnurl, setLnurl] = useState<string>('')
   const [lightningLnurl, setLightningLnurl] = useState<string>('')
@@ -436,6 +438,9 @@ function QRContent() {
     if (siteId) {
       params.push(`siteId=${encodeURIComponent(siteId)}`)
     }
+    if (loginNonce) {
+      params.push(`nonce=${encodeURIComponent(loginNonce)}`)
+    }
     if (params.length > 0) {
       lnurlApiUrl += '?' + params.join('&')
     }
@@ -792,6 +797,7 @@ function QRContent() {
             authSucceededRef.current = true
 
             const xpub = retrieveData.xpub
+            const loginToken: string | undefined = retrieveData.token
 
             // Authentication successful
             setAuthStatus('success')
@@ -822,6 +828,7 @@ function QRContent() {
                 window.opener.postMessage({
                   type: 'keyrex-auth-success',
                   xpub: xpub,
+                  token: loginToken,
                   siteId: siteId,
                   k1: activeK1
                 }, targetOrigin)
@@ -922,12 +929,13 @@ function QRContent() {
                 try {
                   const returnUrlObj = new URL(redirectTo);
                   returnUrlObj.searchParams.set('xpub', xpub);
+                  if (loginToken) returnUrlObj.searchParams.set('keyrex_token', loginToken);
                   redirectTo = returnUrlObj.toString();
                   console.log('Key-Rex QR: Added xpub to returnUrl');
                 } catch (e) {
                   // If returnUrl is relative, append as query param
                   const separator = redirectTo.includes('?') ? '&' : '?';
-                  redirectTo = redirectTo + separator + 'xpub=' + encodeURIComponent(xpub);
+                  redirectTo = redirectTo + separator + 'xpub=' + encodeURIComponent(xpub) + (loginToken ? '&keyrex_token=' + encodeURIComponent(loginToken) : '');
                   console.log('Key-Rex QR: Added xpub to returnUrl (relative path)');
                 }
 
@@ -1086,7 +1094,10 @@ function QRContent() {
     if (!k1 && !loading && !k1FetchRef.current) {
       k1FetchRef.current = true
       setLoading(true)
-      fetch('/api/auth/lnurl', {
+      const fallbackParams = new URLSearchParams()
+      if (siteId) fallbackParams.set('siteId', siteId)
+      if (loginNonce) fallbackParams.set('nonce', loginNonce)
+      fetch('/api/auth/lnurl' + (fallbackParams.toString() ? '?' + fallbackParams.toString() : ''), {
         credentials: 'include',
       })
         .then(async res => {

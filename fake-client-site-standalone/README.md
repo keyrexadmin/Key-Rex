@@ -43,6 +43,20 @@ const KEYREX_SITE_ID = 'a252dfa1030706a49efab31af2fc29d6';
 
 3. Redeploy: `vercel --prod`
 
+### Backend environment variables (required)
+
+The site includes serverless functions in `api/` that verify the Key-Rex login token. Set these in Vercel:
+
+- `SESSION_SECRET` - random string, 32+ characters (signs the session and nonce cookies). Generate with `openssl rand -base64 48`.
+- `KEYREX_BASE_URL` - your Key-Rex instance URL (same as in `index.html`).
+- `KEYREX_SITE_ID` - your site ID (same as in `index.html`).
+
+Without `SESSION_SECRET` every login is rejected.
+
+Login flow: the page gets a nonce from `/api/keyrex/nonce`, `onSuccess(xpub, token)` posts only the token to `/api/auth/keyrex`, and the function verifies it (ES256, issuer, audience = your site ID, expiry, nonce) before setting a signed session cookie. Run `npm test` in this folder to check the rejection cases.
+
+This demo is stateless, so it does not track used `jti` values; the single-use nonce cookie and 60 second token lifetime prevent replay. A production site should also store used `jti` values.
+
 ## Setup (Alternative Methods)
    
    From the monorepo root:

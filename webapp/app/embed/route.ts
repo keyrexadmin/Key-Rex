@@ -105,11 +105,23 @@ export async function GET(request: NextRequest) {
     return isMobileUA || isSmallScreen;
   }
   
+  // Per-login nonce from the client site (window.KeyRex.nonce as a string or a function returning one)
+  function getLoginNonce() {
+    try {
+      const n = window.KeyRex && (typeof window.KeyRex.nonce === 'function' ? window.KeyRex.nonce() : window.KeyRex.nonce);
+      return (typeof n === 'string' && /^[A-Za-z0-9_-]{16,128}$/.test(n)) ? n : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   const handleLogin = async () => {
     try {
       // Ensure config is loaded
       await loadConfig();
       
+      // Optional per-login nonce set by the client site's backend (see docs): bound into the signed token
+      const loginNonce = getLoginNonce();
       // Check if integration is disabled
       if (config && config.integrationEnabled === false) {
         const errorMsg = 'Key-Rex authentication is currently disabled. Please contact the website owner.';
@@ -125,7 +137,7 @@ export async function GET(request: NextRequest) {
       let challenge = null;
       let lnurlBech32 = null;
       try {
-        const lnurlRes = await fetch(baseUrl + '/api/auth/lnurl');
+        const lnurlRes = await fetch(baseUrl + '/api/auth/lnurl?siteId=' + encodeURIComponent(siteId) + (loginNonce ? '&nonce=' + encodeURIComponent(loginNonce) : ''));
         if (lnurlRes.ok) {
           const lnurlData = await lnurlRes.json();
           challenge = lnurlData.k1 || null;
@@ -179,7 +191,7 @@ export async function GET(request: NextRequest) {
             if (verifyRes.ok) {
               const data = await verifyRes.json();
               if (window.KeyRex && window.KeyRex.onSuccess) {
-                window.KeyRex.onSuccess(data.xpub);
+                window.KeyRex.onSuccess(data.xpub, data.token);
               }
               return;
             } else {
@@ -210,7 +222,7 @@ export async function GET(request: NextRequest) {
                   if (callbackData.xpub) {
                     console.log('Key-Rex: Authentication successful, xpub retrieved');
                     if (window.KeyRex && window.KeyRex.onSuccess) {
-                      window.KeyRex.onSuccess(callbackData.xpub);
+                      window.KeyRex.onSuccess(callbackData.xpub, callbackData.token);
                     }
                     return;
                   }
@@ -246,7 +258,7 @@ export async function GET(request: NextRequest) {
       // Pass parent origin so popup can postMessage back to this window (cross-origin)
       const parentOrigin = encodeURIComponent(window.location.origin);
       // Only include k1 param if we have a valid challenge (QR page will generate its own if missing)
-      const qrUrl = baseUrl + '/embed/qr?siteId=' + siteId + (challenge ? '&k1=' + challenge : '') + '&returnUrl=' + returnUrl + '&parentOrigin=' + parentOrigin;
+      const qrUrl = baseUrl + '/embed/qr?siteId=' + siteId + (challenge ? '&k1=' + challenge : '') + (loginNonce ? '&nonce=' + encodeURIComponent(loginNonce) : '') + '&returnUrl=' + returnUrl + '&parentOrigin=' + parentOrigin;
       
       // Mobile: Use full redirect (more reliable, better UX)
       if (isMobileDevice()) {
@@ -335,7 +347,7 @@ export async function GET(request: NextRequest) {
             // Show subtle success notification on parent window
             showSuccessNotification();
             
-            window.KeyRex.onSuccess(xpub);
+            window.KeyRex.onSuccess(xpub, event.data.token);
           }
           
           // Close popup if still open
@@ -744,18 +756,20 @@ export async function GET(request: NextRequest) {
       // Method 1: Check URL params first (QR page redirect passes xpub in URL)
       const urlParams = new URLSearchParams(window.location.search);
       const xpubFromUrl = urlParams.get('xpub');
+      const tokenFromUrl = urlParams.get('keyrex_token');
       
       if (xpubFromUrl) {
         console.log('Key-Rex: Found xpub in URL params (redirect from QR page), calling onSuccess');
         
-        // Clean up URL params (remove xpub from URL without reload)
+        // Clean up URL params (remove xpub and token from URL without reload)
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('xpub');
+        newUrl.searchParams.delete('keyrex_token');
         window.history.replaceState({}, '', newUrl.toString());
         
         // Call success callback
         if (window.KeyRex && window.KeyRex.onSuccess) {
-          window.KeyRex.onSuccess(xpubFromUrl);
+          window.KeyRex.onSuccess(xpubFromUrl, tokenFromUrl || undefined);
         }
         return true; // Found and processed
       }
@@ -785,7 +799,7 @@ export async function GET(request: NextRequest) {
             // Call success callback
             if (window.KeyRex && window.KeyRex.onSuccess) {
               console.log('Key-Rex: Retrieved xpub after returning from QR page, calling onSuccess');
-              window.KeyRex.onSuccess(data.xpub);
+              window.KeyRex.onSuccess(data.xpub, data.token);
             }
           }
         })
@@ -814,7 +828,7 @@ export async function GET(request: NextRequest) {
       const xpub = event.data.xpub;
       if (xpub && window.KeyRex && window.KeyRex.onSuccess) {
         console.log('Key-Rex: Received xpub via postMessage, calling onSuccess');
-        window.KeyRex.onSuccess(xpub);
+        window.KeyRex.onSuccess(xpub, event.data.token);
       }
     }
   });
@@ -861,7 +875,9 @@ export async function GET(request: NextRequest) {
       console.log('Key-Rex: renderButtonAndWallets completed');
     },
     onSuccess: null,
-    onError: null
+    onError: null,
+    // Optional: per-login nonce (string or function) created by the client site's backend
+    nonce: null
   };
   
   // Auto-init if DOM is ready
@@ -914,6 +930,7 @@ export async function GET(request: NextRequest) {
   (function checkUrlParamsImmediately() {
     var immediateParams = new URLSearchParams(window.location.search);
     var xpubFromUrl = immediateParams.get('xpub');
+    var tokenFromUrl = immediateParams.get('keyrex_token');
     
     if (xpubFromUrl) {
       // Wait a bit for customer site to set up onSuccess callback
@@ -921,13 +938,14 @@ export async function GET(request: NextRequest) {
         if (window.KeyRex && window.KeyRex.onSuccess) {
           console.log('Key-Rex: Found xpub in URL params on script load, calling onSuccess');
           
-          // Clean up URL params (remove xpub from URL without reload)
+          // Clean up URL params (remove xpub and token from URL without reload)
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('xpub');
+          newUrl.searchParams.delete('keyrex_token');
           window.history.replaceState({}, '', newUrl.toString());
           
           // Call success callback
-          window.KeyRex.onSuccess(xpubFromUrl);
+          window.KeyRex.onSuccess(xpubFromUrl, tokenFromUrl || undefined);
         } else {
           console.log('Key-Rex: xpub found in URL but onSuccess not set yet, will check in checkForStoredXpub');
         }
