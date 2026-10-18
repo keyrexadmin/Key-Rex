@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { signSession } from '@/lib/session'
 import { verifySignature, deriveXpub } from '@/lib/auth'
 import { getUserByXpub, createUser, consumeAuthChallenge } from '@/lib/storage'
 import { generateSiteId } from '@/lib/utils'
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     
     // Set session cookie
     const response = NextResponse.json({ success: true, xpub: user.xpub })
-    response.cookies.set('user_xpub', xpub, {
+    response.cookies.set('user_xpub', signSession('user', xpub), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

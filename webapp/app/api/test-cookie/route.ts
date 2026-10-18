@@ -1,14 +1,17 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   const cookies = request.cookies.getAll()
-  const userXpub = request.cookies.get('user_xpub')?.value
+  const userXpub = getUserSession(request)
   
   return NextResponse.json({
-    allCookies: cookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' })),
+    allCookies: cookies.map(c => c.name),
     userXpub: userXpub || 'NOT FOUND',
     fullUserXpub: userXpub,
-    headers: Object.fromEntries(request.headers.entries()),
   })
 }
 

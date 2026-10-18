@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub } from '@/lib/storage'
 import { getLoginFlow, isLegacyDeliveryEnabled } from '@/lib/legacy'
@@ -5,7 +6,7 @@ import { getLoginFlow, isLegacyDeliveryEnabled } from '@/lib/legacy'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   if (!xpub) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }

@@ -1,3 +1,5 @@
+import { getUserSession } from '@/lib/session'
+import { signSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, createUser, getAuthSession } from '@/lib/storage'
 import { generateSiteId } from '@/lib/utils'
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
     
     // SECURITY: Invalidate old session cookie before setting new one (Fix #5: Session Fixation)
     // Delete old session cookie if it exists
-    const oldXpub = request.cookies.get('user_xpub')?.value
+    const oldXpub = getUserSession(request)
     if (oldXpub && oldXpub !== xpub) {
       console.log('SECURITY: Invalidating old session cookie (session fixation prevention)')
     }
@@ -134,11 +136,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Set cookie using both methods to ensure it works
-    response.cookies.set('user_xpub', xpub, cookieOptions)
+    response.cookies.set('user_xpub', signSession('user', xpub), cookieOptions)
     
-    // Also try setting it directly in headers as a fallback
-    const cookieString = `user_xpub=${xpub}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax; HttpOnly${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
-    response.headers.append('Set-Cookie', cookieString)
     
     if (process.env.NODE_ENV === 'development') {
       if (process.env.NODE_ENV === 'development') {

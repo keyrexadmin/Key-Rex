@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub } from '@/lib/storage'
 import { verifyCookieData, signCookieData } from '@/lib/cookie-signing'
@@ -5,7 +6,7 @@ import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user for authenticated endpoints)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   // Use xpub as identifier if authenticated, otherwise use IP
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 60, 60000) // 60 requests per minute per user/IP

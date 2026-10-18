@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, updateUser, normalizeDomain, addDomain, createUser, addDomainVerification, updateDomainVerification } from '@/lib/storage'
 import { signCookieData, verifyCookieData } from '@/lib/cookie-signing'
@@ -7,7 +8,7 @@ import { generateVerificationToken } from '@/lib/domain-verification'
 
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limiting - prevent subscription abuse (per-user for authenticated endpoints)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP
   if (!rateLimit.allowed) {

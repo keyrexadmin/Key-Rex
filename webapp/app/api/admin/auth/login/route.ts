@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { signSession } from '@/lib/session'
 import { verifySignature, deriveXpub } from '@/lib/auth'
 import { isAdminXpub } from '@/lib/admin-auth'
 import { validateDashboardOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
     if (process.env.NODE_ENV === 'production') {
       cookieOptions.secure = true
     }
-    response.cookies.set('admin_session', xpub, cookieOptions)
+    response.cookies.set('admin_session', signSession('admin', xpub), cookieOptions)
 
     const corsHeaders = getCorsHeaders(origin, 'GET, OPTIONS')
     Object.entries(corsHeaders).forEach(([k, v]) => {

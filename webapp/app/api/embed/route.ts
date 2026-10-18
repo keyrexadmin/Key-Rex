@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub } from '@/lib/storage'
 import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     return rateLimit.response as NextResponse
   }
   
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const searchParams = request.nextUrl.searchParams
   const type = searchParams.get('type') || 'branded'
   

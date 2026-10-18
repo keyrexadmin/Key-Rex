@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { signSession } from '@/lib/session'
 import { verifySignature, deriveXpub } from '@/lib/auth'
 import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains, getAuthChallenge } from '@/lib/storage'
 import { issueLoginToken, getIssuer } from '@/lib/token'
@@ -447,7 +448,7 @@ export async function GET(request: NextRequest) {
   }
   
   // Try to set cookie (may not work in Alby's context, but worth trying)
-  response.cookies.set('user_xpub', xpub, {
+  response.cookies.set('user_xpub', signSession('user', xpub), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
