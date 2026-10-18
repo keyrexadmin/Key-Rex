@@ -114,6 +114,20 @@ model ActivityLog {
 }
 
 // AuthSessions - temporary k1→xpub mappings (5 min TTL)
+// Issued LNURL-auth challenges. A k1 must be registered here when issued and is
+// consumed exactly once when a verified signature is presented for it.
+model AuthChallenge {
+  id        String  @id @default(cuid())
+  k1        String  @unique
+  siteId    String?
+  consumed  Boolean @default(false)
+  createdAt BigInt
+  expiresAt BigInt
+
+  @@index([expiresAt])
+  @@map("auth_challenges")
+}
+
 model AuthSession {
   id        String   @id @default(cuid())
   k1        String   @unique

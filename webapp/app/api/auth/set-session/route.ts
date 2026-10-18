@@ -54,19 +54,9 @@ export async function POST(request: NextRequest) {
     
     // SECURITY: Verify that this xpub was obtained through proper cryptographic authentication
     // by checking if it exists in the authSessions mapping (created after signature verification)
-    let verifiedXpub = await getAuthSession(cleanK1)
-    
-    // If not found in memory, check cookies (for persistence across serverless instances)
-    if (!verifiedXpub) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Not found in memory, checking cookies...')
-      }
-      const k1CookieName = `auth_k1_${cleanK1.substring(0, 16)}`
-      verifiedXpub = request.cookies.get(k1CookieName)?.value
-      if (verifiedXpub && process.env.NODE_ENV === 'development') {
-        console.log('Found verified xpub in cookie:', k1CookieName)
-      }
-    }
+    // SECURITY: The k1 -> xpub mapping stored in the database after signature verification is the
+    // only trusted source. Client-supplied cookies must never be accepted as proof of authentication.
+    const verifiedXpub = await getAuthSession(cleanK1)
     
     if (!verifiedXpub) {
       if (process.env.NODE_ENV === 'development') {

@@ -3,7 +3,7 @@ import { verifySignature, deriveXpub } from '@/lib/auth'
 import { isAdminXpub } from '@/lib/admin-auth'
 import { validateDashboardOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
-import { storeAuthSession, getAuthSession } from '@/lib/storage'
+import { storeAuthSession, getAuthSession, consumeAuthChallenge } from '@/lib/storage'
 
 /**
  * Admin Login API Route
@@ -136,6 +136,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       error: 'Invalid signature - cryptographic verification failed'
     }, { status: 401 })
+  }
+
+  // SECURITY: k1 must be an issued, unexpired, unused challenge (single use)
+  if (!(await consumeAuthChallenge(k1))) {
+    return NextResponse.json({ error: 'Invalid or expired challenge' }, { status: 401 })
   }
 
   // Derive xpub from pubkey

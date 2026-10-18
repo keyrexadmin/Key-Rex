@@ -20,6 +20,7 @@
     "test:e2e": "node test-e2e.js",
     "test:admin": "node test-admin-e2e.js",
     "test:additional": "node test-additional-e2e.js",
+    "test:challenge": "node tests/test-auth-challenge.js",
     "test:all-automated": "npm run test:e2e && npm run test:admin && npm run test:additional"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { getUserByXpub, createUser, markAuthSessionAsUsed } from '@/lib/storage'
+import { getUserByXpub, createUser, consumeAuthChallenge } from '@/lib/storage'
 import { generateSiteId } from '@/lib/utils'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 
@@ -30,8 +30,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
     
-    // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-    await markAuthSessionAsUsed(k1)
+    // SECURITY: Consume the issued k1 exactly once to prevent replay
+    if (!(await consumeAuthChallenge(k1))) {
+      return NextResponse.json({ error: 'Invalid or expired challenge' }, { status: 401 })
+    }
 
     // Derive xpub from pubkey
     const xpub = deriveXpub(key)

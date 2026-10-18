@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, markAuthSessionAsUsed, getVerifiedDomains } from '@/lib/storage'
+import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, consumeAuthChallenge, getVerifiedDomains } from '@/lib/storage'
 import { detectWallet, detectBrowser, detectDeviceType, isTestDomain } from '@/lib/utils'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 
@@ -93,8 +93,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
     
-    // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-    await markAuthSessionAsUsed(k1)
+    // SECURITY: Consume the issued k1 exactly once to prevent replay
+    if (!(await consumeAuthChallenge(k1, siteId))) {
+      return NextResponse.json({ error: 'Invalid or expired challenge' }, { status: 401 })
+    }
 
     // Detect wallet, browser, and device from User-Agent and signature format
     const userAgent = request.headers.get('user-agent')

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateChallenge } from '@/lib/auth'
 import { encodeLNURL } from '@/lib/lnurl'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
+import { issueAuthChallenge } from '@/lib/storage'
 
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent DoS attacks and cost abuse
@@ -46,6 +47,14 @@ export async function GET(request: NextRequest) {
   }
 
   const lnurlBech32 = encodeLNURL(callbackUrl)
+
+  // Register the challenge so it can be consumed exactly once after signature verification
+  try {
+    await issueAuthChallenge(k1, providedSiteId)
+  } catch (error) {
+    console.error('LNURL: failed to persist challenge:', error)
+    return NextResponse.json({ error: 'Failed to issue challenge' }, { status: 500 })
+  }
 
   // Verify bech32 round-trip to catch encoding issues
   try {

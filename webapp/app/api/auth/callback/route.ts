@@ -116,18 +116,8 @@ export async function GET(request: NextRequest) {
     const { getAuthSession } = await import('@/lib/storage')
     let storedXpub = await getAuthSession(cleanK1ForRetrieval)
     
-    // If not in memory, check cookies
-    if (!storedXpub) {
-      const k1CookieNameForRetrieval = `auth_k1_${cleanK1ForRetrieval.substring(0, 16)}`
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Checking cookie:', k1CookieNameForRetrieval)
-      }
-      storedXpub = request.cookies.get(k1CookieNameForRetrieval)?.value
-      if (storedXpub && process.env.NODE_ENV === 'development') {
-        console.log('Retrieval request: Found xpub in cookie for k1:', cleanK1ForRetrieval.substring(0, 20) + '...')
-      }
-    } else if (process.env.NODE_ENV === 'development') {
-      console.log('Retrieval request: Found xpub in memory storage')
+    if (process.env.NODE_ENV === 'development' && storedXpub) {
+      console.log('Retrieval request: Found xpub in storage')
     }
     
     if (storedXpub) {
@@ -260,9 +250,18 @@ export async function GET(request: NextRequest) {
   // Always log signature verification success (critical for mobile auth debugging)
   console.log('AUTH SUCCESS: Signature verified for k1:', k1.substring(0, 20) + '...')
 
-  // NOTE: k1 is marked as used later by /api/auth/set-session after the browser retrieves the xpub.
-  // We must NOT mark it here because the session hasn't been stored yet (storeAuthSession is below),
-  // and on retries this would mark the existing session as used, preventing the browser from retrieving it.
+  // SECURITY: The k1 must have been issued by us and may be used for exactly one verified
+  // signature. This blocks replay of captured (k1, sig, key) and self-chosen challenges.
+  const { consumeAuthChallenge } = await import('@/lib/storage')
+  if (!(await consumeAuthChallenge(k1, siteId))) {
+    console.warn('AUTH FAILED: k1 unknown, expired, already used, or bound to another site')
+    return NextResponse.json({
+      error: 'Invalid or expired challenge. Please start a new login.'
+    }, { status: 401 })
+  }
+
+  // NOTE: the auth session (k1 -> xpub) is marked as used later by /api/auth/set-session
+  // after the browser retrieves the xpub.
 
   // Derive xpub from pubkey
   const xpub = deriveXpub(key)
@@ -273,16 +272,11 @@ export async function GET(request: NextRequest) {
 
   console.log('Storing auth session:', { k1_prefix: cleanK1.substring(0, 20), k1_length: cleanK1.length, xpub_prefix: xpub.substring(0, 16) })
 
-  // Store in both in-memory (for immediate access) and in a cookie (for persistence)
   const { storeAuthSession } = await import('@/lib/storage')
   await storeAuthSession(cleanK1, xpub)
 
   console.log('AUTH SESSION STORED successfully for k1:', cleanK1.substring(0, 20) + '...')
-  
-  // Also store in a cookie for persistence across requests/workers
-  // Format: k1_xpub mapping as a cookie value
-  // We'll use a cookie named 'auth_k1_<first16chars>' with value xpub
-  const k1CookieName = `auth_k1_${cleanK1.substring(0, 16)}`
+
   
   // Verify it was stored
   const { getAuthSession } = await import('@/lib/storage')
@@ -434,17 +428,7 @@ export async function GET(request: NextRequest) {
     maxAge: 60 * 60 * 24 * 30, // SECURITY: Reduced from 1 year to 30 days
   })
   
-  // Also store k1->xpub mapping in a cookie for retrieval (cleanK1 and k1CookieName already defined above)
-  // SECURITY: Use httpOnly, Secure, and SameSite to prevent XSS and CSRF attacks
-  response.cookies.set(k1CookieName, xpub, {
-    httpOnly: true, // SECURITY: Prevent XSS attacks - cookies not accessible via JavaScript
-    secure: process.env.NODE_ENV === 'production', // SECURITY: Only send over HTTPS in production
-    sameSite: 'lax', // SECURITY: Prevent CSRF attacks
-    path: '/',
-    maxAge: 300, // 5 minutes (same as auth session timeout)
-  })
   if (process.env.NODE_ENV === 'development') {
-    console.log('Set persistence cookie for k1 retrieval:', k1CookieName)
     console.log('=== Dashboard login successful ===')
     console.log('Returning JSON with xpub:', xpub.substring(0, 16) + '...')
     console.log('User in storage:', (await getUserByXpub(xpub)) ? 'YES' : 'NO')
