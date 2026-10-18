@@ -135,15 +135,18 @@ export default function Docs() {
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
                     <h3 className="text-xl font-semibold text-white mb-4">Step 4: Set Up Backend Integration</h3>
                     <p className="text-white/300 mb-4">
-                      When a user authenticates, Key-Rex will call your <code className="bg-dark-900 px-1 rounded">onSuccess</code> callback with their xpub (extended public key). You need to:
+                      When a user authenticates, Key-Rex calls your <code className="bg-dark-900 px-1 rounded">onSuccess(xpub, token)</code> callback with a signed login token. You need to:
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
-                      <li>Receive the xpub in your backend</li>
-                      <li>Create a session for the user</li>
-                      <li>Store the xpub as their user identifier</li>
+                      <li>Create a nonce and set <code className="bg-dark-900 px-1 rounded">KeyRex.nonce</code> before login</li>
+                      <li>Send the token to your backend and verify it (signature, issuer, audience = your siteId, expiry, nonce, jti)</li>
+                      <li>Create a session using the token's <code className="bg-dark-900 px-1 rounded">sub</code> claim as the user ID</li>
                     </ul>
+                    <p className="text-orange-200 mt-4">
+                      <strong>Never create a session from the raw xpub.</strong> It is not a secret.
+                    </p>
                     <p className="text-white/300 mt-4">
-                      See the <a href="#backend-integration" className="text-orange-400 hover:text-orange-300">Backend Integration</a> section for detailed examples.
+                      See <a href="#security-update" className="text-orange-400 hover:text-orange-300">Verify Login Tokens</a> and the <a href="#backend-integration" className="text-orange-400 hover:text-orange-300">Backend Integration</a> section.
                     </p>
                   </div>
 
@@ -261,8 +264,8 @@ export default function Docs() {
                     { id: 5, text: 'Script loads successfully (check browser Network tab)' },
                     { id: 6, text: 'Button appears on webpage' },
                     { id: 7, text: 'Button is clickable and shows wallet options' },
-                    { id: 8, text: 'onSuccess callback set up to receive xpub' },
-                    { id: 9, text: 'Backend endpoint created to handle xpub' },
+                    { id: 8, text: 'KeyRex.nonce set per login and onSuccess sends the token to your backend' },
+                    { id: 9, text: 'Backend verifies the login token (JWKS, aud = your siteId, nonce, jti) before creating a session' },
                     { id: 10, text: 'Session management implemented' },
                     { id: 11, text: 'Tested authentication flow end-to-end' },
                     { id: 12, text: 'Tested on both desktop and mobile devices' },
@@ -633,12 +636,107 @@ export default function LoginPage() {
               </Card>
             </section>
 
+            {/* Required Security Update */}
+            <section id="security-update">
+              <Card className="p-8 bg-dark-200/90 border-2 border-red-500/50">
+                <h2 className="text-2xl font-bold text-white mb-4">Required: Verify Login Tokens (Security Update)</h2>
+                <p className="text-white/300 leading-relaxed mb-4">
+                  The identifier (xpub) is derived from a public key and is <strong>not a secret</strong>. It is the same on every Key-Rex site, so anyone who knows it could present it to your backend and be treated as that user.
+                  <strong> Your backend must stop trusting the raw identifier</strong> and verify the signed login token Key-Rex now provides.
+                  The raw identifier will stop being delivered after the sunset date announced in your dashboard.
+                </p>
+
+                <div className="space-y-6">
+                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
+                    <h3 className="text-xl font-semibold text-white mb-4">What you need to do</h3>
+                    <ol className="list-decimal list-inside space-y-3 text-white/200 text-base leading-relaxed">
+                      <li><strong>Stop trusting the raw xpub.</strong> Never create a session from an xpub sent by the browser, a URL parameter or a request body. Remove any endpoint that does this.</li>
+                      <li><strong>Create a nonce per login attempt</strong> on your backend (at least 128 bits of randomness, characters <code className="bg-dark-900 px-1 rounded">A-Z a-z 0-9 _ -</code>, 16 to 128 long). Store it in the visitor's pre-login session and set <code className="bg-dark-900 px-1 rounded">window.KeyRex.nonce</code> before the user clicks login.</li>
+                      <li><strong>Receive the token.</strong> <code className="bg-dark-900 px-1 rounded">onSuccess(xpub, token)</code> now passes a signed JWT as the second argument. Send only the <code className="bg-dark-900 px-1 rounded">token</code> to your backend.</li>
+                      <li><strong>Verify the token on your backend</strong> using Key-Rex's public keys at <code className="bg-dark-900 px-1 rounded">/.well-known/jwks.json</code> (cache them). Check: algorithm is ES256 only; <code className="bg-dark-900 px-1 rounded">iss</code> is the Key-Rex base URL; <code className="bg-dark-900 px-1 rounded">aud</code> is <strong>your own siteId</strong>; not expired; <code className="bg-dark-900 px-1 rounded">nonce</code> matches the one you stored (then discard it); <code className="bg-dark-900 px-1 rounded">jti</code> not seen before.</li>
+                      <li><strong>Then create the session</strong> using the token's <code className="bg-dark-900 px-1 rounded">sub</code> claim as the user ID. It is unique per user per site, so it differs from the xpub other sites see.</li>
+                      <li><strong>Migrate existing accounts.</strong> While the transition lasts, the token also carries <code className="bg-dark-900 px-1 rounded">legacy_sub</code> (the old xpub). Look up existing users by it, then store <code className="bg-dark-900 px-1 rounded">sub</code> on the account so future logins match by <code className="bg-dark-900 px-1 rounded">sub</code>.</li>
+                      <li><strong>Test</strong> that a bare identifier, a token for another site, an expired token, a wrong nonce and a replayed token are all rejected.</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
+                    <h3 className="text-xl font-semibold text-white mb-4">Frontend</h3>
+                    <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
+                      <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
+{`// 1. Ask YOUR backend for a fresh nonce (it stores it in the visitor's session)
+const { nonce } = await fetch('/api/keyrex/nonce', { method: 'POST' }).then(r => r.json());
+window.KeyRex.nonce = nonce;
+
+// 2. Send only the signed token to your backend
+window.KeyRex.onSuccess = function(xpub, token) {
+  fetch('/api/auth/keyrex', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token })
+  });
+};`}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
+                    <h3 className="text-xl font-semibold text-white mb-4">Backend (Node.js, using jose)</h3>
+                    <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
+                      <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
+{`import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+const KEYREX = process.env.KEYREX_BASE_URL;   // e.g. https://key-rex.com
+const SITE_ID = process.env.KEYREX_SITE_ID;   // your own siteId
+const jwks = createRemoteJWKSet(new URL(KEYREX + '/.well-known/jwks.json'));
+
+async function verifyKeyRexToken(token, expectedNonce) {
+  const { payload } = await jwtVerify(token, jwks, {
+    issuer: KEYREX,
+    audience: SITE_ID,
+    algorithms: ['ES256'],
+    clockTolerance: 5,
+  });
+  if (!expectedNonce || payload.nonce !== expectedNonce) {
+    throw new Error('nonce mismatch');
+  }
+  if (await seenJti(payload.jti)) throw new Error('token replayed');
+  await rememberJti(payload.jti, payload.exp);
+  return payload; // payload.sub = user ID for your site
+}
+
+app.post('/api/auth/keyrex', async (req, res) => {
+  try {
+    const expected = req.session.keyrexNonce;
+    req.session.keyrexNonce = null;           // single use
+    const claims = await verifyKeyRexToken(req.body.token, expected);
+    // Existing users: match by claims.legacy_sub once, then save claims.sub
+    const user = await findOrCreateUserBySub(claims.sub, claims.legacy_sub);
+    req.session.userId = user.id;
+    res.json({ success: true });
+  } catch (e) {
+    res.status(401).json({ error: 'Invalid login token' });
+  }
+});`}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded p-4">
+                    <p className="text-sm text-orange-200">
+                      <strong>Also:</strong> review your logs for logins that do not match real Key-Rex wallet activity, never log tokens, and keep tokens out of URLs where possible. The examples further below that read a bare <code className="bg-orange-600/30 px-1 rounded">xpub</code> show the legacy flow and must not be used for new integrations.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </section>
+
             {/* Backend Integration */}
             <section id="backend-integration">
               <Card className="p-8 bg-dark-200/90 border-2 border-orange-500/30">
                 <h2 className="text-2xl font-bold text-white mb-4">Backend Integration</h2>
                 <p className="text-white/300 leading-relaxed mb-6">
-                  Your backend needs to receive the xpub and create a user session. Here are examples for common backend frameworks.
+                  <strong className="text-orange-300">Legacy examples.</strong> The examples below show the old flow that trusts a bare xpub. This is insecure; use the token verification shown in <a href="#security-update" className="text-orange-400 hover:text-orange-300">Verify Login Tokens</a>. Only the session-handling structure is still relevant.
                 </p>
 
                 <div className="space-y-6">
@@ -870,9 +968,9 @@ KeyRex.init();`}
                   </div>
 
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
-                    <h3 className="text-xl font-semibold text-white mb-4">Key-Rex.onSuccess(xpub)</h3>
+                    <h3 className="text-xl font-semibold text-white mb-4">Key-Rex.onSuccess(xpub, token)</h3>
                     <p className="text-white/300 mb-4">
-                      <strong>Description:</strong> Callback function called when authentication succeeds. Receives the user's xpub (extended public key) as a parameter.
+                      <strong>Description:</strong> Callback function called when authentication succeeds. Receives the user's xpub (a non-secret identifier, deprecated for authentication) and a signed login <code className="bg-dark-900 px-1 rounded">token</code> (JWT). Send only the token to your backend and verify it; see Verify Login Tokens.
                     </p>
                     <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
                       <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
@@ -972,7 +1070,7 @@ KeyRex.init();`}
                   <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
                     <h3 className="text-xl font-semibold text-white mb-4">Security</h3>
                     <ul className="list-disc list-inside space-y-2 text-white/300 ml-4">
-                      <li>Always validate xpub on your backend - never trust client-side data alone</li>
+                      <li>Never create a session from a bare xpub. Always verify the signed login token (and its nonce) on your backend</li>
                       <li>Use HTTPS for all authentication requests</li>
                       <li>Implement proper session management with secure, HTTP-only cookies</li>
                       <li>Never store sensitive data using only xpub as identifier - use proper user IDs</li>
