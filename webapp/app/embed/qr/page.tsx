@@ -1598,6 +1598,7 @@ function QRContent() {
                     </button>
                   </div>
                   {[
+                    { name: 'Manna', scheme: 'manna:lightning:', icon: '🟢' },
                     { name: 'Zeus', scheme: 'zeusln:lightning:', icon: '⚡' },
                     { name: 'Phoenix', scheme: 'phoenix:lightning:', icon: '🔥' },
                     { name: 'Breez', scheme: 'breez:lightning:', icon: '🌊' },
@@ -1794,6 +1795,7 @@ function QRContent() {
                       className="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="">Choose your wallet...</option>
+                      <option value="manna">Manna Bitcoin Wallet (Mobile)</option>
                       <option value="alby">Alby (Browser Extension or Desktop)</option>
                       <option value="zeus">Zeus (Mobile or Desktop)</option>
                       <option value="sparrow">Sparrow Wallet</option>
@@ -1842,7 +1844,8 @@ function QRContent() {
                   {selectedWallet && (
                     <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-700/50">
                       <h4 className="text-white font-semibold text-sm mb-3">
-                        How to use with {selectedWallet === 'alby' ? 'Alby' :
+                        How to use with {selectedWallet === 'manna' ? 'Manna Bitcoin Wallet' :
+                                         selectedWallet === 'alby' ? 'Alby' :
                                          selectedWallet === 'zeus' ? 'Zeus' :
                                          selectedWallet === 'sparrow' ? 'Sparrow Wallet' : 
                                          selectedWallet === 'electrum' ? 'Electrum' :
@@ -1850,6 +1853,28 @@ function QRContent() {
                                          selectedWallet === 'wasabi' ? 'Wasabi Wallet' :
                                          'your wallet'}:
                       </h4>
+                      {selectedWallet === 'manna' && (
+                        <div className="text-white/300 text-xs space-y-3">
+                          <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3">
+                            <p className="text-green-300 font-semibold mb-2">✅ Manna Bitcoin Wallet (iOS &amp; Android)</p>
+                            <ol className="space-y-1.5 ml-5 list-decimal text-white/300">
+                              <li>Download <strong>Manna</strong> from the <a href="https://apps.apple.com/in/app/manna-bitcoin-wallet/id6745337602" target="_blank" rel="noopener noreferrer" className="text-green-400 underline">App Store</a> or <a href="https://play.google.com/store/apps/details?id=com.lightning.manna" target="_blank" rel="noopener noreferrer" className="text-green-400 underline">Google Play</a></li>
+                              <li>Open Manna and tap the <strong>QR / Scan</strong> icon</li>
+                              <li>Scan the QR code shown on this page</li>
+                              <li>Manna will ask you to approve the login — tap <strong>Confirm</strong></li>
+                              <li>Return to this browser tab — you'll be signed in automatically</li>
+                            </ol>
+                          </div>
+                          <div className="bg-dark-900/50 rounded-lg p-3 border border-dark-700/50">
+                            <p className="text-white/400 text-xs font-semibold mb-1">Alternatively — paste the LNURL:</p>
+                            <ol className="space-y-1 ml-5 list-decimal text-white/300">
+                              <li>Copy the LNURL using the button above</li>
+                              <li>In Manna, look for <strong>Send / LNURL</strong> and paste it</li>
+                              <li>Approve the authentication request</li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
                       {selectedWallet === 'zeus' && (
                         <div className="text-white/300 text-xs space-y-3">
                           <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3">

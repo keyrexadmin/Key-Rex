@@ -2,6 +2,9 @@
   "name": "keyrex",
   "version": "1.0.0",
   "private": true,
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:client": "node scripts/serve-fake-client.js",
@@ -9,6 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
+    "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "test:phase1": "node test-phase1.js",
     "test:phase2": "node test-phase2.js",
     "test:phase2-final": "node test-phase2-final.js",

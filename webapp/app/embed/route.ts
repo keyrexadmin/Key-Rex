@@ -595,22 +595,93 @@ export async function GET(request: NextRequest) {
     
     wrapper.appendChild(leftContainer);
     
-    // Create right side container - Featured Wallets ad space (Coming Soon)
+    // Create right side container - Featured Wallets
     const rightContainer = document.createElement('div');
     rightContainer.setAttribute('data-keyrex', 'right-container');
     rightContainer.style.cssText = 'display: flex; flex-direction: column; gap: 0.25rem; justify-content: center; align-items: center;';
 
-    // Featured Wallets - Coming Soon placeholder
+    const labelColor = isDarkMode ? 'rgb(148, 163, 184)' : 'rgb(100, 116, 139)';
+    const textColor  = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.55)';
+
+    // "Featured Wallets" label
     const walletsLabel = document.createElement('div');
     walletsLabel.textContent = 'Featured Wallets';
-    walletsLabel.style.cssText = 'font-size: 0.6875rem; font-weight: 500; color: ' + (isDarkMode ? 'rgb(148, 163, 184)' : 'rgb(100, 116, 139)') + '; margin-bottom: 0.125rem; text-align: center; width: 100%;';
+    walletsLabel.style.cssText = 'font-size: 0.6875rem; font-weight: 500; color: ' + labelColor + '; margin-bottom: 0.25rem; text-align: center; width: 100%;';
     rightContainer.appendChild(walletsLabel);
 
-    const comingSoonText = document.createElement('div');
-    const comingSoonColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.35)';
-    comingSoonText.textContent = 'Coming Soon';
-    comingSoonText.style.cssText = 'font-size: 0.625rem; color: ' + comingSoonColor + '; font-style: italic; text-align: center; padding: 0.25rem 0;';
-    rightContainer.appendChild(comingSoonText);
+    // Wallet icons row
+    const featuredWallets = (config && config.featuredWallets) ? config.featuredWallets : [];
+
+    if (featuredWallets.length > 0) {
+      const walletsRow = document.createElement('div');
+      walletsRow.setAttribute('data-keyrex', 'wallets-row');
+      walletsRow.style.cssText = 'display: flex; flex-direction: row; gap: 0.75rem; align-items: flex-start; justify-content: center;';
+
+      featuredWallets.forEach(function(wallet, idx) {
+        // Outer column (icon + name)
+        const walletCol = document.createElement('div');
+        walletCol.setAttribute('data-keyrex', 'wallet');
+        walletCol.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 0.25rem; opacity: 0; animation: keyrex-fade-in-stagger 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-delay: ' + (0.2 + idx * 0.1) + 's;';
+
+        // Circle container
+        const circleStyle = 'position: relative; display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; background: ' + (isDarkMode ? 'rgba(249,115,22,0.1)' : 'rgba(249,115,22,0.05)') + '; border-radius: 50%; border: 1px solid ' + (isDarkMode ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.1)') + '; transition: all 0.3s ease; cursor: pointer;';
+        const circle = document.createElement('div');
+        circle.style.cssText = circleStyle;
+
+        circle.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-3px) scale(1.08)';
+          this.style.boxShadow = '0 6px 16px rgba(249,115,22,0.2), 0 2px 6px rgba(249,115,22,0.15)';
+          this.style.background = isDarkMode ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.1)';
+          this.style.borderColor = isDarkMode ? 'rgba(249,115,22,0.35)' : 'rgba(249,115,22,0.25)';
+        });
+        circle.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0) scale(1)';
+          this.style.boxShadow = 'none';
+          this.style.background = isDarkMode ? 'rgba(249,115,22,0.1)' : 'rgba(249,115,22,0.05)';
+          this.style.borderColor = isDarkMode ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.1)';
+        });
+
+        // Link wrapping the logo
+        const link = document.createElement('a');
+        link.href = wallet.downloadUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.setAttribute('aria-label', wallet.name + ' wallet');
+        link.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; text-decoration: none;';
+
+        // Logo image
+        const img = document.createElement('img');
+        img.src = wallet.logoUrl;
+        img.alt = wallet.name;
+        img.style.cssText = 'height: 1.5rem; width: auto; object-fit: contain;';
+        img.addEventListener('error', function() {
+          this.style.display = 'none';
+          link.textContent = wallet.name.charAt(0);
+          link.style.cssText += 'font-weight: 600; font-size: 0.875rem; color: rgb(249,115,22);';
+        });
+
+        link.appendChild(img);
+        circle.appendChild(link);
+
+        // Wallet name label
+        const nameLabel = document.createElement('span');
+        nameLabel.textContent = wallet.name;
+        nameLabel.style.cssText = 'font-size: 0.6875rem; font-weight: 500; color: ' + textColor + '; text-align: center; letter-spacing: 0.01em; line-height: 1.2;';
+
+        walletCol.appendChild(circle);
+        walletCol.appendChild(nameLabel);
+        walletsRow.appendChild(walletCol);
+      });
+
+      rightContainer.appendChild(walletsRow);
+    } else {
+      // Fallback: no wallets configured yet
+      const emptyNote = document.createElement('div');
+      emptyNote.style.cssText = 'font-size: 0.625rem; color: ' + (isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)') + '; font-style: italic; text-align: center; padding: 0.25rem 0;';
+      emptyNote.textContent = 'Lightning wallets accepted';
+      rightContainer.appendChild(emptyNote);
+    }
+
     wrapper.appendChild(rightContainer);
     card.appendChild(wrapper);
     
