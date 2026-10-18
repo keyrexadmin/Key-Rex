@@ -120,6 +120,7 @@ model AuthChallenge {
   id        String  @id @default(cuid())
   k1        String  @unique
   siteId    String?
+  nonce     String?
   consumed  Boolean @default(false)
   createdAt BigInt
   expiresAt BigInt

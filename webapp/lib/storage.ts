@@ -25,11 +25,17 @@ function cleanK1Value(k1: string): string {
   return k1.split('&')[0].split('?')[0]
 }
 
+export const AUTH_NONCE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/
+
 /**
  * Register an issued k1 challenge. Create-only: re-registering an existing k1
- * never resets its consumed flag, expiry or site binding.
+ * never resets its consumed flag, expiry, site binding or nonce.
  */
-export async function issueAuthChallenge(k1: string, siteId?: string | null): Promise<void> {
+export async function issueAuthChallenge(
+  k1: string,
+  siteId?: string | null,
+  nonce?: string | null
+): Promise<void> {
   const now = Date.now()
   await withRetry(async () => {
     return await prisma.authChallenge.upsert({
@@ -38,6 +44,7 @@ export async function issueAuthChallenge(k1: string, siteId?: string | null): Pr
       create: {
         k1: cleanK1Value(k1),
         siteId: siteId || null,
+        nonce: nonce && AUTH_NONCE_PATTERN.test(nonce) ? nonce : null,
         consumed: false,
         createdAt: BigInt(now),
         expiresAt: BigInt(now + AUTH_CHALLENGE_TTL_MS),
@@ -45,6 +52,13 @@ export async function issueAuthChallenge(k1: string, siteId?: string | null): Pr
     })
   })
   await maybeCleanupAuthSessions()
+}
+
+export async function getAuthChallenge(k1: string): Promise<{ siteId: string | null; nonce: string | null } | null> {
+  const row = await withRetry(async () => {
+    return await prisma.authChallenge.findUnique({ where: { k1: cleanK1Value(k1) } })
+  })
+  return row ? { siteId: row.siteId, nonce: row.nonce } : null
 }
 
 /**

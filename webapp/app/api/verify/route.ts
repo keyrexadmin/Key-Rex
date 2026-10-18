@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, consumeAuthChallenge, getVerifiedDomains } from '@/lib/storage'
+import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, consumeAuthChallenge, getAuthChallenge, getVerifiedDomains } from '@/lib/storage'
+import { issueLoginToken, getIssuer } from '@/lib/token'
 import { detectWallet, detectBrowser, detectDeviceType, isTestDomain } from '@/lib/utils'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 
@@ -123,8 +124,17 @@ export async function POST(request: NextRequest) {
     
     // Derive xpub
     const xpub = deriveXpub(key)
-    
-    return NextResponse.json({ success: true, xpub })
+
+    // Signed login token bound to this site and the client's nonce (the raw xpub is not a credential)
+    const challenge = await getAuthChallenge(k1)
+    const token = await issueLoginToken({
+      xpub,
+      siteId,
+      issuer: getIssuer(request),
+      nonce: challenge?.nonce,
+    })
+
+    return NextResponse.json({ success: true, xpub, ...(token ? { token } : {}) })
   } catch (error) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }

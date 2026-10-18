@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains } from '@/lib/storage'
+import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains, getAuthChallenge } from '@/lib/storage'
+import { issueLoginToken, getIssuer } from '@/lib/token'
 import { generateSiteId, isTestDomain } from '@/lib/utils'
 import { validateDashboardOrigin, validateEmbedOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
 
@@ -126,6 +127,7 @@ export async function GET(request: NextRequest) {
       }
 
       // SECURITY: Validate origin for embedded logins
+      let siteValidated = false
       if (siteId) {
         const user = await getUserBySiteId(siteId)
         if (user) {
@@ -168,12 +170,28 @@ export async function GET(request: NextRequest) {
               }
             }
           }
+          siteValidated = true
         }
       }
-      
+
+      // Issue a signed login token for embedded logins (the raw xpub is not a credential)
+      let token: string | null = null
+      if (siteId && siteValidated) {
+        const challenge = await getAuthChallenge(cleanK1ForRetrieval)
+        if (challenge && (!challenge.siteId || challenge.siteId === siteId)) {
+          token = await issueLoginToken({
+            xpub: storedXpub,
+            siteId,
+            issuer: getIssuer(request),
+            nonce: challenge.nonce,
+          })
+        }
+      }
+
       const response = NextResponse.json({
         status: 'OK',
         xpub: storedXpub,
+        ...(token ? { token } : {}),
       })
       
       // Set CORS headers based on validated origin
