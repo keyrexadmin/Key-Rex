@@ -31,6 +31,18 @@ npm run dev:client
 
 Then visit http://localhost:3001 to test the authentication flow.
 
+## Login Security Model
+
+Key-Rex returns a user identifier (`xpub`, a hash of the wallet public key) that is **not a secret**.
+Client backends must never treat it as proof of login. Instead:
+
+1. Your backend issues a one-time `nonce` and passes it to `KeyRex.init({ nonce })`.
+2. Key-Rex returns a short-lived ES256 JWT in `onSuccess(identifier, token)`.
+3. Your backend verifies the token against `/.well-known/jwks.json` (`iss`, `aud` = your siteId, `exp`, `nonce`, single-use `jti`) and uses the `sub` claim as the user ID.
+
+See `/docs` for the integration guide and `/docs/migration` for existing sites. `fake-client-site/server.js` is a reference implementation.
+Required server settings: `KEYREX_JWT_PRIVATE_KEY`, `KEYREX_PAIRWISE_SECRET` (see `webapp/.env.example`).
+
 ## Deploy the Webapp to Vercel
 
 ```bash

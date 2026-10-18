@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
 import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, consumeAuthChallenge, getAuthChallenge, getVerifiedDomains } from '@/lib/storage'
 import { issueLoginToken, getIssuer } from '@/lib/token'
+import { identifierForSite, applyDeprecationHeaders, recordLoginFlow } from '@/lib/legacy'
 import { detectWallet, detectBrowser, detectDeviceType, isTestDomain } from '@/lib/utils'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 
@@ -134,7 +135,11 @@ export async function POST(request: NextRequest) {
       nonce: challenge?.nonce,
     })
 
-    return NextResponse.json({ success: true, xpub, ...(token ? { token } : {}) })
+    const embedId = identifierForSite(xpub, siteId)
+    await recordLoginFlow(siteId, !!(token && challenge?.nonce))
+    const response = NextResponse.json({ success: true, xpub: embedId, identifier: embedId, ...(token ? { token } : {}) })
+    applyDeprecationHeaders(response)
+    return response
   } catch (error) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }

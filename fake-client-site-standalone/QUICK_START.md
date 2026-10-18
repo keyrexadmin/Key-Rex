@@ -1,5 +1,9 @@
 # Quick Start - Deploy in 5 Minutes
 
+> **Required:** this site now verifies Key-Rex login tokens server-side. Set a `SESSION_SECRET`
+> environment variable (long random string) in Vercel before deploying. "BitPass" below refers to
+> the Key-Rex instance. See `README.md`.
+
 ## ✅ Pre-Deployment Checklist
 
 - [x] SiteId configured: `b5a919db0da9a360818ff90c869faca5`

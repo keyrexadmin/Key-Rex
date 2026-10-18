@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
 import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains, getAuthChallenge } from '@/lib/storage'
 import { issueLoginToken, getIssuer } from '@/lib/token'
+import { identifierForSite, applyDeprecationHeaders, recordLoginFlow } from '@/lib/legacy'
 import { generateSiteId, isTestDomain } from '@/lib/utils'
 import { validateDashboardOrigin, validateEmbedOrigin, getKeyRexDomain, getCorsHeaders } from '@/lib/cors'
 
@@ -188,11 +189,19 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const embedId = siteId && siteValidated ? identifierForSite(storedXpub, siteId) : storedXpub
       const response = NextResponse.json({
         status: 'OK',
-        xpub: storedXpub,
+        xpub: embedId,
+        identifier: embedId,
         ...(token ? { token } : {}),
       })
+      if (siteId && siteValidated) {
+        applyDeprecationHeaders(response)
+        const ch = await getAuthChallenge(cleanK1ForRetrieval)
+        if (ch?.nonce && token) await recordLoginFlow(siteId, true)
+        else await recordLoginFlow(siteId, false)
+      }
       
       // Set CORS headers based on validated origin
       const origin = request.headers.get('origin')

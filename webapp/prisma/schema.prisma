@@ -175,3 +175,15 @@ model ContactSubmission {
   @@index([urgent])
   @@map("contact_submissions")
 }
+
+// Per-site counts of logins delivered with a nonce-bound token (new flow) versus
+// without (legacy flow). Used to show owners whether they still need to migrate.
+model SiteLoginFlow {
+  siteId       String  @id
+  tokenLogins  Int     @default(0)
+  legacyLogins Int     @default(0)
+  lastTokenAt  BigInt?
+  lastLegacyAt BigInt?
+
+  @@map("site_login_flow")
+}

@@ -30,6 +30,7 @@ async function signLogin(k1) {
   const secp = await import('@noble/secp256k1')
   const { hashes } = secp
   if (!hashes.sha256) hashes.sha256 = (m) => new Uint8Array(crypto.createHash('sha256').update(m).digest())
+  if (!hashes.hmacSha256) hashes.hmacSha256 = (k, m) => new Uint8Array(crypto.createHmac('sha256', k).update(m).digest())
   const priv = crypto.randomBytes(32)
   const pub = secp.getPublicKey(priv, true)
   const msg = crypto.createHash('sha256').update(Buffer.from(k1, 'hex')).digest()
