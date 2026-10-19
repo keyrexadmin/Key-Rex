@@ -34,7 +34,8 @@ export const AUTH_NONCE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/
 export async function issueAuthChallenge(
   k1: string,
   siteId?: string | null,
-  nonce?: string | null
+  nonce?: string | null,
+  options?: { loginHost?: string | null; entropy?: string | null }
 ): Promise<void> {
   const now = Date.now()
   await withRetry(async () => {
@@ -45,6 +46,8 @@ export async function issueAuthChallenge(
         k1: cleanK1Value(k1),
         siteId: siteId || null,
         nonce: nonce && AUTH_NONCE_PATTERN.test(nonce) ? nonce : null,
+        loginHost: options?.loginHost || null,
+        entropy: options?.entropy || null,
         consumed: false,
         createdAt: BigInt(now),
         expiresAt: BigInt(now + AUTH_CHALLENGE_TTL_MS),
@@ -54,19 +57,44 @@ export async function issueAuthChallenge(
   await maybeCleanupAuthSessions()
 }
 
-export async function getAuthChallenge(k1: string): Promise<{ siteId: string | null; nonce: string | null } | null> {
+export interface AuthChallengeInfo {
+  siteId: string | null
+  nonce: string | null
+  loginHost: string | null
+  entropy: string | null
+  pubkey: string | null
+  sig: string | null
+}
+
+export async function getAuthChallenge(k1: string): Promise<AuthChallengeInfo | null> {
   const row = await withRetry(async () => {
     return await prisma.authChallenge.findUnique({ where: { k1: cleanK1Value(k1) } })
   })
-  return row ? { siteId: row.siteId, nonce: row.nonce } : null
+  return row
+    ? { siteId: row.siteId, nonce: row.nonce, loginHost: row.loginHost, entropy: row.entropy, pubkey: row.pubkey, sig: row.sig }
+    : null
+}
+
+/** Keep the verified (pubkey, sig) of a consumed private-mode challenge for the login receipt. */
+export async function recordChallengeProof(k1: string, pubkey: string, sig: string): Promise<void> {
+  await withRetry(async () => {
+    return await prisma.authChallenge.updateMany({
+      where: { k1: cleanK1Value(k1), consumed: true, pubkey: null },
+      data: { pubkey, sig },
+    })
+  })
 }
 
 /**
  * Atomically consume an issued challenge. Returns true for exactly one caller;
  * false if the k1 was never issued, already consumed, expired, or bound to a
- * different siteId. Fails closed on database errors.
+ * different siteId or login host. Fails closed on database errors.
  */
-export async function consumeAuthChallenge(k1: string, siteId?: string | null): Promise<boolean> {
+export async function consumeAuthChallenge(
+  k1: string,
+  siteId?: string | null,
+  loginHost?: string | null
+): Promise<boolean> {
   try {
     const result = await withRetry(async () => {
       return await prisma.authChallenge.updateMany({
@@ -74,6 +102,8 @@ export async function consumeAuthChallenge(k1: string, siteId?: string | null): 
           k1: cleanK1Value(k1),
           consumed: false,
           expiresAt: { gt: BigInt(Date.now()) },
+          // A challenge issued for a login domain only redeems there, and vice versa
+          loginHost: loginHost || null,
           ...(siteId ? { OR: [{ siteId: null }, { siteId }] } : { siteId: null }),
         },
         data: { consumed: true },

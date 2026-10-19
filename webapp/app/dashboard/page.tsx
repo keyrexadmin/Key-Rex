@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import EmbedCode from '@/components/EmbedCode'
+import PrivateLoginCard from '@/components/PrivateLoginCard'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import { isTestDomain, validateDomain } from '@/lib/utils'
@@ -1445,6 +1446,7 @@ function DashboardContent() {
                 </div>
               )}
               
+              {hasVerifiedDomain && <PrivateLoginCard />}
               {hasVerifiedDomain ? (
                 <EmbedCode 
                   key={`embed-${user?.siteId || 'no-site'}`}

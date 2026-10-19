@@ -13,6 +13,18 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl
 
+    // Hardening for per-site login domains (auth.<site-domain> CNAME to this app): when
+    // KEYREX_PRIMARY_HOSTS lists the app's own hostnames, any other host may only serve the
+    // wallet callback, so a customer's login domain never exposes the rest of the site.
+    const primaryHosts = (process.env.KEYREX_PRIMARY_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
+    if (primaryHosts.length > 0) {
+      const host = (request.headers.get('host') || '').toLowerCase().replace(/:\d+$/, '')
+      const isPrimary = primaryHosts.includes(host) || host === 'localhost' || host.endsWith('.vercel.app')
+      if (!isPrimary && pathname !== '/api/auth/callback') {
+        return new NextResponse('Not found', { status: 404 })
+      }
+    }
+
     // Add CORS headers for embed and auth API routes
     if (pathname.startsWith('/embed') || pathname.startsWith('/api/embed') || 
         pathname.startsWith('/api/auth') || pathname.startsWith('/api/verify')) {

@@ -14,20 +14,21 @@ datasource db {
 
 // Users table - Key-Rex customers (website owners)
 model User {
-  id                       String   @id @default(cuid())
-  xpub                     String   @unique
-  siteId                   String   @unique
-  subscribed               Boolean  @default(true)
-  subscriptionTier         String   @default("free")
-  integrationEnabled       Boolean  @default(true)
-  freeDisclaimerAccepted   Boolean  @default(false)
+  id                       String  @id @default(cuid())
+  xpub                     String  @unique
+  siteId                   String  @unique
+  subscribed               Boolean @default(true)
+  subscriptionTier         String  @default("free")
+  integrationEnabled       Boolean @default(true)
+  loginMode                String  @default("standard") // standard | private
+  freeDisclaimerAccepted   Boolean @default(false)
   freeDisclaimerAcceptedAt BigInt?
   createdAt                BigInt
   updatedAt                BigInt?
 
-  domains                  Domain[]
-  activityLogs             ActivityLog[]
-  usageStats               UsageStats?
+  domains      Domain[]
+  activityLogs ActivityLog[]
+  usageStats   UsageStats?
 
   @@index([xpub])
   @@index([siteId])
@@ -36,17 +37,17 @@ model User {
 
 // Domains - normalized from User.domainVerifications Map
 model Domain {
-  id                   String   @id @default(cuid())
-  userId               String
-  domain               String
-  verificationStatus   String   @default("pending")
-  verificationMethod   String   @default("dns_txt")
-  verificationToken    String
-  verifiedAt           BigInt?
-  createdAt            BigInt
-  updatedAt            BigInt?
+  id                 String  @id @default(cuid())
+  userId             String
+  domain             String
+  verificationStatus String  @default("pending")
+  verificationMethod String  @default("dns_txt")
+  verificationToken  String
+  verifiedAt         BigInt?
+  createdAt          BigInt
+  updatedAt          BigInt?
 
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, domain])
   @@index([userId])
@@ -57,38 +58,38 @@ model Domain {
 
 // UsageStats - analytics data with JSON fields for complex Maps/Sets
 model UsageStats {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
-  siteId                String   @unique
+  id     String @id @default(cuid())
+  userId String @unique
+  siteId String @unique
 
   // Simple counters
-  currentMonth          Int      @default(0)
-  yearToDate            Int      @default(0)
-  allTime               Int      @default(0)
-  returningUserLogins   Int      @default(0)
+  currentMonth        Int @default(0)
+  yearToDate          Int @default(0)
+  allTime             Int @default(0)
+  returningUserLogins Int @default(0)
 
   // Complex nested data as JSON (Maps → objects, Sets → arrays)
-  uniquePubkeys         Json     @default("[]")
-  monthlyPubkeys        Json     @default("{}")
-  dailyLogins           Json     @default("{}")
-  dailyUniqueUsers      Json     @default("{}")
-  domainLogins          Json     @default("{}")
-  hourlyLogins          Json     @default("{}")
-  loginHistory          Json     @default("[]")
-  walletLogins          Json     @default("{}")
-  geographicData        Json     @default("{}")
-  deviceTypes           Json     @default("{}")
-  referrers             Json     @default("{}")
-  weeklyLogins          Json     @default("{}")
-  monthlyLogins         Json     @default("{}")
-  peakHours             Json     @default("{}")
-  averageSessionLength  Json     @default("{}")
-  bounceRate            Json     @default("{}")
+  uniquePubkeys        Json @default("[]")
+  monthlyPubkeys       Json @default("{}")
+  dailyLogins          Json @default("{}")
+  dailyUniqueUsers     Json @default("{}")
+  domainLogins         Json @default("{}")
+  hourlyLogins         Json @default("{}")
+  loginHistory         Json @default("[]")
+  walletLogins         Json @default("{}")
+  geographicData       Json @default("{}")
+  deviceTypes          Json @default("{}")
+  referrers            Json @default("{}")
+  weeklyLogins         Json @default("{}")
+  monthlyLogins        Json @default("{}")
+  peakHours            Json @default("{}")
+  averageSessionLength Json @default("{}")
+  bounceRate           Json @default("{}")
 
-  createdAt             BigInt
-  updatedAt             BigInt?
+  createdAt BigInt
+  updatedAt BigInt?
 
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([siteId])
   @@map("usage_stats")
@@ -96,15 +97,15 @@ model UsageStats {
 
 // ActivityLogs - normalized for queryability
 model ActivityLog {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   userId      String
   xpub        String
   type        String
-  description String   @db.Text
+  description String @db.Text
   timestamp   BigInt
   metadata    Json?
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([xpub])
@@ -124,16 +125,22 @@ model AuthChallenge {
   consumed  Boolean @default(false)
   createdAt BigInt
   expiresAt BigInt
+  // Private login mode: the per-site login domain this challenge must be redeemed on,
+  // the entropy that k1 was derived from, and the proof recorded when it was consumed.
+  loginHost String?
+  entropy   String?
+  pubkey    String?
+  sig       String?
 
   @@index([expiresAt])
   @@map("auth_challenges")
 }
 
 model AuthSession {
-  id        String   @id @default(cuid())
-  k1        String   @unique
+  id        String  @id @default(cuid())
+  k1        String  @unique
   xpub      String
-  used      Boolean  @default(false)
+  used      Boolean @default(false)
   timestamp BigInt
   expiresAt BigInt
 
@@ -145,11 +152,11 @@ model AuthSession {
 
 // FeaturedWallets - global admin-controlled wallet list
 model FeaturedWallet {
-  id          String   @id
+  id          String  @id
   name        String
   logoUrl     String
   downloadUrl String
-  enabled     Boolean  @default(true)
+  enabled     Boolean @default(true)
   priority    Int
   createdAt   BigInt
   updatedAt   BigInt
@@ -161,14 +168,14 @@ model FeaturedWallet {
 
 // ContactSubmissions - contact form data
 model ContactSubmission {
-  id        String   @id
+  id        String  @id
   name      String?
   email     String
   subject   String
-  message   String   @db.Text
-  urgent    Boolean  @default(false)
+  message   String  @db.Text
+  urgent    Boolean @default(false)
   timestamp BigInt
-  status    String   @default("unread")
+  status    String  @default("unread")
 
   @@index([status])
   @@index([timestamp])
@@ -186,4 +193,17 @@ model SiteLoginFlow {
   lastLegacyAt BigInt?
 
   @@map("site_login_flow")
+}
+
+// Optional per-site login domain (auth.<site-domain> CNAME to Key-Rex). Wallets derive a
+// different linking key per callback domain, so a site on its own login domain gets keys
+// that cannot be joined with the same wallet's keys on any other site.
+model LoginDomain {
+  siteId     String  @id
+  host       String  @unique
+  status     String  @default("pending") // pending | active
+  createdAt  BigInt
+  verifiedAt BigInt?
+
+  @@map("login_domains")
 }

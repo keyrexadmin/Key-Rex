@@ -751,6 +751,35 @@ app.post('/api/auth/keyrex', async (req, res) => {
                     </div>
                   </div>
 
+                  <div className="bg-dark-800/50 rounded-lg p-6 border border-dark-700">
+                    <h3 className="text-xl font-semibold text-white mb-2">Optional: Private login mode</h3>
+                    <p className="text-white/80 text-sm mb-4">
+                      Standard login needs no extra setup. Private login gives your site its own login domain
+                      (for example <code>auth.yoursite.com</code>, a CNAME configured in the dashboard). Wallets derive a
+                      different key for every domain, so a visitor has a different identity on your site than on any
+                      other site, and Key-Rex cannot join them. Tokens become version 2: <code>sub</code> is the visitor&apos;s
+                      per-site public key, and a <code>receipt</code> lets you verify the wallet signature yourself.
+                    </p>
+                    <div className="bg-dark-950 rounded-lg p-4 border border-dark-700 overflow-x-auto">
+                      <pre className="text-sm text-white/200 font-mono whitespace-pre-wrap break-words">
+{`import crypto from 'crypto';
+import * as secp from '@noble/secp256k1';
+
+// After verifyKeyRexToken(): extra checks for version 2 tokens
+function verifyReceipt(claims, nonce) {
+  if (claims.ver !== 2) return;
+  const r = claims.receipt;
+  const k1 = crypto.createHash('sha256')
+    .update('keyrex-k1|' + SITE_ID + '|' + nonce + '|' + r.entropy).digest('hex');
+  if (k1 !== r.k1) throw new Error('k1 mismatch');
+  const digest = crypto.createHash('sha256').update(Buffer.from(k1, 'hex')).digest();
+  const ok = secp.verify(Buffer.from(r.sig, 'hex'), digest, Buffer.from(claims.sub, 'hex'), { prehash: false });
+  if (!ok) throw new Error('bad wallet signature');
+}`}
+                      </pre>
+                    </div>
+                  </div>
+
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded p-4">
                     <p className="text-sm text-orange-200">
                       <strong>Security:</strong> never log tokens, and keep tokens out of URLs where possible. Existing customer? See the <Link href="/docs/migration" className="underline hover:text-orange-300">migration guide</Link>.

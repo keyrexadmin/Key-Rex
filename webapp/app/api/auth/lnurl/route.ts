@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateChallenge } from '@/lib/auth'
 import { encodeLNURL } from '@/lib/lnurl'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
-import { issueAuthChallenge, AUTH_NONCE_PATTERN } from '@/lib/storage'
+import { issueAuthChallenge, getAuthChallenge, AUTH_NONCE_PATTERN } from '@/lib/storage'
+import { getActivePrivateHost, isLocalTestHost, deriveReceiptK1, newEntropy } from '@/lib/login-domain'
 
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent DoS attacks and cost abuse
@@ -38,15 +39,39 @@ export async function GET(request: NextRequest) {
 
   // Only use providedK1 if it's a valid 64-char hex string (32 bytes)
   const validK1 = providedK1 && /^[0-9a-fA-F]{64}$/.test(providedK1) ? providedK1 : null
-  const k1 = validK1 || generateChallenge()
-  const domain = request.nextUrl.origin
+
+  // Private login mode: the callback is served from the site's own login domain so the wallet
+  // derives a key that is unique to this site. The k1 is derived from the site's nonce.
+  const privateHost = providedSiteId ? await getActivePrivateHost(providedSiteId) : null
+  let privateEntropy: string | null = null
+  let reusedPrivate = false
+  let k1: string
+  if (privateHost && providedSiteId) {
+    if (!providedNonce) {
+      return NextResponse.json({ error: 'A nonce is required for private login. Pass the nonce to KeyRex.init({ nonce }).' }, { status: 400 })
+    }
+    const existing = validK1 ? await getAuthChallenge(validK1) : null
+    if (validK1 && existing && existing.siteId === providedSiteId && existing.loginHost === privateHost && existing.nonce === providedNonce) {
+      k1 = validK1
+      reusedPrivate = true
+    } else {
+      privateEntropy = newEntropy()
+      k1 = deriveReceiptK1(providedSiteId, providedNonce, privateEntropy)
+    }
+  } else {
+    k1 = validK1 || generateChallenge()
+  }
+  const domain = privateHost
+    ? `${isLocalTestHost(privateHost) ? request.nextUrl.protocol.replace(':', '') : 'https'}://${privateHost}${isLocalTestHost(privateHost) && request.nextUrl.port ? ':' + request.nextUrl.port : ''}`
+    : request.nextUrl.origin
 
   // LNURL-auth spec (LUD-04): callback URL MUST include tag=login
   // so wallets know this is an auth request when they decode the bech32 LNURL
   let callbackUrl: string
-  if (providedSiteId) {
+  if (providedSiteId && !privateHost) {
     callbackUrl = `${domain}/api/auth/callback?tag=login&k1=${encodeURIComponent(k1)}&siteId=${encodeURIComponent(providedSiteId)}`
   } else {
+    // On a login domain the site is identified by the host, not by a query parameter
     callbackUrl = `${domain}/api/auth/callback?tag=login&k1=${encodeURIComponent(k1)}`
   }
 
@@ -54,7 +79,9 @@ export async function GET(request: NextRequest) {
 
   // Register the challenge so it can be consumed exactly once after signature verification
   try {
-    await issueAuthChallenge(k1, providedSiteId, providedNonce)
+    if (!reusedPrivate) {
+      await issueAuthChallenge(k1, providedSiteId, providedNonce, { loginHost: privateHost, entropy: privateEntropy })
+    }
   } catch (error) {
     console.error('LNURL: failed to persist challenge:', error)
     return NextResponse.json({ error: 'Failed to issue challenge' }, { status: 500 })
@@ -88,7 +115,8 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.json({ 
     k1,
     lnurl: lnurlBech32,
-    callback: callbackUrl 
+    callback: callbackUrl,
+    ...(privateHost ? { login_domain: privateHost } : {}),
   })
   
   // Set CORS headers - allow any origin since this endpoint returns only public challenge data

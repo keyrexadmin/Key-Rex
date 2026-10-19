@@ -22,6 +22,7 @@
     "test:additional": "node test-additional-e2e.js",
     "test:challenge": "node tests/test-auth-challenge.js",
     "test:token-flow": "node tests/test-token-flow.js",
+    "test:private-login": "node tests/test-private-login.js",
     "test:session": "npx --yes ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\",\"esModuleInterop\":true}' tests/test-session-cookies.ts",
     "test:token": "npx --yes ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\",\"esModuleInterop\":true}' tests/test-login-token.ts",
     "test:all-automated": "npm run test:e2e && npm run test:admin && npm run test:additional"

@@ -104,15 +104,26 @@ export function getIssuer(request: { nextUrl: { origin: string } }): string {
  * Issue a login token for a verified wallet login. Returns null when tokens are not
  * configured; callers must then omit the token (never fall back to an unsigned one).
  */
+export interface PrivateLoginClaims {
+  /** The per-site linking public key (hex) the wallet signed with; becomes `sub`. */
+  linkingKey: string
+  loginDomain: string
+  /** Lets the site re-verify the wallet signature itself instead of trusting Key-Rex. */
+  receipt?: { k1: string; sig: string; key: string; entropy: string }
+}
+
 export async function issueLoginToken(params: {
   xpub: string
   siteId: string
   issuer: string
   nonce?: string | null
+  /** Private login mode (token v2). Omit for the standard flow (token v1). */
+  privateLogin?: PrivateLoginClaims
 }): Promise<string | null> {
   const signing = await getSigningMaterial()
-  const secret = getPairwiseSecret()
-  if (!signing || !secret) {
+  const priv = params.privateLogin
+  const secret = priv ? null : getPairwiseSecret()
+  if (!signing || (!priv && !secret)) {
     return null
   }
 
@@ -120,7 +131,12 @@ export async function issueLoginToken(params: {
   if (params.nonce) {
     claims.nonce = params.nonce
   }
-  if (process.env.KEYREX_INCLUDE_LEGACY_SUB !== 'false') {
+  if (priv) {
+    // v2: the subject is already unique to this site's login domain; no global identifier is sent
+    claims.ver = 2
+    claims.login_domain = priv.loginDomain
+    if (priv.receipt) claims.receipt = priv.receipt
+  } else if (process.env.KEYREX_INCLUDE_LEGACY_SUB !== 'false') {
     claims.legacy_sub = params.xpub
   }
 
@@ -128,7 +144,7 @@ export async function issueLoginToken(params: {
     .setProtectedHeader({ alg: ALG, kid: signing.kid, typ: 'JWT' })
     .setIssuer(params.issuer)
     .setAudience(params.siteId)
-    .setSubject(pairwiseSubject(params.xpub, params.siteId, secret))
+    .setSubject(priv ? priv.linkingKey : pairwiseSubject(params.xpub, params.siteId, secret as string))
     .setIssuedAt()
     .setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
     .setJti(randomBytes(16).toString('base64url'))

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { signSession } from '@/lib/session'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains, getAuthChallenge } from '@/lib/storage'
+import { getUserByXpub, createUser, getUserBySiteId, getVerifiedDomains, getAuthChallenge, recordChallengeProof } from '@/lib/storage'
+import { getRequestHost, resolveLoginDomain } from '@/lib/login-domain'
 import { issueLoginToken, getIssuer } from '@/lib/token'
 import { identifierForSite, applyDeprecationHeaders, recordLoginFlow } from '@/lib/legacy'
 import { generateSiteId, isTestDomain } from '@/lib/utils'
@@ -81,7 +82,13 @@ export async function GET(request: NextRequest) {
   }
   const sig = searchParams.get('sig')
   const key = searchParams.get('key')
-  const siteId = searchParams.get('siteId')
+  // Private login mode: on a site's own login domain the site is identified by the host
+  const loginDomain = await resolveLoginDomain(getRequestHost(request))
+  const siteIdParam = searchParams.get('siteId')
+  if (loginDomain && siteIdParam && siteIdParam !== loginDomain.siteId) {
+    return NextResponse.json({ error: 'siteId does not match this login domain' }, { status: 400 })
+  }
+  const siteId = loginDomain ? loginDomain.siteId : siteIdParam
   const tag = searchParams.get('tag')
 
   // Always log params for wallet callbacks (sig+key present) to diagnose mobile issues
@@ -123,7 +130,8 @@ export async function GET(request: NextRequest) {
       console.log('Retrieval request: Found xpub in storage')
     }
     
-    if (storedXpub) {
+    // Tokens are only retrievable from the primary Key-Rex host, never from a login domain
+    if (storedXpub && !loginDomain) {
       if (process.env.NODE_ENV === 'development') {
         console.log('Retrieval request: Found stored xpub for k1:', k1.substring(0, 20) + '...')
       }
@@ -186,11 +194,21 @@ export async function GET(request: NextRequest) {
             siteId,
             issuer: getIssuer(request),
             nonce: challenge.nonce,
+            ...(challenge.loginHost && challenge.pubkey && challenge.sig && challenge.entropy && challenge.nonce
+              ? {
+                  privateLogin: {
+                    linkingKey: challenge.pubkey,
+                    loginDomain: challenge.loginHost,
+                    receipt: { k1: cleanK1ForRetrieval, sig: challenge.sig, key: challenge.pubkey, entropy: challenge.entropy },
+                  },
+                }
+              : {}),
           })
         }
       }
 
-      const embedId = siteId && siteValidated ? identifierForSite(storedXpub, siteId) : storedXpub
+      const isPrivateLogin = !!(token && (await getAuthChallenge(cleanK1ForRetrieval))?.loginHost)
+      const embedId = isPrivateLogin ? storedXpub : siteId && siteValidated ? identifierForSite(storedXpub, siteId) : storedXpub
       const response = NextResponse.json({
         status: 'OK',
         xpub: embedId,
@@ -281,7 +299,7 @@ export async function GET(request: NextRequest) {
   // SECURITY: The k1 must have been issued by us and may be used for exactly one verified
   // signature. This blocks replay of captured (k1, sig, key) and self-chosen challenges.
   const { consumeAuthChallenge } = await import('@/lib/storage')
-  if (!(await consumeAuthChallenge(k1, siteId))) {
+  if (!(await consumeAuthChallenge(k1, siteId, loginDomain?.host))) {
     console.warn('AUTH FAILED: k1 unknown, expired, already used, or bound to another site')
     return NextResponse.json({
       error: 'Invalid or expired challenge. Please start a new login.'
@@ -292,7 +310,12 @@ export async function GET(request: NextRequest) {
   // after the browser retrieves the xpub.
 
   // Derive xpub from pubkey
-  const xpub = deriveXpub(key)
+  // On a login domain the wallet's key is already unique to this site, so the key itself is the
+  // identifier (no global hash). Keep the proof so the token can carry a verifiable receipt.
+  const xpub = loginDomain ? key : deriveXpub(key)
+  if (loginDomain && sig) {
+    await recordChallengeProof(k1, key, sig)
+  }
 
   // Store k1 -> xpub mapping for client to retrieve
   // Clean k1 first to ensure consistent storage
@@ -363,10 +386,10 @@ export async function GET(request: NextRequest) {
 
     // LUD-04 spec: wallet expects { status: "OK" } after successful auth
     // Include a return URL so wallets that support it can redirect back to the browser
-    const returnToQrUrl = `${request.nextUrl.origin}/embed/qr?siteId=${encodeURIComponent(siteId)}&k1=${encodeURIComponent(cleanK1)}&redirect=true&authenticated=true`
+    const returnToQrUrl = `${loginDomain ? getIssuer(request) : request.nextUrl.origin}/embed/qr?siteId=${encodeURIComponent(siteId)}&k1=${encodeURIComponent(cleanK1)}&redirect=true&authenticated=true`
     const response = NextResponse.json({
       status: 'OK',
-      xpub,
+      ...(loginDomain ? {} : { xpub }),
       // Return URL for wallets that support redirect-after-auth
       url: returnToQrUrl,
       // successAction format (from LUD-09) - some wallets check this for LNURL-auth too
