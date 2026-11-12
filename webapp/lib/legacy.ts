@@ -2,17 +2,9 @@ import { createHmac } from 'crypto'
 import type { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { pairwiseSubject } from '@/lib/token'
+import { getLegacySunset, isLegacyDeliveryEnabled } from '@/lib/legacy-sunset'
 
-/**
- * Legacy raw-identifier delivery. While enabled (default) embed responses keep returning the
- * raw xpub next to the token. After KEYREX_LEGACY_XPUB_DELIVERY=false, the `xpub` field in
- * embedded-site responses carries the per-site pairwise identifier instead, so a value learned
- * on one site is useless on another. The raw value remains inside the token (legacy_sub)
- * only while KEYREX_INCLUDE_LEGACY_SUB is not "false".
- */
-export function isLegacyDeliveryEnabled(): boolean {
-  return process.env.KEYREX_LEGACY_XPUB_DELIVERY !== 'false'
-}
+export { getLegacySunset, isLegacyDeliveryEnabled }
 
 /** Value to expose as `xpub`/`identifier` to an embedding site. */
 export function identifierForSite(xpub: string, siteId: string): string {
@@ -24,11 +16,7 @@ export function identifierForSite(xpub: string, siteId: string): string {
 export function applyDeprecationHeaders(response: NextResponse): void {
   if (!isLegacyDeliveryEnabled()) return
   response.headers.set('Deprecation', 'true')
-  const sunset = process.env.KEYREX_LEGACY_SUNSET
-  if (sunset) {
-    const date = new Date(sunset)
-    if (!isNaN(date.getTime())) response.headers.set('Sunset', date.toUTCString())
-  }
+  response.headers.set('Sunset', getLegacySunset().toUTCString())
   const base = (process.env.NEXT_PUBLIC_BASE_URL || '').replace(/\/+$/, '')
   response.headers.set('Link', `<${base}/docs/migration>; rel="deprecation"`)
 }

@@ -636,12 +636,12 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<'overview' | 'login-code' | 'domains' | 'analytics' | 'documentation' | 'troubleshooting' | 'settings'>('overview')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   // Removed: Disclaimer modal - disclaimer is now only shown in OnboardingWizard Step 4
-  const [legacyFlow, setLegacyFlow] = useState<{ needsMigration: boolean; sunset: string | null } | null>(null)
+  const [legacyFlow, setLegacyFlow] = useState<{ needsMigration: boolean; legacyDelivery: boolean; sunset: string | null } | null>(null)
 
   useEffect(() => {
     fetch('/api/integration/status', { credentials: 'include' })
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d) setLegacyFlow({ needsMigration: !!d.needsMigration, sunset: d.sunset }) })
+      .then(d => { if (d) setLegacyFlow({ needsMigration: !!d.needsMigration, legacyDelivery: !!d.legacyDelivery, sunset: d.sunset }) })
       .catch(() => {})
   }, [])
   
@@ -981,17 +981,41 @@ function DashboardContent() {
                 <p className="text-white/90 text-lg leading-relaxed">Manage your Key-Rex integration</p>
           </div>
 
-          {legacyFlow?.needsMigration && (
-            <div className="rounded-lg border-2 border-yellow-500/60 bg-yellow-500/10 p-4 text-white">
-              <p className="font-semibold">Action required: update your site&apos;s login verification</p>
-              <p className="text-sm text-white/80 mt-1">
-                Your site is still trusting the raw identifier returned at login, which is not a secret and can be reused by anyone who has seen it.
-                Verify the signed login token instead
-                {legacyFlow.sunset ? ` before ${new Date(legacyFlow.sunset).toLocaleDateString()}` : ''}.{' '}
-                <a href="/docs/migration" className="underline text-orange-300">Read the migration guide</a>
-              </p>
-            </div>
-          )}
+          {legacyFlow && (() => {
+            const sunsetDate = legacyFlow.sunset ? new Date(legacyFlow.sunset) : null
+            const daysLeft = sunsetDate ? Math.max(0, Math.ceil((sunsetDate.getTime() - Date.now()) / 86400000)) : null
+            const dateText = sunsetDate ? sunsetDate.toLocaleDateString() : null
+            if (!legacyFlow.legacyDelivery) {
+              if (!legacyFlow.needsMigration) return null
+              return (
+                <div className="rounded-lg border-2 border-red-500/60 bg-red-500/10 p-4 text-white">
+                  <p className="font-semibold">Legacy login is no longer supported</p>
+                  <p className="text-sm text-white/80 mt-1">
+                    Key-Rex no longer returns the raw identifier to your site, so logins that rely on it will fail to match your users.
+                    Verify the signed login token to restore them.{' '}
+                    <a href="/docs/migration" className="underline text-orange-300">Read the migration guide</a>
+                  </p>
+                </div>
+              )
+            }
+            const urgent = legacyFlow.needsMigration
+            return (
+              <div className={`rounded-lg border-2 p-4 text-white ${urgent ? 'border-yellow-500/60 bg-yellow-500/10' : 'border-blue-400/50 bg-blue-500/10'}`}>
+                <p className="font-semibold">
+                  {urgent ? 'Action required: update your site\u2019s login verification' : 'Upcoming change: legacy login is being retired'}
+                  {daysLeft !== null ? ` (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)` : ''}
+                </p>
+                <p className="text-sm text-white/80 mt-1">
+                  {urgent
+                    ? 'Your site is still trusting the raw identifier returned at login, which is not a secret and can be reused by anyone who has seen it. '
+                    : 'The raw identifier returned at login will be replaced by a per-site value. '}
+                  Verify the signed login token instead
+                  {dateText ? ` before ${dateText}, when legacy login is permanently turned off` : ''}.{' '}
+                  <a href="/docs/migration" className="underline text-orange-300">Read the migration guide</a>
+                </p>
+              </div>
+            )
+          })()}
 
           {/* Tab Navigation */}
           {user && (() => {
