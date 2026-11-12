@@ -1,9 +1,13 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, getAllUsers, getUserBySiteId } from '@/lib/storage'
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   try {
-    const xpub = request.cookies.get('user_xpub')?.value
+    const xpub = getUserSession(request)
     const searchParams = request.nextUrl.searchParams
     const siteId = searchParams.get('siteId')
     

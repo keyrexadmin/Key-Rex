@@ -282,6 +282,9 @@ export async function cleanupExpiredAuthSessions() {
         },
       },
     })
+    await prisma.authChallenge.deleteMany({
+      where: { expiresAt: { lt: BigInt(now) } },
+    })
 
     if (result.count > 0) {
       console.log(`Cleaned up ${result.count} expired auth sessions`)

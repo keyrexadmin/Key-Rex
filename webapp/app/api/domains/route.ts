@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, addDomain, removeDomain, normalizeDomain, createUser, logActivity, addDomainVerification, getDomainVerification } from '@/lib/storage'
 import { generateSiteId, validateDomain, isTestDomain } from '@/lib/utils'
@@ -23,14 +24,14 @@ function checkWizardCompletion(request: NextRequest): NextResponse | null {
 // GET: Get allowed domains for current user
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user for authenticated endpoints)
-  let xpub = request.cookies.get('user_xpub')?.value
+  let xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per user/IP
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }
   
-  const xpubFromCookie = request.cookies.get('user_xpub')?.value
+  const xpubFromCookie = getUserSession(request)
   
   if (!xpubFromCookie) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -119,14 +120,14 @@ export async function GET(request: NextRequest) {
 // POST: Add a domain
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user, stricter for write operations)
-  let xpub = request.cookies.get('user_xpub')?.value
+  let xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP (stricter for writes)
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }
   
-  const xpubFromCookie = request.cookies.get('user_xpub')?.value
+  const xpubFromCookie = getUserSession(request)
   
   if (process.env.NODE_ENV === 'development') {
     console.log('=== POST /api/domains ===')
@@ -332,14 +333,14 @@ export async function POST(request: NextRequest) {
 // DELETE: Remove a domain
 export async function DELETE(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user, stricter for write operations)
-  let xpub = request.cookies.get('user_xpub')?.value
+  let xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP (stricter for writes)
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }
   
-  const xpubFromCookie = request.cookies.get('user_xpub')?.value
+  const xpubFromCookie = getUserSession(request)
   
   if (process.env.NODE_ENV === 'development') {
     console.log('=== DELETE /api/domains ===')
@@ -445,14 +446,14 @@ export async function DELETE(request: NextRequest) {
 // PUT: Update the single domain
 export async function PUT(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-user, stricter for write operations)
-  let xpub = request.cookies.get('user_xpub')?.value
+  let xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 10, 60000) // 10 requests per minute per user/IP (stricter for writes)
   if (!rateLimit.allowed) {
     return rateLimit.response as NextResponse
   }
   
-  const xpubFromCookie = request.cookies.get('user_xpub')?.value
+  const xpubFromCookie = getUserSession(request)
   
   if (process.env.NODE_ENV === 'development') {
     console.log('=== PUT /api/domains ===')

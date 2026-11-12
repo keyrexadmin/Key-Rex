@@ -18,19 +18,7 @@ export async function GET(request: NextRequest) {
   const cleanedK1 = k1.split('&')[0].split('?')[0]
   console.log('Cleaned k1 for lookup:', cleanedK1.substring(0, 20) + '...')
 
-  // Try in-memory storage first
-  let xpub = await getAuthSession(cleanedK1)
-
-  // If not found in memory, try cookie storage (for persistence across workers)
-  if (!xpub) {
-    console.log('Not found in memory, checking cookies...')
-    const k1CookieName = `auth_k1_${cleanedK1.substring(0, 16)}`
-    const cookieXpub = request.cookies.get(k1CookieName)?.value
-    if (cookieXpub) {
-      console.log('Found xpub in cookie:', k1CookieName)
-      xpub = cookieXpub
-    }
-  }
+  const xpub = await getAuthSession(cleanedK1)
 
   console.log('Xpub lookup result:', xpub ? xpub.substring(0, 20) + '...' : 'NOT FOUND')
 

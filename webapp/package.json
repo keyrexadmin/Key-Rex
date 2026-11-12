@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "dev:client": "node scripts/serve-fake-client.js",
+    "dev:client": "node ../fake-client-site/server.js",
     "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -20,6 +20,10 @@
     "test:e2e": "node test-e2e.js",
     "test:admin": "node test-admin-e2e.js",
     "test:additional": "node test-additional-e2e.js",
+    "test:challenge": "node tests/test-auth-challenge.js",
+    "test:token-flow": "node tests/test-token-flow.js",
+    "test:session": "npx --yes ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\",\"esModuleInterop\":true}' tests/test-session-cookies.ts",
+    "test:token": "npx --yes ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\",\"esModuleInterop\":true}' tests/test-login-token.ts",
     "test:all-automated": "npm run test:e2e && npm run test:admin && npm run test:additional"
   },
   "dependencies": {
@@ -30,6 +34,7 @@
     "asn1js": "^3.0.6",
     "bech32": "^2.0.0",
     "elliptic": "^6.6.1",
+    "jose": "^6.2.12",
     "next": "^16.1.1",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",

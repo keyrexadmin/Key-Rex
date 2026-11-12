@@ -547,7 +547,7 @@
             You're authenticated using Lightning Network (LNURL-auth). Your wallet identity is your account.
           </p>
           <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem;">
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Extended Public Key (xpub)</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Key-Rex User ID (token sub)</div>
             <div id="xpub-display" style="font-family: 'Monaco', 'Menlo', monospace; font-size: 0.75rem; color: var(--text-main); word-break: break-all;">
               Loading...
             </div>
@@ -596,31 +596,18 @@
     </footer>
 
     <script>
-      // Load xpub from URL or storage
-      function getStoredXpub() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const xpub = urlParams.get('xpub');
-        if (xpub) return xpub;
-
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const [name, value] = cookie.trim().split('=');
-          if (name.startsWith('bitpass_xpub_') || name === 'user_xpub' || name.startsWith('keyrex_xpub_')) {
-            return decodeURIComponent(value);
-          }
-        }
-        return null;
-      }
-
-      const xpub = getStoredXpub();
+      // Load the signed-in user from our backend session (verified Key-Rex token)
       const xpubDisplay = document.getElementById('xpub-display');
-      if (xpub) {
-        xpubDisplay.textContent = xpub.substring(0, 60) + '...';
-        xpubDisplay.title = xpub;
-      } else {
-        xpubDisplay.textContent = 'demo_xpub_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t (demo mode)';
-        xpubDisplay.style.color = '#94a3b8';
-      }
+      fetch('/api/me')
+        .then(function(r) { if (!r.ok) throw new Error('not signed in'); return r.json(); })
+        .then(function(me) {
+          xpubDisplay.textContent = me.sub.substring(0, 60) + '...';
+          xpubDisplay.title = me.sub;
+        })
+        .catch(function() {
+          xpubDisplay.textContent = 'demo_user_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p (demo mode, not signed in)';
+          xpubDisplay.style.color = '#94a3b8';
+        });
 
       // Copy API key function
       function copyApiKey() {

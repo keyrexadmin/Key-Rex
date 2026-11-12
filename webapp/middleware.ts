@@ -37,7 +37,8 @@ export async function middleware(request: NextRequest) {
     }
 
     // Only import and use cookie verification for dashboard routes
-    const userXpub = request.cookies.get('user_xpub')?.value
+    const { verifyUserSessionEdge } = await import('@/lib/session-edge')
+    const userXpub = await verifyUserSessionEdge(request.cookies.get('user_xpub')?.value)
 
     // If no authentication cookie, redirect to home
     if (!userXpub) {

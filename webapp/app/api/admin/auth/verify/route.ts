@@ -1,3 +1,4 @@
+import { getAdminSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie, isAdminXpub } from '@/lib/admin-auth'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
@@ -14,11 +15,10 @@ export async function GET(request: NextRequest) {
     return rateLimit.response as NextResponse
   }
   
-  const adminSession = request.cookies.get('admin_session')?.value
+  const adminSession = getAdminSession(request)
   
   console.log('=== /api/admin/auth/verify called ===')
   console.log('Admin session cookie:', adminSession ? adminSession.substring(0, 20) + '...' : 'NOT FOUND')
-  console.log('Admin session cookie full value:', adminSession || 'NOT FOUND')
   
   if (!adminSession) {
     console.log('No admin session cookie found')

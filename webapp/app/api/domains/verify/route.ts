@@ -1,3 +1,4 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, getDomainVerification, updateDomainVerification } from '@/lib/storage'
 import { verifyDomainDNS } from '@/lib/domain-verification'
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     return rateLimit.response as NextResponse
   }
   
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   if (!xpub) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }

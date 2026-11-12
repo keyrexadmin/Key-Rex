@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateChallenge } from '@/lib/auth'
 import { encodeLNURL } from '@/lib/lnurl'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
+import { issueAuthChallenge } from '@/lib/storage'
 
 /**
  * Admin LNURL API Route
@@ -21,6 +22,13 @@ export async function GET(request: NextRequest) {
   const domain = request.nextUrl.origin
   const callbackUrl = `${domain}/api/admin/auth/login?tag=login&k1=${encodeURIComponent(k1)}`
   const lnurlBech32 = encodeLNURL(callbackUrl)
+
+  try {
+    await issueAuthChallenge(k1)
+  } catch (error) {
+    console.error('Admin LNURL: failed to persist challenge:', error)
+    return NextResponse.json({ error: 'Failed to issue challenge' }, { status: 500 })
+  }
   
   console.log('=== /api/admin/auth/lnurl called ===')
   console.log('Generated k1:', k1.substring(0, 20) + '...')

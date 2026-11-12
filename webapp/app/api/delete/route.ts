@@ -1,10 +1,11 @@
+import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub, deleteUser } from '@/lib/storage'
 import { rateLimitMiddleware, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limiting - prevent account deletion abuse (stricter for destructive action)
-  const xpub = request.cookies.get('user_xpub')?.value
+  const xpub = getUserSession(request)
   const identifier = xpub || getClientIP(request)
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 5, 60000) // 5 requests per minute (strict for deletion)
   if (!rateLimit.allowed) {

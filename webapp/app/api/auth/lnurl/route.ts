@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateChallenge } from '@/lib/auth'
 import { encodeLNURL } from '@/lib/lnurl'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
+import { issueAuthChallenge, AUTH_NONCE_PATTERN } from '@/lib/storage'
 
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent DoS attacks and cost abuse
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const providedK1 = searchParams.get('k1')
   const providedSiteId = searchParams.get('siteId')
+  const providedNonce = searchParams.get('nonce')
+  if (providedNonce && !AUTH_NONCE_PATTERN.test(providedNonce)) {
+    return NextResponse.json({ error: 'Invalid nonce: use 16-128 characters of A-Z, a-z, 0-9, - or _' }, { status: 400 })
+  }
 
   // Validate providedK1 - reject obviously invalid values like the literal string "undefined"
   // This catches the case where the embed script's LNURL fetch failed and passed k1=undefined
@@ -46,6 +51,14 @@ export async function GET(request: NextRequest) {
   }
 
   const lnurlBech32 = encodeLNURL(callbackUrl)
+
+  // Register the challenge so it can be consumed exactly once after signature verification
+  try {
+    await issueAuthChallenge(k1, providedSiteId, providedNonce)
+  } catch (error) {
+    console.error('LNURL: failed to persist challenge:', error)
+    return NextResponse.json({ error: 'Failed to issue challenge' }, { status: 500 })
+  }
 
   // Verify bech32 round-trip to catch encoding issues
   try {

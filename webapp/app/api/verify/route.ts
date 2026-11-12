@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySignature, deriveXpub } from '@/lib/auth'
-import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, markAuthSessionAsUsed, getVerifiedDomains } from '@/lib/storage'
+import { recordLogin, getUserBySiteId, isDomainAllowed, normalizeDomain, consumeAuthChallenge, getAuthChallenge, getVerifiedDomains } from '@/lib/storage'
+import { issueLoginToken, getIssuer } from '@/lib/token'
+import { identifierForSite, applyDeprecationHeaders, recordLoginFlow } from '@/lib/legacy'
 import { detectWallet, detectBrowser, detectDeviceType, isTestDomain } from '@/lib/utils'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 
@@ -93,8 +95,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
     
-    // SECURITY: Mark k1 as used immediately after successful verification to prevent replay attacks
-    await markAuthSessionAsUsed(k1)
+    // SECURITY: Consume the issued k1 exactly once to prevent replay
+    if (!(await consumeAuthChallenge(k1, siteId))) {
+      return NextResponse.json({ error: 'Invalid or expired challenge' }, { status: 401 })
+    }
 
     // Detect wallet, browser, and device from User-Agent and signature format
     const userAgent = request.headers.get('user-agent')
@@ -121,8 +125,21 @@ export async function POST(request: NextRequest) {
     
     // Derive xpub
     const xpub = deriveXpub(key)
-    
-    return NextResponse.json({ success: true, xpub })
+
+    // Signed login token bound to this site and the client's nonce (the raw xpub is not a credential)
+    const challenge = await getAuthChallenge(k1)
+    const token = await issueLoginToken({
+      xpub,
+      siteId,
+      issuer: getIssuer(request),
+      nonce: challenge?.nonce,
+    })
+
+    const embedId = identifierForSite(xpub, siteId)
+    await recordLoginFlow(siteId, !!(token && challenge?.nonce))
+    const response = NextResponse.json({ success: true, xpub: embedId, identifier: embedId, ...(token ? { token } : {}) })
+    applyDeprecationHeaders(response)
+    return response
   } catch (error) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }

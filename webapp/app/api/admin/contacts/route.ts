@@ -1,3 +1,4 @@
+import { getAdminSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSessionFromCookie } from '@/lib/admin-auth'
 import { getAllContactSubmissions, getUnreadContactSubmissions, updateContactSubmissionStatus, deleteContactSubmission } from '@/lib/storage'
@@ -10,7 +11,7 @@ import { rateLimitMiddleware } from '@/lib/rate-limit'
  */
 export async function GET(request: NextRequest) {
   // SECURITY: Rate limiting - prevent cost abuse (per-admin)
-  const adminSession = request.cookies.get('admin_session')?.value
+  const adminSession = getAdminSession(request)
   const identifier = adminSession || 'anonymous'
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 30, 60000) // 30 requests per minute per admin
   if (!rateLimit.allowed) {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for write operations)
-  const adminSession = request.cookies.get('admin_session')?.value
+  const adminSession = getAdminSession(request)
   const identifier = adminSession || 'anonymous'
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
   if (!rateLimit.allowed) {
@@ -91,7 +92,7 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   // SECURITY: Rate limiting - prevent abuse (per-admin, stricter for delete operations)
-  const adminSession = request.cookies.get('admin_session')?.value
+  const adminSession = getAdminSession(request)
   const identifier = adminSession || 'anonymous'
   const rateLimit = rateLimitMiddleware({ headers: request.headers, identifier }, 20, 60000) // 20 requests per minute per admin
   if (!rateLimit.allowed) {

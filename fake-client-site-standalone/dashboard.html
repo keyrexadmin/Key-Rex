@@ -857,7 +857,7 @@
             Authenticated via Lightning Network (LNURL-auth). Your wallet is your account.
           </p>
           <div class="identity-box">
-            <div class="identity-label">Extended Public Key (xpub)</div>
+            <div class="identity-label">Key-Rex User ID (token sub)</div>
             <div class="identity-value" id="xpub-display">
               Loading...
             </div>
@@ -917,31 +917,18 @@
     </script>
 
     <script>
-      // Load xpub from URL or storage
-      function getStoredXpub() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const xpub = urlParams.get('xpub');
-        if (xpub) return xpub;
-
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const [name, value] = cookie.trim().split('=');
-          if (name.startsWith('bitpass_xpub_') || name === 'user_xpub' || name.startsWith('keyrex_xpub_')) {
-            return decodeURIComponent(value);
-          }
-        }
-        return null;
-      }
-
-      const xpub = getStoredXpub();
+      // Load the signed-in user from our backend session (verified Key-Rex token)
       const xpubDisplay = document.getElementById('xpub-display');
-      if (xpub) {
-        xpubDisplay.textContent = xpub.substring(0, 60) + '...';
-        xpubDisplay.title = xpub;
-      } else {
-        xpubDisplay.textContent = 'demo_xpub_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t';
-        xpubDisplay.style.color = '#777777';
-      }
+      fetch('/api/me')
+        .then(function(r) { if (!r.ok) throw new Error('not signed in'); return r.json(); })
+        .then(function(me) {
+          xpubDisplay.textContent = me.sub.substring(0, 60) + '...';
+          xpubDisplay.title = me.sub;
+        })
+        .catch(function() {
+          xpubDisplay.textContent = 'demo_user_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p (not signed in)';
+          xpubDisplay.style.color = '#777777';
+        });
 
       // Copy API key function
       function copyApiKey() {

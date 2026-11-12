@@ -114,6 +114,21 @@ model ActivityLog {
 }
 
 // AuthSessions - temporary k1→xpub mappings (5 min TTL)
+// Issued LNURL-auth challenges. A k1 must be registered here when issued and is
+// consumed exactly once when a verified signature is presented for it.
+model AuthChallenge {
+  id        String  @id @default(cuid())
+  k1        String  @unique
+  siteId    String?
+  nonce     String?
+  consumed  Boolean @default(false)
+  createdAt BigInt
+  expiresAt BigInt
+
+  @@index([expiresAt])
+  @@map("auth_challenges")
+}
+
 model AuthSession {
   id        String   @id @default(cuid())
   k1        String   @unique
@@ -159,4 +174,16 @@ model ContactSubmission {
   @@index([timestamp])
   @@index([urgent])
   @@map("contact_submissions")
+}
+
+// Per-site counts of logins delivered with a nonce-bound token (new flow) versus
+// without (legacy flow). Used to show owners whether they still need to migrate.
+model SiteLoginFlow {
+  siteId       String  @id
+  tokenLogins  Int     @default(0)
+  legacyLogins Int     @default(0)
+  lastTokenAt  BigInt?
+  lastLegacyAt BigInt?
+
+  @@map("site_login_flow")
 }
