@@ -6,6 +6,7 @@
  */
 
 import { generateKeyPairSync } from 'crypto'
+import { isLegacyDeliveryEnabled, getLegacySunset } from '../lib/legacy-sunset'
 import { jwtVerify, createLocalJWKSet, errors } from 'jose'
 
 const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
@@ -73,6 +74,18 @@ async function main() {
   const noLegacy = await issueLoginToken({ xpub, siteId: 'siteA', issuer })
   const decoded = await jwtVerify(noLegacy!, jwks, { issuer, audience: 'siteA' })
   check('legacy_sub omitted when disabled; no nonce when none given', decoded.payload.legacy_sub === undefined && decoded.payload.nonce === undefined)
+
+  delete process.env.KEYREX_LEGACY_XPUB_DELIVERY
+  delete process.env.KEYREX_LEGACY_SUNSET
+  const sunset = getLegacySunset().getTime()
+  check('legacy delivery on before the default sunset', isLegacyDeliveryEnabled(sunset - 1))
+  check('legacy delivery forced off at the sunset', !isLegacyDeliveryEnabled(sunset))
+  process.env.KEYREX_LEGACY_SUNSET = '2030-01-01'
+  check('KEYREX_LEGACY_SUNSET overrides the cutoff', isLegacyDeliveryEnabled(sunset + 1))
+  process.env.KEYREX_LEGACY_SUNSET = 'garbage'
+  check('invalid sunset falls back to the default', getLegacySunset().getTime() === sunset)
+  process.env.KEYREX_LEGACY_XPUB_DELIVERY = 'false'
+  check('explicit toggle still disables early', !isLegacyDeliveryEnabled(sunset - 1))
 
   console.log(failed ? `\n${failed} failed` : '\nall passed')
   process.exit(failed ? 1 : 0)

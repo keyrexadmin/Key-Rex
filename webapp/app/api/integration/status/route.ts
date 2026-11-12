@@ -1,7 +1,7 @@
 import { getUserSession } from '@/lib/session'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByXpub } from '@/lib/storage'
-import { getLoginFlow, isLegacyDeliveryEnabled } from '@/lib/legacy'
+import { getLoginFlow, isLegacyDeliveryEnabled, getLegacySunset } from '@/lib/legacy'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +18,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ...flow,
     legacyDelivery: isLegacyDeliveryEnabled(),
-    sunset: process.env.KEYREX_LEGACY_SUNSET || null,
+    sunset: getLegacySunset().toISOString(),
   })
 }
